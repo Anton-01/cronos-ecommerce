@@ -1,0 +1,600 @@
+# context.md — Master Plan: Cronos E-commerce
+
+> **Regla de oro:** este archivo se revisa al inicio de CADA consulta y se actualiza al cerrar cada fase
+> (checklist, decisiones, cambios de esquema). Si el código y este documento divergen, se corrige uno de los dos en el mismo commit.
+>
+> **Idioma:** documentación en español · todo código, comentarios, nombres de clases/tablas/columnas, mensajes de commit en **inglés**.
+> **Estado actual:** `Fase 0 (Planeación)` completada · esperando orden para iniciar **Fase 1**.
+> **Última revisión:** 2026-10-28
+
+---
+
+## 0. Índice
+
+1. [Objetivo y alcance](#1-objetivo-y-alcance)
+2. [Cobertura de la retrospectiva del usuario](#2-cobertura-de-la-retrospectiva-del-usuario)
+3. [Decisiones arquitectónicas (ADR resumido)](#3-decisiones-arquitectónicas-adr-resumido)
+4. [Stack tecnológico exacto](#4-stack-tecnológico-exacto)
+5. [Arquitectura hexagonal / SOLID](#5-arquitectura-hexagonal--solid)
+6. [Estructura del monorepo](#6-estructura-del-monorepo)
+7. [Docker e infraestructura](#7-docker-e-infraestructura)
+8. [GraphQL: diseño de API](#8-graphql-diseño-de-api)
+9. [EDA: eventos, listeners y colas](#9-eda-eventos-listeners-y-colas)
+10. [Estrategia de caché Redis](#10-estrategia-de-caché-redis)
+11. [Auditoría e inmutabilidad](#11-auditoría-e-inmutabilidad)
+12. [Evaluación del ER entregado y mejoras](#12-evaluación-del-er-entregado-y-mejoras)
+13. [Esquema de base de datos (PostgreSQL)](#13-esquema-de-base-de-datos-postgresql)
+14. [Diagrama ER](#14-diagrama-er)
+15. [Seguridad y fraude](#15-seguridad-y-fraude)
+16. [Observabilidad, calidad y CI/CD](#16-observabilidad-calidad-y-cicd)
+17. [Checklist de fases](#17-checklist-de-fases)
+18. [Preguntas abiertas / supuestos](#18-preguntas-abiertas--supuestos)
+19. [Bitácora de cambios](#19-bitácora-de-cambios)
+
+---
+
+## 1. Objetivo y alcance
+
+Plataforma e-commerce de alto rendimiento, multi-país y multi-moneda, vendiendo **listones por metro** (cantidad decimal, corte a medida) y **otros productos por pieza**, con pedidos personalizados.
+
+| Pieza | Tecnología | Rol |
+|---|---|---|
+| `backend/` | Laravel 11+ · GraphQL (Lighthouse) · PostgreSQL · Redis | API única, dominio, colas, auditoría |
+| `admin/` | React + Vite + TS · Tailwind · shadcn/ui · TanStack Table · Apollo Client | Panel de administración |
+| `storefront/` | React (Next.js, ver ADR-09) · Tailwind · Apollo Client | Tienda para clientes |
+
+Restricciones duras: **solo GraphQL** (nada de REST salvo webhooks entrantes de terceros y health checks), **EDA** para lógica pesada, **auditoría inmutable**, **soft deletes** en tablas transaccionales/catálogo, **ULID** públicos, **Docker** de nivel enterprise.
+
+---
+
+## 2. Cobertura de la retrospectiva del usuario
+
+| # | Requerimiento | ¿Cubierto por el plan original? | Solución en este plan | Fase |
+|---|---|---|---|---|
+| R1 | Pagos en línea en ambos países | Parcial (pasarelas por interfaz, sin noción de país) | Tabla `markets` (país → moneda, impuestos, pasarelas, transportistas). `PaymentGatewayPort` con adaptadores por país/método; `payments`, `payment_transactions`, `webhook_events` (idempotencia). Multi-moneda con snapshot de tipo de cambio. | 4, 6 |
+| R2 | Catálogo con fotos, precios e inventario | Sí | Media Library polimórfica + PIM + Kardex. Se añade precio por moneda/mercado (`product_prices`). | 2, 3, 4, 5 |
+| R3 | Listones **por metro** y otros **por pieza** | **NO cubierto** (cantidades enteras implícitas) | `products.sell_unit` (`piece`/`meter`), `min_quantity`, `quantity_step`, `max_quantity`; cantidades `NUMERIC(12,3)` en carrito, order_items y kardex; opción de **rollo completo** (`roll_length`) y corte; validación de múltiplos del paso. Precio = precio por unidad base. | 3, 5, 6 |
+| R4 | Cálculo de costos de envío y generación de guías | Parcial (solo `shipping_carrier`/`tracking_number` en `orders`) | Puerto `ShippingCarrierPort` (Envia.com primero). Tablas `shipping_methods`, `shipments`, `shipment_packages`, `shipment_labels` (PDF vía Job), cotización cacheada en Redis. Peso/dimensiones por producto; para listones el peso se calcula por metro (`weight_per_unit`). | 7 |
+| R5 | Rastreo de pedidos | Parcial (`order_histories`) | `shipment_tracking_events` (inmutable), webhooks de transportista → cola, query `trackOrder` pública con token + panel del cliente, notificaciones. | 7 |
+| R6 | Actualización automática de inventario | Sí (Kardex) | Listener en cola `ReserveInventory` → `ConfirmSale` con `lockForUpdate`; reservas con TTL; stock desnormalizado por trigger/listener; alertas de stock bajo. | 5, 7 |
+| R7 | Pedidos personalizados | **NO cubierto** | Módulo `CustomOrders`: `custom_order_requests` → `custom_order_quotes` (+ líneas) → aprobación del cliente → conversión a `orders` con `order_type = custom`; adjuntos vía Media; conversación (`custom_order_messages`); estados y auditoría. | 7 |
+
+Requerimientos **implícitos** detectados (se proponen, requieren confirmación — ver §18): facturación fiscal por país (p. ej. CFDI en México), múltiples bodegas, cumplimiento de privacidad (LFPDPPP / GDPR-like), i18n del storefront.
+
+---
+
+## 3. Decisiones arquitectónicas (ADR resumido)
+
+| ID | Decisión | Motivo |
+|---|---|---|
+| ADR-01 | **Monolito modular** (un deploy Laravel, bounded contexts internos) en vez de microservicios | Menor complejidad operativa; las fronteras hexagonales permiten extraer servicios luego. |
+| ADR-02 | **Lighthouse-PHP** (schema-first SDL) + **Apollo Client** en ambos fronts, tipos con `graphql-codegen` | Un solo cliente, caché normalizada InMemoryCache, tipado end-to-end. |
+| ADR-03 | **Dos esquemas GraphQL**: `/graphql` (storefront, público/cliente) y `/admin/graphql` (admin, RBAC estricto) | Superficie de ataque y complejidad separadas; límites de rate distintos. |
+| ADR-04 | **ULID** como PK de entidades de negocio (tipo `char(26)`); `bigint identity` solo en tablas de apéndice masivo (`audits`, `inventory_movements`, `order_histories`, `shipment_tracking_events`) y catálogos pequeños (`tax_classes`, `currencies`, `markets`) | Evita enumeración; los ULID ordenables mantienen buen rendimiento de índices B-tree. |
+| ADR-05 | **Dinero**: `NUMERIC(14,2)` + librería `brick/money`; **cantidades**: `NUMERIC(12,3)`. Nunca `float`. | Exactitud financiera y soporte para metros. |
+| ADR-06 | **Inmutabilidad reforzada a nivel BD** (triggers que rechazan `UPDATE/DELETE` en `audits`, `inventory_movements`, `order_histories`, `shipment_tracking_events`, `payment_transactions`) | La inmutabilidad no debe depender solo de código de aplicación. |
+| ADR-07 | **Outbox pattern** (`outbox_messages`) para eventos críticos (`OrderCreated`, pago confirmado) + `afterCommit` en colas | Garantiza que no se pierdan eventos si hay caída entre commit y dispatch. |
+| ADR-08 | **Redis separado por responsabilidad** (instancias o DBs lógicas): `cache` (allkeys-lru), `queue` (noeviction, AOF), `session/cart/ratelimit` (volatile-ttl) | Evitar que la política de evicción de caché destruya colas o carritos. |
+| ADR-09 | **Storefront con Next.js (App Router, SSR/ISR) + Apollo** *(propuesto, confirmar)* | SEO (OpenGraph/Schema.org) y rendimiento percibido; el prompt permite Next.js o Helmet. El Admin es SPA (Vite). |
+| ADR-10 | Auth: **Sanctum** (tokens personales con abilities, cookie SPA opcional) integrado vía directivas `@guard`/mutaciones `login`, `refresh`, `logout` | Más simple que Passport; no se requiere OAuth server. Socialite (Google) para login social. |
+| ADR-11 | RBAC con **spatie/laravel-permission** (teams no requeridos) + `@can` en SDL + Policies | Estándar maduro; permisos granulares `recurso.acción`. |
+| ADR-12 | Cálculo de precios/impuestos/envíos en **servicios de dominio puros** (sin Eloquent) | Testeable, reutilizable por carrito, checkout y cotizaciones. |
+| ADR-13 | **Idempotencia** obligatoria en mutaciones críticas (`createOrder`, `pay`) con header `Idempotency-Key` almacenado en Redis + tabla `idempotency_keys` | Reintentos de red seguros. |
+| ADR-14 | Búsqueda de catálogo: **PostgreSQL FTS (`tsvector` + `pg_trgm`)** en MVP; puerto `CatalogSearchPort` permite migrar a Meilisearch/OpenSearch | Evita infraestructura extra al inicio. |
+
+---
+
+## 4. Stack tecnológico exacto
+
+> Las versiones se **fijan en Fase 1** consultando la última estable y se registran en §19. "Mínimo" = piso permitido.
+
+### Backend
+| Componente | Elección | Mínimo |
+|---|---|---|
+| Lenguaje / framework | PHP + Laravel | PHP 8.3 · Laravel 11 (preferir la última estable) |
+| GraphQL | `nuwave/lighthouse` | v6 |
+| Base de datos | PostgreSQL | 16 (extensiones: `pgcrypto`, `pg_trgm`, `citext`, `btree_gin`, `ltree`) |
+| Pooling | PgBouncer (transaction mode) | — |
+| Redis | Redis | 7.x (cliente `phpredis`) |
+| Colas / supervisión | `laravel/horizon` | — |
+| Servidor de app | Laravel Octane (FrankenPHP o RoadRunner) *o* PHP-FPM + Nginx | decidir en Fase 1 tras benchmark; Octane requiere código sin estado |
+| Auth | `laravel/sanctum`, `laravel/socialite` | — |
+| RBAC | `spatie/laravel-permission` | — |
+| Auditoría | `owen-it/laravel-auditing` (modelo `Audit` extendido: ULID, JSONB, solo inserción) | — |
+| Medios | Implementación propia hexagonal inspirada en Spatie (polimórfica); `intervention/image` (o `libvips`) + `ffprobe`/`exiftool` para metadata | — |
+| Dinero | `brick/money` | — |
+| Exportación | `openspout/openspout` (streaming `.xlsx`, bajo consumo de memoria) | — |
+| PDF | `dompdf` o `Browsershot` (Job) | — |
+| Pruebas | Pest, Larastan (nivel 8+), Laravel Pint, Infection (mutation, opcional), Deptrac (reglas hexagonales) | — |
+| Observabilidad | Sentry, OpenTelemetry, `laravel/telescope` (solo dev), Prometheus exporter | — |
+| Seguridad (CI) | `composer audit`, Trivy, gitleaks, Semgrep | — |
+
+### Frontend (ambos)
+| Componente | Admin | Storefront |
+|---|---|---|
+| Framework | React 18+/19 + Vite + TypeScript estricto | Next.js (App Router) + React + TypeScript estricto |
+| Estilos | Tailwind CSS | Tailwind CSS |
+| UI | **shadcn/ui** (Radix) | Componentes propios + Radix primitives |
+| Tablas | **TanStack Table** (server-side, cursor pagination) | — |
+| Datos | Apollo Client (InMemoryCache + `typePolicies`, paginación `relayStylePagination`) | Apollo Client (+ `@apollo/client-integration-nextjs`) |
+| Formularios | React Hook Form + Zod | React Hook Form + Zod |
+| Tipos GraphQL | `graphql-codegen` (client preset) | `graphql-codegen` |
+| Cropper de avatar | `react-easy-crop` | `react-easy-crop` (perfil) |
+| Pruebas | Vitest + Testing Library + Playwright | Vitest + Testing Library + Playwright |
+| SEO | — | Metadata API de Next, JSON-LD (Schema.org), OpenGraph |
+| Calidad | ESLint, Prettier, `tsc --noEmit`, Storybook (opcional) | ídem |
+
+---
+
+## 5. Arquitectura hexagonal / SOLID
+
+Cada **bounded context** (módulo) tiene 4 capas con dependencia **siempre hacia adentro**:
+
+```
+Interfaces (GraphQL resolvers, Console, Webhook controllers)   ← driving adapters
+        │  llama a
+Application (Commands/Queries, Handlers, DTOs, Event Listeners)  ← casos de uso
+        │  depende de
+Domain (Entities, Value Objects, Domain Services, Events, Ports) ← sin framework
+        ▲  implementado por
+Infrastructure (Eloquent repos, Redis, Gateways, Carriers, Storage)  ← driven adapters
+```
+
+Reglas (aplicadas con **Deptrac** en CI — el build falla si se violan):
+1. `Domain` no importa `Illuminate\*`, Eloquent, ni nada de `Infrastructure`/`Interfaces`.
+2. Resolvers GraphQL **solo** construyen un Command/Query DTO, lo pasan a un Handler (vía bus) y devuelven el resultado. Cero lógica de negocio.
+3. Toda E/S externa (pago, envío, storage, email, push, tipo de cambio) se declara como **Port** (interface) en `Domain`/`Application` con adaptador en `Infrastructure`, enlazado en un `ServiceProvider` por módulo.
+4. Eloquent vive **solo** en `Infrastructure/Persistence`; el dominio usa **Repository interfaces**. Los modelos Eloquent llevan Observers (caché) y `Auditable`.
+5. Eventos de dominio → Listeners de `Application` en cola (`ShouldQueue`, `afterCommit`).
+6. SOLID: S — un handler por caso de uso; O — nuevas pasarelas/transportistas = nuevos adaptadores, sin tocar el core; L/I — ports pequeños y específicos; D — inyección por contenedor, nunca `new` de colaboradores en el core.
+
+### Bounded contexts
+`Identity` (users, auth, RBAC, profiles) · `Audit` · `Media` · `Settings` (identidad y configuración) · `Catalog` (PIM, taxonomía) · `Pricing` (precios, promos, cupones, monedas, impuestos) · `Inventory` · `Cart` · `Checkout/Payment` · `Order` · `Shipping` · `CustomOrder` · `Notification` · `Wishlist` · `Reporting` · `Seo`.
+
+---
+
+## 6. Estructura del monorepo
+
+```
+cronos-ecommerce/
+├── context.md                      # este archivo
+├── docker/                         # Dockerfiles, nginx, php.ini, redis.conf, pg init
+├── docker-compose.yml              # dev
+├── docker-compose.prod.yml         # referencia prod / override
+├── Makefile                        # make up / test / lint / codegen / migrate
+├── .github/workflows/              # CI/CD
+├── backend/
+│   ├── app/                        # Kernel mínimo, Providers
+│   ├── src/
+│   │   └── <Module>/
+│   │       ├── Domain/             # Entities, ValueObjects, Events, Ports, Services
+│   │       ├── Application/        # Commands, Queries, Handlers, DTOs, Listeners
+│   │       ├── Infrastructure/     # Persistence (Eloquent), Adapters, Observers
+│   │       └── Interfaces/         # GraphQL (Mutations, Queries, Directives), Console, Http (webhooks)
+│   ├── graphql/                    # schema.graphql (storefront), admin.graphql, módulos *.graphql
+│   ├── database/{migrations,seeders,factories}
+│   ├── deptrac.yaml · phpstan.neon · pint.json
+│   └── tests/{Unit,Feature,Architecture}
+├── admin/                          # React + Vite
+├── storefront/                     # Next.js
+└── packages/                       # compartido: graphql-codegen config, eslint-config, tailwind-preset, tokens de diseño
+```
+
+---
+
+## 7. Docker e infraestructura
+
+**Principios enterprise:** imágenes multi-stage, base fijada por digest/versión, usuario **no-root**, filesystem `read_only` donde sea posible, `HEALTHCHECK` en cada servicio, secretos por Docker/Swarm secrets o variables inyectadas (nunca en imagen), límites de CPU/memoria, redes segmentadas, volúmenes nombrados, logs JSON a stdout, SBOM + escaneo Trivy en CI, `.dockerignore` estricto, build con BuildKit y caché.
+
+| Servicio | Imagen / notas |
+|---|---|
+| `app` | PHP-FPM (o Octane) multi-stage: `base → vendor → dev → prod` con OPcache + JIT tunado |
+| `nginx` | Reverse proxy, headers de seguridad, gzip/brotli, rate-limit L7 |
+| `queue-default`, `queue-notifications`, `queue-media`, `queue-payments` | Workers Horizon por cola con prioridades y supervisor |
+| `scheduler` | `schedule:work` (un solo contenedor) |
+| `postgres` | PostgreSQL 16 + init de extensiones; volumen persistente |
+| `pgbouncer` | Pooling transaccional |
+| `redis-cache`, `redis-queue`, `redis-session` | Config y política de evicción distinta por instancia (ADR-08) |
+| `mailpit` | SMTP de desarrollo |
+| `minio` | S3 compatible para medios (dev); S3 real en prod |
+| `admin` / `storefront` | Dev: Vite/Next con HMR · Prod: build estático (nginx) / Node standalone |
+| `traefik` (prod) | TLS (Let's Encrypt), enrutamiento por host |
+
+Entornos: `local`, `staging`, `production` (variables por `.env.*.example`; `.env` jamás commiteado).
+
+---
+
+## 8. GraphQL: diseño de API
+
+- **Esquemas separados** (ADR-03) y modularizados en `graphql/<module>/*.graphql` con `#import`.
+- **Paginación por cursor** (Relay connections) en toda lista; **nunca** offset en tablas grandes.
+- **Seguridad:** límite de profundidad y complejidad, introspección desactivada en producción, *persisted queries* (APQ) para el storefront, `@throttle` por operación, `@guard` + `@can` por campo/mutación, validación con `@rules`/FormRequests de dominio.
+- **IDs públicos = ULID** (`ID!`). Los IDs bigint internos jamás se exponen.
+- **Errores:** formato estándar con `extensions.code` (`VALIDATION`, `UNAUTHENTICATED`, `FORBIDDEN`, `CONFLICT`, `RATE_LIMITED`, `OUT_OF_STOCK`…) y `correlation_id`.
+- **N+1:** `@with`/`@lazyLoad`/DataLoaders y pruebas que fallan si superan N queries.
+- **Cache de red:** directiva `@cache` de Lighthouse con tags (ver §10) para queries públicas; las queries autenticadas no se cachean a nivel de red.
+- **Subidas de archivos:** `graphql-multipart-request-spec` (Upload) con límites de tamaño/MIME; para archivos grandes, *presigned upload* vía mutación (`requestMediaUpload` → PUT directo a S3 → `confirmMediaUpload`).
+- **Webhooks entrantes** (pasarelas/transportistas) son la única excepción HTTP: endpoint mínimo que valida firma, persiste en `webhook_events` y despacha a cola (< 50 ms).
+
+---
+
+## 9. EDA: eventos, listeners y colas
+
+**Regla:** mutación = validar + persistir lo mínimo + emitir evento + responder. Todo lo demás en cola.
+
+| Evento | Listeners (cola) |
+|---|---|
+| `UserRegistered` | `SendEmailVerification`, `CreateProfile`, `SyncGuestCartToUser` |
+| `PasswordResetRequested` | `SendPasswordResetEmail` |
+| `MediaUploaded` | `ExtractMediaMetadata`, `GenerateThumbnails` (conversiones), `ScanForMalware` |
+| `ProductChanged` (vía Observer) | `PurgeCatalogCache`, `ReindexSearch`, `RecomputeStockSummary` |
+| `CartCheckoutStarted` | `ReserveInventory` (con TTL), `QuoteShipping` |
+| **`OrderCreated`** | `InitiatePayment` · `ConfirmInventoryReservation` (`lockForUpdate`) · `RequestShippingQuote/CreateShipment` · `NotifyCustomer` · `NotifyAdmins` · `RecordOrderHistory` |
+| `PaymentWebhookReceived` | `ProcessPaymentWebhook` → `PaymentSucceeded` / `PaymentFailed` |
+| `PaymentSucceeded` | `MarkOrderPaid`, `GenerateInvoice` (PDF), `GenerateShippingLabel` |
+| `PaymentFailed` / `ReservationExpired` | `ReleaseInventory`, `NotifyCustomer`, `CancelOrderIfUnpaid` |
+| `ShipmentTrackingUpdated` | `AppendTrackingEvent`, `UpdateOrderStatus`, `NotifyCustomer` |
+| `InventoryMovementRecorded` | `RefreshStockSummary`, `LowStockAlert` |
+| `CustomOrderQuoted` / `…Approved` | `NotifyCustomer`, `ConvertQuoteToOrder` |
+| `ExportRequested` | `GenerateXlsxReport` → `ExportReady` → `NotifyWithDownloadLink` |
+
+**Colas y prioridades:** `payments` (alta) > `default` > `notifications` > `media` > `exports` (baja). Reintentos con backoff exponencial, `failed_jobs` + alertas, *dead-letter* revisable desde Horizon, `ShouldBeUnique` donde aplique, y **todos los Listeners idempotentes**.
+
+---
+
+## 10. Estrategia de caché Redis
+
+1. **Capa de red GraphQL:** `@cache` con tags en queries públicas pesadas (menús, árbol de categorías, listados/detalle de catálogo publicado, configuración e identidad). Clave incluye operación + variables + `locale` + `market` + `currency`.
+2. **Tagging:** `catalog`, `catalog:product:{id}`, `catalog:category:{id}`, `menu`, `settings`, `settings:{group}`, `pricing`. Requiere driver Redis (no `file`/`database`).
+3. **Invalidación por Observers** de Eloquent (`Product`, `Category`, `Tag`, `Attribute*`, `ProductPrice`, `Setting`, `Media`, `Coupon`…) que purgan **solo** los tags afectados — de forma diferida vía listener en cola para no bloquear la escritura (con `afterCommit`).
+4. **Configuración e identidad:** sin TTL (permanente) con *write-through* en cada cambio + comando `settings:warm` en deploy.
+5. **Sesiones, carritos de invitado, rate limiting:** Redis dedicado (ADR-08). Carrito: `HASH` por `cart:{ulid}` con TTL (p. ej. 30 días) + persistencia a BD para usuarios autenticados.
+6. **Protección anti-*stampede*:** `Cache::flexible` (stale-while-revalidate) / locks atómicos en regeneración.
+7. **Vista previa (draft):** las rutas con `preview_token` **saltan** la caché.
+8. **Rate limiting agresivo:** por IP + usuario + operación (`login` 5/min, `register` 3/min, `forgotPassword` 3/hora, `applyCoupon` 10/min, `createOrder` 5/min…), con *backoff* y bloqueo temporal en abuso.
+
+---
+
+## 11. Auditoría e inmutabilidad
+
+- `owen-it/laravel-auditing` en **todos** los modelos de negocio (trait `Auditable`), con `Audit` personalizado: PK bigint, `user_id` ULID, `old_values/new_values` **JSONB**, `ip_address` (`inet`), `user_agent`, `url`, `tags`, `created_at`.
+- Auditoría **en cola** (`audit.queue = true`) para no penalizar latencia; eventos críticos (login, cambio de rol/permiso, ajuste de inventario, reembolso, cambio de precio) se auditan **sincrónicamente** o vía outbox.
+- Campos sensibles (`password`, tokens, datos de tarjeta) en `$auditExclude`/redactados.
+- **Inmutabilidad:** triggers `BEFORE UPDATE OR DELETE` → `RAISE EXCEPTION`; el rol de BD de la aplicación **no** tiene `UPDATE/DELETE/TRUNCATE` sobre esas tablas (principio de menor privilegio). Particionado mensual de `audits` (`PARTITION BY RANGE (created_at)`) y política de archivado.
+- **Soft Deletes:** obligatorio en tablas transaccionales/catálogo; índices únicos **parciales** (`WHERE deleted_at IS NULL`). Restauración auditada.
+- **Cadena de integridad (opcional, Fase 5+):** `row_hash`/`prev_hash` en `inventory_movements` y `audits` para evidencia de manipulación.
+
+---
+
+## 12. Evaluación del ER entregado y mejoras
+
+**Veredicto:** el modelo es una **buena base** (ULID, Kardex inmutable, snapshots en `order_items`, variaciones por `parent_id`, JSONB para metadata) pero **no alcanza** para todo lo descrito. Hallazgos y correcciones:
+
+| # | Hallazgo en el ER original | Impacto | Corrección |
+|---|---|---|---|
+| 1 | No hay tabla `warehouses`, pero `inventory_movements.warehouse_id` la referencia | FK rota | Se agrega `warehouses` + `stock_levels` (saldo por producto/bodega). |
+| 2 | Cantidades implícitamente enteras; no existe venta por metro | **Bloquea R3** | `sell_unit`, `quantity_step`, `min/max_quantity`, `roll_length`; todas las cantidades `NUMERIC(12,3)`. |
+| 3 | `orders.shipping_address_id/billing_address_id` apuntan a direcciones **mutables** | El pedido cambia si el cliente edita su dirección | Snapshot inmutable en `order_addresses`. |
+| 4 | Sin pagos (`payment_status` suelto) | **Bloquea R1** | `payments`, `payment_transactions` (inmutable), `refunds`, `webhook_events`. |
+| 5 | Envíos reducidos a 2 columnas en `orders` | **Bloquea R4/R5** | `shipments`, `shipment_packages`, `shipment_labels`, `shipment_tracking_events`, `shipping_methods`, `shipping_zones`. |
+| 6 | Sin país/mercado: impuestos solo por `tax_class.rate` | **Bloquea R1 multi-país** | `markets`, `tax_rates` (clase × país/región), `product_prices` por moneda, `order_items.tax_rate` snapshot. |
+| 7 | Sin pedidos personalizados | **Bloquea R7** | Módulo `custom_order_*`. |
+| 8 | Sin carrito, wishlist, configuración, notificaciones, exports, i18n | Fases 2, 6, 7, 8 no soportadas | `carts`/`cart_items` (persistencia), `wishlists`, `settings`, `notifications`, `export_jobs`, `*_translations`. |
+| 9 | `orders` sin `order_number` legible, sin `deleted_at`, sin `placed_at`, sin tipo | Operación/soporte difíciles | Añadidos `order_number` (secuencia por mercado), `order_type`, `placed_at`, soft delete. |
+| 10 | `order_items` sin `tax_rate`, `discount_amount`, `unit` ni línea personalizada | Reportes y devoluciones imprecisos | Añadidos; `unit` snapshot (`piece`/`meter`). |
+| 11 | `products.stock_quantity` sin reservas | Sobreventa en checkout concurrente | `stock_levels.reserved` + `inventory_reservations` (TTL); disponible = `on_hand − reserved`. |
+| 12 | `audits.auditable_id`/`user_id` típicos son bigint | Incompatible con ULID | Columnas `char(26)`; `ip_address inet`; `tags`. |
+| 13 | Variaciones y "agrupado" no modelado (solo `simple/variable/variation`) | Falta tipo `grouped` pedido en Fase 3 | `type` incluye `grouped` + `product_group_items`. |
+| 14 | Atributos sin saber si definen variación | Ambigüedad PIM | `product_attributes` (pivote por atributo, `is_variation`, `is_visible`); `product_attribute_values` queda como pivote de valores seleccionados. |
+| 15 | `categories` con solo `parent_id` | Consultas de subárbol costosas | `ltree` `path` (o `materialized path`) + `position`. |
+| 16 | `coupons` sin restricciones ni control por usuario | Fraude / abuso | `coupon_usages`, `coupon_restrictions` (JSONB: productos, categorías, usuarios, primer pedido, `max_uses_per_user`, acumulable). |
+| 17 | `sale_price` solo por fechas | Falta precios programados múltiples | `product_prices` con vigencia (`starts_at/ends_at`) + `compare_at_price` (tachado). |
+| 18 | `media` sin conversiones/orden/ALT i18n | Fase 2 | Se mantiene estilo Spatie + `media_conversions`, `order_column`, ULID. |
+| 19 | `users.name` único; "perfiles separados" | Fase 1 | `user_profiles` (nombre, teléfono, avatar, locale, país, preferencias). |
+| 20 | Sin `idempotency_keys`, `outbox_messages`, `failed_jobs` | EDA fiable | Se agregan. |
+| 21 | `product_tag` pivote sin soft delete del tag | Fase 3 pide tags con soft deletes | `tags.deleted_at`. |
+| 22 | SKU sin unicidad condicionada | Colisiones con soft delete | Índice único parcial `WHERE deleted_at IS NULL`. |
+
+---
+
+## 13. Esquema de base de datos (PostgreSQL)
+
+**Convenciones**
+- `id` = `char(26)` ULID salvo indicación `bigint`. Timestamps `timestamptz`. `*_at` en UTC.
+- `SD` = lleva `deleted_at timestamptz NULL` (soft delete). `IMM` = inmutable (triggers). `AUD` = auditado por `owen-it`.
+- Dinero `numeric(14,2)`; cantidades `numeric(12,3)`; tasas `numeric(7,4)`; JSONB para metadata flexible.
+- Todas las FKs con `ON DELETE RESTRICT` (los soft deletes preservan historia); índices en FKs; `CHECK` para enums (o tipos `ENUM` nativos).
+- Todos los textos traducibles viven en tablas `*_translations` (ver M10).
+
+### M1 — Identidad, autenticación y RBAC (Fase 1)
+| Tabla | Columnas clave |
+|---|---|
+| `users` SD AUD | `id`, `email` (citext, único parcial), `email_verified_at`, `password` (nullable por social), `google_id` (único parcial), `is_active`, `last_login_at`, `last_login_ip`, `remember_token`, timestamps |
+| `user_profiles` AUD | `user_id` (PK/FK), `first_name`, `last_name`, `phone`, `birthdate`, `avatar_media_id`, `locale`, `country_code`, `marketing_opt_in`, `preferences` JSONB |
+| `roles`, `permissions` | Spatie: `id` bigint, `name`, `guard_name`, `description` · **permisos con convención `resource.action`** |
+| `model_has_roles`, `model_has_permissions`, `role_has_permissions` | Pivotes Spatie (`model_id` `char(26)`) |
+| `personal_access_tokens` | Sanctum (`tokenable_id` `char(26)`, `abilities`, `expires_at`, `last_used_at`) |
+| `password_reset_tokens` | `email`, `token` (hash), `created_at` (TTL corto) |
+| `social_accounts` | `user_id`, `provider`, `provider_user_id`, `provider_email`, `avatar_url`, `tokens` (cifrado) |
+| `user_addresses` SD AUD | `user_id`, `type` (billing/shipping), `label`, `recipient_name`, `phone`, `street`, `exterior_no`, `interior_no`, `neighborhood`, `city`, `state`, `country_code`, `zip`, `references`, `lat/lng`, `is_default` |
+| `audits` IMM | `id` bigint, `user_type`, `user_id` char(26), `event`, `auditable_type`, `auditable_id` char(26), `old_values` JSONB, `new_values` JSONB, `url`, `ip_address` inet, `user_agent`, `tags`, `created_at` · índices `(auditable_type, auditable_id)`, `(user_id)`, `(created_at)` · **particionada** |
+| `security_events` IMM | login ok/fail, cambio de contraseña, token revocado, IP, UA (complementa `audits`) |
+
+### M2 — Medios, identidad y configuración (Fase 2)
+| Tabla | Columnas clave |
+|---|---|
+| `media` SD AUD | `id`, `model_type`, `model_id` (char 26), `collection_name`, `name`, `file_name`, `mime_type`, `disk`, `conversions_disk`, `size`, `checksum_sha256`, `width`, `height`, `duration`, `alt` (via translations), `custom_properties` JSONB (EXIF/metadata), `generated_conversions` JSONB, `responsive_images` JSONB, `order_column`, `uploaded_by`, timestamps |
+| `media_translations` | `media_id`, `locale`, `alt`, `title`, `caption` |
+| `settings` AUD | `group`, `key`, `value` JSONB, `is_public`, `type` — único `(group,key)` · espejo en Redis permanente |
+| `setting_translations` | `setting_id`, `locale`, `value` (términos, textos legales, etc.) |
+| `contact_info` / `store_identity` | Dato de contacto, redes, logos (FK a `media`), horarios — por `market_id` |
+| `locales` | `code`, `name`, `is_default`, `is_active` |
+
+### M3 — Catálogo (PIM) y taxonomía (Fase 3)
+| Tabla | Columnas clave |
+|---|---|
+| `categories` SD AUD | `id`, `parent_id`, `path` ltree, `position`, `slug` (único parcial), `is_active`, `image_media_id`, `default_tax_class_id`, `seo` JSONB |
+| `category_translations` | `category_id`, `locale`, `name`, `description`, `meta_title`, `meta_description` · único `(category_id, locale)` |
+| `tags` SD AUD · `tag_translations` | `slug`, traducciones |
+| `product_tag` | `product_id`, `tag_id` |
+| `attributes` AUD · `attribute_translations` | `slug`, `type` (`select`, `color`, `text`, `number`), `is_filterable`, `position` |
+| `attribute_values` · `attribute_value_translations` | `attribute_id`, `meta` JSONB (HEX, imagen), `position` |
+| `products` SD AUD | `id`, `parent_id`, `type` (`simple`,`variable`,`variation`,`grouped`), `status` (`draft`,`published`,`inactive`), **`sell_unit`** (`piece`,`meter`), **`quantity_step`** numeric(12,3) (1 pieza / 0.5 m…), **`min_quantity`**, **`max_quantity`** null, **`roll_length`** null (m por rollo), `allow_full_roll_only` bool, `sku` (único parcial), `barcode`, `tax_class_id`, `manage_stock`, `allow_backorder`, `stock_quantity` (desnormalizado), `low_stock_threshold`, `weight` (por unidad base), `dimensions` JSONB, `is_customizable` bool, `published_at`, `search_vector` tsvector, `seo` JSONB, timestamps · CHECK: `parent_id` ⇒ `type='variation'` |
+| `product_translations` | `product_id`, `locale`, `name`, `slug`, `short_description`, `description` · único `(locale, slug)` parcial |
+| `product_categories` | `product_id`, `category_id`, `is_primary` |
+| `product_attributes` | `product_id`, `attribute_id`, `is_variation`, `is_visible`, `position` |
+| `product_attribute_values` | `product_id`, `attribute_value_id` (define la combinación de cada variación) |
+| `product_group_items` | `group_id`, `product_id`, `default_quantity`, `position` (tipo agrupado) |
+| `product_preview_tokens` | `product_id`, `token_hash`, `expires_at`, `created_by` (vista previa temporal) |
+| *(herencia)* | Variación hereda del padre vía `COALESCE` en el servicio de dominio (`ProductResolver`) y puede sobreescribir `sku`, precio, stock, dimensiones, peso, media. Campos `NULL` en la hija = heredar. |
+
+### M4 — Finanzas, precios y promociones (Fase 4)
+| Tabla | Columnas clave |
+|---|---|
+| `currencies` AUD | `id` bigint, `code` (ISO-4217), `name`, `symbol`, `decimals`, `exchange_rate`, `is_default`, `is_active`, `rate_updated_at` |
+| `exchange_rate_history` IMM | `currency_id`, `rate`, `source`, `created_at` |
+| `markets` SD AUD | `id` bigint, `code` (`MX`, `US`… ver §18), `country_code`, `currency_id`, `default_locale`, `prices_include_tax`, `is_active` |
+| `tax_classes` AUD | `id` bigint, `name`, `is_default` |
+| `tax_rates` AUD | `tax_class_id`, `market_id`/`country_code`, `region` null, `rate`, `name` (IVA…), `priority`, `is_compound`, `starts_at`, `ends_at` |
+| `product_prices` SD AUD | `product_id`, `currency_id`, `price`, `compare_at_price` (precio tachado), `sale_price`, `sale_starts_at`, `sale_ends_at`, `starts_at`, `ends_at`, `price_list` · único vigente por `(product_id, currency_id)` |
+| `coupons` SD AUD | `code` (único parcial), `type` (`fixed`,`percentage`,`free_shipping`,`buy_x_get_y`), `value`, `currency_id` null, `min_spend`, `max_discount`, `max_uses`, `max_uses_per_user`, `uses_count`, `is_stackable`, `starts_at`, `expires_at`, `is_active`, `restrictions` JSONB |
+| `coupon_usages` IMM | `coupon_id`, `user_id`, `order_id`, `discount_amount`, `created_at` |
+| `promotions` SD AUD | Reglas automáticas (carrito/catálogo): `conditions` JSONB, `actions` JSONB, prioridad, vigencia |
+| `fraud_rules`, `fraud_checks` | Reglas (velocidad por IP/tarjeta/email, país ≠ envío, monto), resultado por pedido (`score`, `decision`, `reasons` JSONB) |
+
+### M5 — Inventario inmutable / Kardex (Fase 5)
+| Tabla | Columnas clave |
+|---|---|
+| `warehouses` SD AUD | `code`, `name`, `address` JSONB, `market_id`, `is_default`, `is_active` |
+| `inventory_movements` IMM | `id` bigint, `ulid`, `product_id`, `warehouse_id`, `quantity` numeric(12,3) (±), `type` (`purchase`,`sale`,`return`,`adjustment`,`waste`,`transfer_in`,`transfer_out`,`reservation_consume`), `unit_cost`, `balance_after`, `reference_type`, `reference_id`, `note`, `created_by`, `ip_address`, `created_at`, `row_hash`, `prev_hash` · CHECK `quantity <> 0` · índices `(product_id, warehouse_id, id)` |
+| `stock_levels` | `product_id`, `warehouse_id`, `on_hand`, `reserved`, `available` (generada), `updated_at` — derivado, reconstruible desde el Kardex (`inventory:reconcile`) |
+| `inventory_reservations` | `product_id`, `warehouse_id`, `quantity`, `cart_id`/`order_id`, `expires_at`, `status` — liberadas por scheduler |
+| *(regla)* | `products.stock_quantity = Σ stock_levels.available`; se recalcula por listener (`InventoryMovementRecorded`) dentro de la misma transacción con `lockForUpdate` sobre `stock_levels`. Una verificación nocturna compara `Σ movements` contra `stock_levels` y alerta discrepancias. Las correcciones se hacen con **movimientos compensatorios**, nunca editando. |
+
+### M6 — Carrito, checkout y pagos (Fase 6)
+| Tabla / almacén | Columnas clave |
+|---|---|
+| `carts` (Redis primario) | `HASH cart:{ulid}`: `market_id`, `currency`, `coupon_code`, `shipping_address`, `items`; persistido en BD para usuarios autenticados |
+| `carts` / `cart_items` (BD) | `user_id`, `session_token`, `market_id`, `currency_code`, `coupon_id`, `abandoned_at` · items: `product_id`, `quantity` numeric(12,3), `unit` , `custom_options` JSONB |
+| `payment_methods` | `code`, `market_id`, `gateway`, `is_active`, `config` (cifrado), `min/max_amount` |
+| `payments` AUD | `id`, `order_id`, `gateway`, `method`, `status` (`pending`,`authorized`,`captured`,`failed`,`refunded`,`partially_refunded`), `amount`, `currency_code`, `gateway_reference`, `idempotency_key` |
+| `payment_transactions` IMM | `payment_id`, `type` (`authorize`,`capture`,`refund`,`chargeback`), `amount`, `status`, `raw_response` JSONB (sin PAN), `created_at` |
+| `refunds` AUD | `payment_id`, `order_id`, `amount`, `reason`, `created_by` |
+| `webhook_events` | `provider`, `event_id` (único con provider → idempotencia), `signature_valid`, `payload` JSONB, `status`, `attempts`, `processed_at` |
+
+### M7 — Pedidos, envíos, personalizados, favoritos (Fase 7)
+| Tabla | Columnas clave |
+|---|---|
+| `orders` SD AUD | `id`, `order_number` (único legible), `order_type` (`standard`,`custom`), `user_id` null (compra invitado: `guest_email`), `market_id`, `status` (`pending`,`processing`,`shipped`,`delivered`,`completed`,`cancelled`,`refunded`), `payment_status`, `fulfillment_status`, `currency_code`, `exchange_rate`, `subtotal`, `tax_total`, `discount_total`, `shipping_total`, `grand_total`, `coupon_id`, `coupon_code`, `placed_at`, `cancelled_at`, `customer_note`, `fraud_score`, `ip_address`, `user_agent` |
+| `order_addresses` | `order_id`, `type`, snapshot completo de la dirección |
+| `order_items` SD | `order_id`, `product_id`, `product_name`, `sku`, `unit` (`piece`/`meter`), `quantity` numeric(12,3), `unit_price`, `discount_amount`, `tax_rate`, `tax_amount`, `subtotal`, `total`, `options` JSONB (variación, corte), `custom_order_quote_line_id` null |
+| `order_histories` IMM | `order_id`, `status`, `payment_status`, `note`, `notify_customer`, `created_by`, `ip_address`, `created_at` |
+| `order_discounts` | `order_id`, `source` (coupon/promotion), `reference_id`, `amount` |
+| `shipping_zones`, `shipping_methods` | Zonas por país/región/CP; método: `carrier`, `service`, `is_active`, `fee_rules` JSONB |
+| `shipments` AUD | `order_id`, `carrier`, `service`, `status`, `tracking_number`, `tracking_url`, `shipping_cost`, `currency_code`, `carrier_shipment_id`, `shipped_at`, `delivered_at`, `estimated_delivery_at` |
+| `shipment_packages` | `shipment_id`, `weight`, `length/width/height`, `items` JSONB |
+| `shipment_labels` | `shipment_id`, `format`, `media_id` (PDF/ZPL), `generated_at` |
+| `shipment_tracking_events` IMM | `shipment_id`, `status`, `description`, `location`, `occurred_at`, `raw` JSONB |
+| `custom_order_requests` SD AUD | `id`, `user_id`/`guest_email`, `market_id`, `status` (`submitted`,`in_review`,`quoted`,`approved`,`rejected`,`converted`,`expired`), `title`, `description`, `specifications` JSONB (medidas, colores, cantidades en metros/piezas), `desired_date`, `budget`, `assigned_to` |
+| `custom_order_messages` | `request_id`, `author_id`, `body`, `is_internal`, adjuntos vía `media` |
+| `custom_order_quotes` SD AUD | `request_id`, `version`, `currency_code`, `subtotal`, `tax_total`, `shipping_total`, `grand_total`, `valid_until`, `status`, `terms` · `custom_order_quote_lines` (descripción, `unit`, `quantity`, `unit_price`, `product_id` null) |
+| `wishlists` · `wishlist_items` SD | `user_id`, `name`, `is_default` · `product_id`, `added_at` |
+| `notifications` | Laravel database notifications (`id` ulid, `notifiable_id` char 26) + `notification_preferences` |
+
+### M8 — Plataforma transversal
+| Tabla | Propósito |
+|---|---|
+| `outbox_messages` | Patrón outbox (`aggregate`, `event`, `payload`, `published_at`) |
+| `idempotency_keys` | `key`, `user_id`, `request_hash`, `response` JSONB, `expires_at` |
+| `export_jobs` | `type`, `filters` JSONB, `status`, `file_media_id`/`path`, `expires_at`, `requested_by` |
+| `jobs`, `failed_jobs`, `job_batches` | Laravel (con Redis como driver; `failed_jobs` en BD) |
+| `cache_locks` / sesiones | Solo Redis |
+
+### Índices y rendimiento (resumen)
+- Parciales únicos con `deleted_at IS NULL` (email, sku, slug, coupon code).
+- GIN: `products.search_vector`, `custom_properties`, `attributes` JSONB; `pg_trgm` para autocompletado.
+- GiST: `categories.path` (ltree).
+- Particionado: `audits`, `inventory_movements` (por rango de fecha), `shipment_tracking_events`.
+- `EXPLAIN` revisado para las 15 queries más calientes antes de cerrar Fase 8.
+
+---
+
+## 14. Diagrama ER
+
+```mermaid
+erDiagram
+    users ||--o| user_profiles : has
+    users ||--o{ user_addresses : owns
+    users ||--o{ orders : places
+    users ||--o{ wishlists : keeps
+    users }o--o{ roles : "model_has_roles"
+    roles }o--o{ permissions : "role_has_permissions"
+
+    categories ||--o{ categories : parent
+    products ||--o{ products : "variations (parent_id)"
+    products }o--o{ categories : product_categories
+    products }o--o{ tags : product_tag
+    products ||--o{ product_translations : has
+    products ||--o{ product_prices : "price per currency"
+    products ||--o{ product_attribute_values : "variation combo"
+    attributes ||--o{ attribute_values : has
+    attribute_values ||--o{ product_attribute_values : used_in
+    products }o--|| tax_classes : taxed_as
+    tax_classes ||--o{ tax_rates : has
+    markets ||--o{ tax_rates : applies
+    markets }o--|| currencies : uses
+
+    products ||--o{ inventory_movements : kardex
+    warehouses ||--o{ inventory_movements : in
+    products ||--o{ stock_levels : summary
+    warehouses ||--o{ stock_levels : holds
+    products ||--o{ inventory_reservations : reserved
+
+    orders ||--|{ order_items : contains
+    orders ||--o{ order_histories : timeline
+    orders ||--o{ order_addresses : snapshot
+    orders ||--o{ payments : paid_by
+    payments ||--o{ payment_transactions : ledger
+    orders ||--o{ shipments : fulfilled_by
+    shipments ||--o{ shipment_packages : packs
+    shipments ||--o{ shipment_labels : labels
+    shipments ||--o{ shipment_tracking_events : tracking
+    orders }o--o| coupons : uses
+    coupons ||--o{ coupon_usages : tracked
+    orders }o--|| markets : in
+
+    custom_order_requests ||--o{ custom_order_quotes : quoted
+    custom_order_quotes ||--|{ custom_order_quote_lines : lines
+    custom_order_requests ||--o{ custom_order_messages : chat
+    custom_order_quotes ||--o| orders : converts_to
+
+    media }o--|| products : "polymorphic (model_type/model_id)"
+```
+
+---
+
+## 15. Seguridad y fraude
+
+- **Auth:** contraseñas Argon2id, verificación de email asíncrona (URL firmada con expiración), recuperación por token de un solo uso con hash, bloqueo progresivo, rotación y revocación de tokens Sanctum, 2FA TOTP (admin, obligatorio para roles privilegiados — propuesto).
+- **OWASP:** validación estricta, CSP/HSTS/headers, CORS por allow-list, CSRF para cookie SPA, protección de uploads (MIME real, reescritura de nombre, antivirus), SSRF guard en descargas remotas, secretos cifrados (`Crypt`) para credenciales de pasarelas.
+- **PCI:** nunca se almacena PAN/CVV; tokenización en pasarela (Hosted Fields/Checkout), solo referencias.
+- **Webhooks:** verificación de firma + *replay protection* + idempotencia por `event_id`.
+- **Prevención de fraude (Fase 4/6/7):** reglas de velocidad (Redis), verificación de coincidencia país IP/envío, límites por cupón/usuario, lista de bloqueo, scoring simple y revisión manual (`pending_review`), 3-D Secure cuando la pasarela lo soporte.
+- **Datos personales:** exportación/borrado (anonimización conservando integridad contable), retención configurable, logs sin PII.
+
+## 16. Observabilidad, calidad y CI/CD
+
+- **CI (GitHub Actions):** Pint · Larastan · Pest (con cobertura mínima) · Deptrac (arquitectura) · `composer audit` · ESLint/tsc/Vitest · codegen sin diff · build de imágenes · Trivy · gitleaks.
+- **Definition of Done por fase:** código + tests verdes + migraciones reversibles + auditoría y soft deletes verificados + permisos documentados + `context.md` actualizado + imágenes Docker construyen + sin N+1 en queries nuevas.
+- **Observabilidad:** logs JSON con `correlation_id`, métricas (latencia GraphQL por operación, profundidad de colas, hit-rate de caché), trazas OpenTelemetry, alertas (colas atrasadas, `failed_jobs`, discrepancias de Kardex, webhooks fallidos).
+- **Presupuestos de rendimiento:** mutaciones críticas p95 < 150 ms (el trabajo pesado va a cola); queries públicas cacheadas p95 < 80 ms; LCP storefront < 2.5 s.
+
+---
+
+## 17. Checklist de fases
+
+Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho.
+
+### FASE 0 — Planeación
+- [x] `context.md` (Master Plan) generado
+- [x] Evaluación del ER y análisis de brechas vs. retrospectiva
+- [ ] Respuestas a preguntas abiertas de §18 (bloquean decisiones puntuales, no el arranque)
+
+### FASE 1 — Infraestructura base, autenticación y auditoría
+- [ ] Monorepo, `Makefile`, `.editorconfig`, hooks pre-commit
+- [ ] Docker: `app`, `nginx`, `postgres`, `pgbouncer`, `redis-*`, `mailpit`, `minio`, workers Horizon, scheduler; healthchecks; usuario no-root
+- [ ] Laravel base con estructura modular hexagonal + Deptrac + Larastan + Pint + Pest
+- [ ] Lighthouse: esquemas `/graphql` y `/admin/graphql`, límites de profundidad/complejidad, errores estandarizados, correlation id
+- [ ] PostgreSQL (extensiones) · Redis (cache/queue/session) · Horizon
+- [ ] Auditoría global (`owen-it`) con `Audit` ULID/JSONB/inet, particionado, triggers de inmutabilidad, rol de BD de mínimo privilegio
+- [ ] Auth: register (+ verificación de email asíncrona), login, logout, refresh, forgot/reset por token, Sanctum con abilities
+- [ ] Socialite Google (flujo token/código desde SPA)
+- [ ] Rate limiting en Redis por operación
+- [ ] Usuarios, `user_profiles`, direcciones, avatar (cropper React en Admin/Storefront)
+- [ ] RBAC granular (Spatie) + `@can`/`@guard` + seeders de roles/permisos
+- [ ] Admin: shell (login, layout, gestión de usuarios/roles con TanStack Table + cursor)
+- [ ] CI inicial + pruebas de arquitectura
+- [ ] `context.md` actualizado
+
+### FASE 2 — Medios, identidad y configuraciones
+- [ ] Media Library polimórfica (upload, metadata, renombrar, ALT i18n, orden)
+- [ ] Jobs de miniaturas/conversiones y metadata; presigned uploads
+- [ ] `settings` + identidad (contacto, logos, términos, i18n) permanentes en Redis + `settings:warm`
+- [ ] Queries públicas cacheadas con tags; Observers de invalidación
+- [ ] Admin: gestor de medios y pantalla de configuración
+
+### FASE 3 — Catálogo avanzado y taxonomía (PIM)
+- [ ] Categorías jerárquicas (ltree) y tags (soft delete) con traducciones
+- [ ] Atributos/valores; productos simple/variable/agrupado/variación con herencia y overrides
+- [ ] **Venta por metro/pieza** (`sell_unit`, paso, mín/máx, rollo) con validaciones de dominio
+- [ ] Estados borrador/publicado/inactivo + `preview_token` temporal
+- [ ] Observers → purga exacta de caché de catálogo; búsqueda FTS
+- [ ] Admin: CRUD PIM (editor de variaciones, galería)
+
+### FASE 4 — Finanzas, precios, promociones y fraude
+- [ ] Monedas + tipo de cambio (job de actualización + historial); `markets`
+- [ ] Impuestos por clase/mercado/región
+- [ ] `product_prices` (multi-moneda, tachado, ofertas programadas)
+- [ ] Cupones y motor de promociones (restricciones, apilables, límites por usuario)
+- [ ] Reglas antifraude base
+- [ ] Admin: monedas, impuestos, cupones, promociones
+
+### FASE 5 — Inventario inmutable (Kardex)
+- [ ] `warehouses`, `inventory_movements` (IMM), `stock_levels`, reservas con TTL
+- [ ] Servicio `lockForUpdate` + cantidades decimales (metros)
+- [ ] Listeners de recomputación y `inventory:reconcile` + alertas
+- [ ] Admin: Kardex, ajustes (movimientos compensatorios), alertas de stock bajo
+
+### FASE 6 — Carrito, checkout y pasarelas
+- [ ] Carrito en Redis (invitado y usuario) + merge al login; multi-direcciones
+- [ ] Cálculo de totales (subtotal, impuestos, descuentos, envío) como servicio de dominio
+- [ ] `PaymentGatewayPort` + adaptadores por país/método (según §18) + modo sandbox
+- [ ] Webhooks 100% en cola (firma, idempotencia, reintentos)
+- [ ] Idempotency keys en checkout
+
+### FASE 7 — Envíos, pedidos y notificaciones (EDA completo)
+- [ ] `createOrder` ultra rápida → `OrderCreated` → listeners (pago, inventario, envío, notificaciones)
+- [ ] Máquina de estados de pedido (logístico y financiero) + `order_histories`
+- [ ] `ShippingCarrierPort`: cotización cacheada, **guías** (Envia.com), etiquetas PDF en Job
+- [ ] **Rastreo**: webhooks de transportista, `shipment_tracking_events`, query `trackOrder`
+- [ ] **Pedidos personalizados**: solicitud → cotización → aprobación → conversión a pedido
+- [ ] Notificaciones email/push (plantillas i18n)
+- [ ] Wishlist persistente
+
+### FASE 8 — Reportería, dashboard y SEO
+- [ ] Admin: dashboard + tablas TanStack ultra-rápidas con cursores
+- [ ] Exportación `.xlsx` asíncrona (OpenSpout) + notificación con link firmado
+- [ ] SEO: OpenGraph/Schema.org dinámicos, sitemap, robots, canonicals/hreflang
+
+### FASE 9 — Storefront (cliente)
+- [ ] 🔒 **GATE:** verificar acceso a `https://woodmart.xtemos.com/furniture2/`. **Si no hay acceso, DETENER todo código del storefront** hasta que el usuario comparta evidencia visual (capturas/grabación). *Solo se escribe código de Fase 9 con evidencia en mano.*
+- [ ] Sistema de diseño (tokens extraídos de la referencia) y layouts
+- [ ] Home, listados con filtros, detalle (variaciones, selector de metros/piezas), carrito, checkout, cuenta, rastreo, pedido personalizado, wishlist
+- [ ] Apollo `InMemoryCache`: `typePolicies`, `keyArgs`, `fetchPolicy` y *optimistic UI* para evitar re-fetch
+- [ ] Rendimiento (LCP/CLS), accesibilidad, E2E con Playwright
+
+---
+
+## 18. Preguntas abiertas / supuestos
+
+> Se asume lo indicado en **negrita** hasta que se confirme lo contrario; ninguna bloquea la Fase 1.
+
+1. **¿Cuáles son los "dos países"?** Supuesto: **México (MXN) + Estados Unidos (USD)**. Define impuestos (IVA vs. sales tax por estado), pasarelas y transportistas.
+2. **Pasarelas por país.** Propuesta: MX → Mercado Pago / Conekta / OpenPay (tarjeta, OXXO, SPEI) · US → Stripe / PayPal. ¿Preferencia o contrato existente?
+3. **Transportistas.** Envia.com primero (cotización + guías). ¿Envíos internacionales MX↔US o solo domésticos por país?
+4. **Listones:** ¿se vende corte libre en incrementos (p. ej. 0.5 m) o rollos completos, o ambos? ¿Largo máximo por pedido? ¿Precio escalonado por volumen? Supuesto: **paso configurable por producto y opción de rollo completo**.
+5. **Pedidos personalizados:** ¿flujo de **cotización manual** (admin cotiza y cliente aprueba) o configurador con precio automático? Supuesto: **cotización manual**.
+6. **Facturación fiscal** (CFDI 4.0 en MX): ¿en alcance? Supuesto: **fuera de alcance de este plan; la arquitectura queda preparada** (puerto `InvoicingPort`, campos fiscales opcionales en dirección/perfil).
+7. **Bodegas:** ¿una o varias? Supuesto: **una por mercado, modelo ya soporta N**.
+8. **Idiomas:** supuesto **es-MX (default) + en-US**.
+9. **Storefront con Next.js (SSR)** (ADR-09) en lugar de SPA pura: ¿confirmas?
+10. **Hosting objetivo** (AWS/GCP/Azure/VPS) para ajustar Docker/IaC en producción.
+11. **Octane vs. PHP-FPM:** se decide con benchmark en Fase 1.
+
+---
+
+## 19. Bitácora de cambios
+
+| Fecha | Cambio |
+|---|---|
+| 2026-10-28 | Creación del Master Plan (Fase 0): arquitectura, ER mejorado, cobertura de retrospectiva, checklist. |
