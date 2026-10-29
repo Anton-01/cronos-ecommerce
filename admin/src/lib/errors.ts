@@ -27,6 +27,10 @@ const FRIENDLY: Record<string, string> = {
   INVALID_CREDENTIALS: 'Correo o contraseña incorrectos.',
   ACCOUNT_DISABLED: 'Esta cuenta está deshabilitada.',
   NETWORK: 'No se pudo conectar con el servidor.',
+  CONFIRMATION_REQUIRED: 'Escribe la frase de confirmación exactamente: PASAR A PRODUCCION.',
+  CREDENTIALS_INCOMPLETE: 'Faltan credenciales de ese modo. Complétalas antes de continuar.',
+  CREDENTIAL_ENVIRONMENT_MISMATCH: 'Esa credencial no corresponde a este ambiente (¿pegaste una llave de producción en sandbox o al revés?).',
+  GATEWAY_UNAVAILABLE: 'El proveedor no responde ahora. Inténtalo en unos minutos.',
 }
 
 export function friendlyMessage(error: ApiError): string {

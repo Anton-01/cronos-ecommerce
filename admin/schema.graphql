@@ -22,6 +22,11 @@ type Query {
  "Checks the derived numbers against the Kardex and verifies its hash chains."
  adminInventoryHealth: InventoryHealth!
  mediaItem(id: ID!): Media
+ adminPaymentProviders: [AdminPaymentProvider!]!
+ adminPayments(status: String, provider: String, mode: PaymentMode, search: String, anomaliesOnly: Boolean = false, first: Int = 25, offset: Int = 0): AdminPaymentPage!
+ adminPayment(id: ID!): AdminPayment
+ adminWebhookEvents(status: String, provider: String, first: Int = 25, offset: Int = 0): AdminWebhookPage!
+ adminCheckouts(status: String, search: String, first: Int = 25, offset: Int = 0): [AdminCheckout!]!
  adminCurrencies: [AdminCurrency!]!
  adminCurrencyHistory(currencyId: ID!): [RateHistoryEntry!]!
  adminMarkets: [AdminMarket!]!
@@ -113,6 +118,21 @@ type Mutation {
  uploadMedia(file: Upload!, collection: String = "library"): Media!
  updateMedia(id: ID!, name: String, translations: [MediaTranslationInput!]): Media!
  deleteMedia(id: ID!): Boolean!
+ configurePaymentProvider(code: String!, input: PaymentProviderSettingsInput!): AdminPaymentProvider!
+ "Only the fields sent are replaced; empty ones keep their stored value. Pass the credentials of ONE mode."
+ savePaymentCredentials(code: String!, mode: PaymentMode!, values: JSON!): AdminPaymentProvider!
+ "Calls the provider with the credentials of a mode and says what it answered."
+ testPaymentProvider(code: String!, mode: PaymentMode!): String!
+ "Moves a provider between sandbox and live. Going live needs the confirmation phrase, complete live credentials and a successful test call."
+ switchPaymentMode(code: String!, target: PaymentMode!, confirmation: String): AdminPaymentProvider!
+ "Asks the provider for the real state of a payment and applies it."
+ syncPayment(id: ID!): AdminPayment!
+ "Refunds part or all of a captured payment. The same idempotencyKey never refunds twice."
+ refundPayment(paymentId: ID!, amount: String!, reason: String, idempotencyKey: String!): AdminRefund!
+ "Puts a finished notification (failed, dead, ignored or processed) back in the queue."
+ reprocessWebhookEvent(id: ID!): AdminWebhookEvent!
+ "Re-queues up to `limit` failed or dead notifications, oldest first. Returns how many."
+ reprocessFailedWebhookEvents(limit: Int = 100): Int!
  createCurrency(input: CreateCurrencyInput!): AdminCurrency!
  updateCurrency(id: ID!, input: UpdateCurrencyInput!): AdminCurrency!
  setExchangeRate(currencyId: ID!, rate: String!): AdminCurrency!
@@ -259,6 +279,10 @@ type AuthPayload {
  token: String!
  expiresAt: DateTime
  user: User!
+}
+enum PaymentMode {
+ SANDBOX
+ LIVE
 }
 type AuditEntry {
  id: ID!
@@ -717,6 +741,136 @@ input RecordMovementInput {
  increase: Boolean
  unitCost: String
  note: String
+}
+type CredentialField {
+ key: String!
+ label: String!
+ secret: Boolean!
+ isSet: Boolean!
+ "Secrets are masked (sk_test_…a1b2); public identifiers are shown as they are."
+ display: String
+}
+type AdminPaymentProvider {
+ code: String!
+ name: String!
+ isEnabled: Boolean!
+ "The mode used for new payments. Payments remember the mode they were created in."
+ mode: PaymentMode!
+ markets: [String!]!
+ minAmount: String
+ maxAmount: String
+ liveSince: DateTime
+ sandbox: [CredentialField!]!
+ live: [CredentialField!]!
+ "True when the live credentials are all set, so going live is possible."
+ liveReady: Boolean!
+ "Paste this URL in the provider dashboard (one per mode)."
+ webhookUrl: String!
+}
+input PaymentProviderSettingsInput {
+ isEnabled: Boolean
+ markets: [String!]
+ minAmount: String
+ maxAmount: String
+}
+type PaymentTransaction {
+ id: ID!
+ type: String!
+ status: String
+ amount: String
+ providerReference: String
+ externalEventId: String
+ durationMs: Int
+ error: String
+ rawResponse: JSON
+ country: String
+ timezone: String
+ createdAt: DateTime!
+}
+type AdminRefund {
+ id: ID!
+ paymentId: ID!
+ amount: String!
+ currency: String!
+ status: String!
+ reason: String
+ providerReference: String
+ failureMessage: String
+ createdAt: DateTime!
+}
+type AdminPayment {
+ id: ID!
+ provider: String!
+ mode: PaymentMode!
+ payableType: String!
+ payableId: String!
+ status: String!
+ amount: String!
+ currency: String!
+ capturedAmount: String!
+ refundedAmount: String!
+ providerReference: String
+ customerEmail: String
+ failureCode: String
+ failureMessage: String
+ "Set when something needs a person: amount mismatch, late capture, dispute.."
+ anomaly: String
+ ipAddress: String
+ country: String
+ timezone: String
+ createdAt: DateTime!
+ updatedAt: DateTime!
+ "The immutable ledger of everything that happened, oldest first."
+ transactions: [PaymentTransaction!]!
+ refunds: [AdminRefund!]!
+}
+type AdminPaymentPage {
+ total: Int!
+ rows: [AdminPayment!]!
+}
+type AdminWebhookEvent {
+ id: ID!
+ provider: String!
+ mode: PaymentMode!
+ eventId: String!
+ eventType: String
+ signatureValid: Boolean!
+ status: String!
+ attempts: Int!
+ lastError: String
+ nextAttemptAt: DateTime
+ receivedAt: DateTime!
+ processedAt: DateTime
+ paymentId: ID
+ ip: String
+ rawBody: String
+ headers: JSON
+}
+type AdminWebhookPage {
+ total: Int!
+ rows: [AdminWebhookEvent!]!
+}
+type AdminCheckout {
+ id: ID!
+ email: String!
+ marketCode: String!
+ currency: String!
+ status: String!
+ subtotal: String!
+ itemsDiscount: String!
+ shipping: String!
+ tax: String!
+ total: String!
+ couponCode: String
+ fraudScore: Int!
+ fraudDecision: String!
+ paymentId: ID
+ notes: JSON!
+ lines: JSON!
+ expiresAt: DateTime!
+ paidAt: DateTime
+ country: String
+ createdAt: DateTime!
 }
 type AdminCurrency {
  id: ID!

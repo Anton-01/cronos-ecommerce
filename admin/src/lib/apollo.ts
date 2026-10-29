@@ -30,6 +30,8 @@ export function createApolloClient(uri: string = GRAPHQL_URL) {
       typePolicies: {
         // Settings have no id: their natural key lets mutation results update the cached list in place.
         AdminSetting: { keyFields: ['group', 'key'] },
+        // Providers are identified by their code: saving credentials or switching mode refreshes the card in place.
+        AdminPaymentProvider: { keyFields: ['code'] },
         // Pages are cached per (search, order, size, cursor) so going "back" is instant.
         Query: { fields: { users: { keyArgs: ['search', 'orderBy', 'first', 'after'] } } },
       },

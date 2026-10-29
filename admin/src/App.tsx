@@ -25,6 +25,7 @@ const CouponsPage = lazy(() => import('@/features/promotions/CouponsPage').then(
 const PromotionsPage = lazy(() => import('@/features/promotions/PromotionsPage').then((m) => ({ default: m.PromotionsPage })))
 const FraudPage = lazy(() => import('@/features/promotions/FraudPage').then((m) => ({ default: m.FraudPage })))
 const AuditPage = lazy(() => import('@/features/audit/AuditPage').then((m) => ({ default: m.AuditPage })))
+const PaymentsPage = lazy(() => import('@/features/payments/PaymentsPage').then((m) => ({ default: m.PaymentsPage })))
 const InventoryPage = lazy(() => import('@/features/inventory/InventoryPage').then((m) => ({ default: m.InventoryPage })))
 const RolesPage = lazy(() => import('@/features/roles/RolesPage').then((m) => ({ default: m.RolesPage })))
 
@@ -56,6 +57,9 @@ export function App() {
           </Route>
           <Route element={<RequireAuth permission="inventory.view" />}>
             <Route path="inventory" element={page(<InventoryPage />)} />
+          </Route>
+          <Route element={<RequireAuth permission="payments.view" />}>
+            <Route path="payments" element={page(<PaymentsPage />)} />
           </Route>
           <Route element={<RequireAuth permission="pricing.view" />}>
             <Route path="finance/currencies" element={page(<CurrenciesPage />)} />

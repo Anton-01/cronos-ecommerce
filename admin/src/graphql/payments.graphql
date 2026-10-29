@@ -1,0 +1,181 @@
+fragment ProviderFields on AdminPaymentProvider {
+  code
+  name
+  isEnabled
+  mode
+  markets
+  minAmount
+  maxAmount
+  liveSince
+  liveReady
+  webhookUrl
+  sandbox {
+    key
+    label
+    secret
+    isSet
+    display
+  }
+  live {
+    key
+    label
+    secret
+    isSet
+    display
+  }
+}
+
+query AdminPaymentProviders {
+  adminPaymentProviders {
+    ...ProviderFields
+  }
+}
+
+mutation ConfigurePaymentProvider($code: String!, $input: PaymentProviderSettingsInput!) {
+  configurePaymentProvider(code: $code, input: $input) {
+    ...ProviderFields
+  }
+}
+
+mutation SavePaymentCredentials($code: String!, $mode: PaymentMode!, $values: JSON!) {
+  savePaymentCredentials(code: $code, mode: $mode, values: $values) {
+    ...ProviderFields
+  }
+}
+
+mutation TestPaymentProvider($code: String!, $mode: PaymentMode!) {
+  testPaymentProvider(code: $code, mode: $mode)
+}
+
+mutation SwitchPaymentMode($code: String!, $target: PaymentMode!, $confirmation: String) {
+  switchPaymentMode(code: $code, target: $target, confirmation: $confirmation) {
+    ...ProviderFields
+  }
+}
+
+query AdminPayments($status: String, $provider: String, $mode: PaymentMode, $search: String, $anomaliesOnly: Boolean, $first: Int, $offset: Int) {
+  adminPayments(status: $status, provider: $provider, mode: $mode, search: $search, anomaliesOnly: $anomaliesOnly, first: $first, offset: $offset) {
+    total
+    rows {
+      id
+      provider
+      mode
+      payableType
+      payableId
+      status
+      amount
+      currency
+      capturedAmount
+      refundedAmount
+      customerEmail
+      anomaly
+      country
+      createdAt
+    }
+  }
+}
+
+query AdminPayment($id: ID!) {
+  adminPayment(id: $id) {
+    id
+    provider
+    mode
+    payableId
+    status
+    amount
+    currency
+    capturedAmount
+    refundedAmount
+    providerReference
+    customerEmail
+    failureCode
+    failureMessage
+    anomaly
+    ipAddress
+    country
+    timezone
+    createdAt
+    transactions {
+      id
+      type
+      status
+      amount
+      externalEventId
+      durationMs
+      error
+      country
+      createdAt
+    }
+    refunds {
+      id
+      amount
+      status
+      reason
+      failureMessage
+      createdAt
+    }
+  }
+}
+
+mutation SyncPayment($id: ID!) {
+  syncPayment(id: $id) {
+    id
+    status
+  }
+}
+
+mutation RefundPayment($paymentId: ID!, $amount: String!, $reason: String, $idempotencyKey: String!) {
+  refundPayment(paymentId: $paymentId, amount: $amount, reason: $reason, idempotencyKey: $idempotencyKey) {
+    id
+    status
+  }
+}
+
+query AdminWebhookEvents($status: String, $provider: String, $first: Int, $offset: Int) {
+  adminWebhookEvents(status: $status, provider: $provider, first: $first, offset: $offset) {
+    total
+    rows {
+      id
+      provider
+      mode
+      eventId
+      eventType
+      signatureValid
+      status
+      attempts
+      lastError
+      receivedAt
+      processedAt
+      paymentId
+    }
+  }
+}
+
+mutation ReprocessWebhookEvent($id: ID!) {
+  reprocessWebhookEvent(id: $id) {
+    id
+    status
+  }
+}
+
+mutation ReprocessFailedWebhookEvents($limit: Int) {
+  reprocessFailedWebhookEvents(limit: $limit)
+}
+
+query AdminCheckouts($status: String, $search: String, $first: Int, $offset: Int) {
+  adminCheckouts(status: $status, search: $search, first: $first, offset: $offset) {
+    id
+    email
+    marketCode
+    currency
+    status
+    total
+    couponCode
+    fraudDecision
+    paymentId
+    notes
+    expiresAt
+    paidAt
+    createdAt
+  }
+}

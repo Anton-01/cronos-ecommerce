@@ -54,6 +54,7 @@ final class PaymentService
                 || throw new PaymentError('That idempotency key was already used for a different payment.', 'IDEMPOTENCY_MISMATCH');
             $payment = $existing;
         } else {
+            $this->gateways->make($request->provider, $config['mode']); // missing credentials fail here, before any row exists
             $id = $this->payments->insert([
                 'provider' => $request->provider, 'mode' => $config['mode'], 'payable_type' => $request->payableType, 'payable_id' => $request->payableId,
                 'amount' => $request->amount->value(), 'currency' => $request->amount->currency, 'idempotency_key' => $request->idempotencyKey,
