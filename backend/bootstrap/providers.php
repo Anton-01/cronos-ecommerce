@@ -4,6 +4,7 @@ use App\Providers\AppServiceProvider;
 use App\Providers\HorizonServiceProvider;
 use Cronos\Audit\Infrastructure\AuditServiceProvider;
 use Cronos\Catalog\Infrastructure\CatalogServiceProvider;
+use Cronos\Checkout\Infrastructure\CheckoutServiceProvider;
 use Cronos\Fraud\Infrastructure\FraudServiceProvider;
 use Cronos\Identity\Infrastructure\IdentityServiceProvider;
 use Cronos\Inventory\Infrastructure\InventoryServiceProvider;
@@ -28,4 +29,5 @@ return [
     InventoryServiceProvider::class,
     PromotionsServiceProvider::class,
     FraudServiceProvider::class,
+    CheckoutServiceProvider::class,
 ];
