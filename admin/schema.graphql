@@ -1,10 +1,25 @@
 type Query {
  supportedLocales: [SupportedLocale!]!
+ adminCategories: [AdminCategory!]!
+ adminTags(search: String): [AdminTag!]!
+ adminAttributes: [AdminAttribute!]!
+ adminProduct(id: ID!): AdminProduct
  adminMe: User
  user(id: ID!): User
  roles: [Role!]!
  mediaItem(id: ID!): Media
  adminSettings: [AdminSetting!]!
+ adminProducts(
+ search: String
+ status: ProductStatus
+ type: ProductType
+ categoryId: ID
+ orderBy: [QueryAdminProductsOrderByOrderByClause!]
+ "Limits number of fetched items. Maximum allowed value: 100."
+ first: Int! = 25
+ "A cursor after which elements are returned."
+ after: String
+ ): AdminProductRowConnection!
  users(
  search: String
  orderBy: [QueryUsersOrderByOrderByClause!]
@@ -26,6 +41,35 @@ type Query {
  ): MediaConnection!
 }
 type Mutation {
+ createCategory(parentId: ID, position: Int, isActive: Boolean, imageMediaId: ID, translations: [CategoryTranslationInput!]!): AdminCategory!
+ updateCategory(id: ID!, position: Int, isActive: Boolean, imageMediaId: ID, translations: [CategoryTranslationInput!]): AdminCategory!
+ moveCategory(id: ID!, parentId: ID, position: Int): AdminCategory!
+ deleteCategory(id: ID!): Boolean!
+ createTag(translations: [TagTranslationInput!]!): AdminTag!
+ updateTag(id: ID!, translations: [TagTranslationInput!]!): AdminTag!
+ deleteTag(id: ID!): Boolean!
+ createAttribute(code: String!, type: String = "select", isFilterable: Boolean = true, position: Int = 0, names: [LocaleTextInput!]!): AdminAttribute!
+ updateAttribute(id: ID!, type: String, isFilterable: Boolean, position: Int, names: [LocaleTextInput!]): AdminAttribute!
+ deleteAttribute(id: ID!): Boolean!
+ addAttributeValue(attributeId: ID!, code: String!, meta: JSON, position: Int = 0, labels: [LocaleTextInput!]!): AdminAttribute!
+ updateAttributeValue(id: ID!, meta: JSON, position: Int, labels: [LocaleTextInput!]): AdminAttribute!
+ deleteAttributeValue(id: ID!): Boolean!
+ createProduct(input: CreateProductInput!): AdminProduct!
+ updateProduct(id: ID!, input: UpdateProductInput!): AdminProduct!
+ deleteProduct(id: ID!): Boolean!
+ setProductAttributes(id: ID!, attributes: [ProductAttributeInput!]!): AdminProduct!
+ setProductOfferedValues(id: ID!, valueIds: [ID!]!): AdminProduct!
+ setProductGroupItems(id: ID!, items: [GroupItemInput!]!): AdminProduct!
+ attachProductMedia(id: ID!, mediaId: ID!): AdminProduct!
+ detachProductMedia(id: ID!, mediaId: ID!): AdminProduct!
+ reorderProductMedia(id: ID!, mediaIds: [ID!]!): AdminProduct!
+ publishProduct(id: ID!): AdminProduct!
+ unpublishProduct(id: ID!, status: ProductStatus = INACTIVE): AdminProduct!
+ issueProductPreview(id: ID!, ttlMinutes: Int = 120): PreviewLink!
+ createVariation(parentId: ID!, input: CreateVariationInput!): AdminProduct!
+ updateVariation(id: ID!, input: UpdateVariationInput!): AdminProduct!
+ deleteVariation(id: ID!): AdminProduct!
+ generateVariations(parentId: ID!): AdminProduct!
  adminLogin(input: AdminLoginInput!): AuthPayload!
  logout: Boolean!
  setUserActive(id: ID!, active: Boolean!): User!
@@ -47,6 +91,31 @@ type SettingTranslation {
 type SupportedLocale {
  code: String!
  isDefault: Boolean!
+}
+enum ProductType {
+ SIMPLE
+ VARIABLE
+ GROUPED
+ VARIATION
+}
+enum SalesUnitKind {
+ PIECE
+ METER
+}
+enum ProductStatus {
+ DRAFT
+ PUBLISHED
+ INACTIVE
+}
+enum StockStatus {
+ IN_STOCK
+ ON_BACKORDER
+ OUT_OF_STOCK
+}
+"One localized text."
+type LocaleText {
+ locale: String!
+ value: String
 }
 scalar Upload
 enum MediaStatus {
@@ -121,6 +190,260 @@ type AuthPayload {
  expiresAt: DateTime
  user: User!
 }
+type AdminCategory {
+ id: ID!
+ parentId: ID
+ path: String!
+ depth: Int!
+ position: Int!
+ isActive: Boolean!
+ imageMediaId: ID
+ translations: [CategoryTranslation!]!
+}
+type CategoryTranslation {
+ locale: String!
+ name: String!
+ slug: String!
+ description: String
+ metaTitle: String
+ metaDescription: String
+}
+input CategoryTranslationInput {
+ locale: String!
+ name: String!
+ "Leave empty to derive it from the name."
+ slug: String
+ description: String
+ metaTitle: String
+ metaDescription: String
+}
+type AdminTag {
+ id: ID!
+ translations: [TagTranslation!]!
+}
+type TagTranslation {
+ locale: String!
+ name: String!
+ slug: String!
+}
+input TagTranslationInput {
+ locale: String!
+ name: String!
+ slug: String
+}
+type AdminAttributeValue {
+ id: ID!
+ attributeId: ID!
+ code: String!
+ meta: JSON
+ position: Int!
+ labels: [LocaleText!]!
+ inUse: Boolean!
+}
+type AdminAttribute {
+ id: ID!
+ code: String!
+ type: String!
+ isFilterable: Boolean!
+ position: Int!
+ names: [LocaleText!]!
+ values: [AdminAttributeValue!]!
+ inUse: Boolean!
+}
+input LocaleTextInput {
+ locale: String!
+ value: String!
+}
+type AdminSalesUnit {
+ unit: SalesUnitKind!
+ step: String!
+ min: String!
+ max: String
+ sellByCut: Boolean!
+ sellByRoll: Boolean!
+ rollLength: String
+ rollPrice: String
+}
+type ProductTranslation {
+ locale: String!
+ name: String
+ slug: String
+ shortDescription: String
+ description: String
+ metaTitle: String
+ metaDescription: String
+}
+type AdminProductAttribute {
+ attributeId: ID!
+ isVariation: Boolean!
+ isVisible: Boolean!
+}
+type AdminGroupItem {
+ productId: ID!
+ name: String!
+ defaultQuantity: String!
+}
+type AdminGalleryItem {
+ id: ID!
+ name: String!
+ url: String!
+ thumbUrl: String
+ status: MediaStatus!
+ alt: String
+}
+type AdminVariation {
+ id: ID!
+ sku: String
+ status: ProductStatus!
+ barcode: String
+ position: Int!
+ "The variation's own price; null means it inherits the parent's."
+ price: String
+ effectivePrice: String
+ weight: String
+ effectiveWeight: String
+ dimensions: JSON
+ overridden: [String!]!
+ valueIds: [ID!]!
+ stockQuantity: String!
+ publishProblems: [String!]!
+}
+type AdminProduct {
+ id: ID!
+ parentId: ID
+ type: ProductType!
+ status: ProductStatus!
+ sku: String
+ barcode: String
+ price: String
+ weight: String
+ dimensions: JSON
+ sales: AdminSalesUnit!
+ manageStock: Boolean!
+ allowBackorder: Boolean!
+ lowStockThreshold: String
+ stockQuantity: String!
+ isCustomizable: Boolean!
+ position: Int!
+ publishedAt: DateTime
+ translations: [ProductTranslation!]!
+ categoryIds: [ID!]!
+ primaryCategoryId: ID
+ tagIds: [ID!]!
+ attributes: [AdminProductAttribute!]!
+ offeredValueIds: [ID!]!
+ groupItems: [AdminGroupItem!]!
+ variations: [AdminVariation!]!
+ gallery: [AdminGalleryItem!]!
+ "Everything still missing before the product can be published (empty = ready)."
+ publishProblems: [String!]!
+}
+type AdminProductRow {
+ id: ID!
+ type: ProductType!
+ status: ProductStatus!
+ sku: String
+ name: String
+ price: String
+ stockQuantity: String!
+ isCustomizable: Boolean!
+ variationsCount: Int!
+ imageUrl: String
+ publishedAt: DateTime
+ updatedAt: DateTime!
+}
+type PreviewLink {
+ token: String!
+ expiresAt: DateTime!
+ "Relative path for the storefront; prefix it with the shop URL."
+ path: String!
+}
+input SalesUnitInput {
+ unit: SalesUnitKind!
+ "Cut length multiple. Pieces: 1."
+ step: String
+ min: String
+ max: String
+ sellByCut: Boolean
+ sellByRoll: Boolean
+ rollLength: String
+ rollPrice: String
+}
+input DimensionsInput {
+ length: String
+ width: String
+ height: String
+ unit: String
+}
+input ProductTranslationInput {
+ locale: String!
+ name: String!
+ slug: String
+ shortDescription: String
+ description: String
+ metaTitle: String
+ metaDescription: String
+}
+input CreateProductInput {
+ type: ProductType!
+ sku: String
+ barcode: String
+ price: String
+ weight: String
+ dimensions: DimensionsInput
+ sales: SalesUnitInput
+ manageStock: Boolean
+ allowBackorder: Boolean
+ lowStockThreshold: String
+ isCustomizable: Boolean
+ translations: [ProductTranslationInput!]!
+ categoryIds: [ID!]
+ primaryCategoryId: ID
+ tagIds: [ID!]
+}
+"Only the fields you send are changed; send null to clear one."
+input UpdateProductInput {
+ sku: String
+ barcode: String
+ price: String
+ weight: String
+ dimensions: DimensionsInput
+ sales: SalesUnitInput
+ manageStock: Boolean
+ allowBackorder: Boolean
+ lowStockThreshold: String
+ isCustomizable: Boolean
+ translations: [ProductTranslationInput!]
+ categoryIds: [ID!]
+ primaryCategoryId: ID
+ tagIds: [ID!]
+}
+input ProductAttributeInput {
+ attributeId: ID!
+ isVariation: Boolean
+ isVisible: Boolean
+}
+input GroupItemInput {
+ productId: ID!
+ defaultQuantity: String
+}
+input CreateVariationInput {
+ sku: String!
+ valueIds: [ID!]!
+ price: String
+ weight: String
+ dimensions: DimensionsInput
+ barcode: String
+}
+"Send only what changes. A null price/weight/dimensions makes the variation inherit from its parent again."
+input UpdateVariationInput {
+ sku: String
+ price: String
+ weight: String
+ dimensions: DimensionsInput
+ barcode: String
+ position: Int
+}
 type Role {
  id: ID!
  name: String!
@@ -171,6 +494,20 @@ type PageInfo {
  "Index of the last available page."
  lastPage: Int!
 }
+"A paginated list of AdminProductRow edges."
+type AdminProductRowConnection {
+ "Pagination information about the list of edges."
+ pageInfo: PageInfo!
+ "A list of AdminProductRow edges."
+ edges: [AdminProductRowEdge!]!
+}
+"An edge that contains a node of type AdminProductRow and a cursor."
+type AdminProductRowEdge {
+ "The AdminProductRow node."
+ node: AdminProductRow!
+ "A unique cursor that can be used for pagination."
+ cursor: String!
+}
 "A paginated list of User edges."
 type UserConnection {
  "Pagination information about the list of edges."
@@ -198,6 +535,20 @@ type MediaEdge {
  node: Media!
  "A unique cursor that can be used for pagination."
  cursor: String!
+}
+"Allowed column names for Query.adminProducts.orderBy."
+enum QueryAdminProductsOrderByColumn {
+ UPDATED_AT
+ PUBLISHED_AT
+ SKU
+ PRICE
+}
+"Order by clause for Query.adminProducts.orderBy."
+input QueryAdminProductsOrderByOrderByClause {
+ "The column that is used for ordering."
+ column: QueryAdminProductsOrderByColumn!
+ "The direction that is used for ordering."
+ order: SortOrder!
 }
 "Allowed column names for Query.users.orderBy."
 enum QueryUsersOrderByColumn {

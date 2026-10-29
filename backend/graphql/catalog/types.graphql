@@ -1,0 +1,29 @@
+enum ProductType {
+  SIMPLE @enum(value: "simple")
+  VARIABLE @enum(value: "variable")
+  GROUPED @enum(value: "grouped")
+  VARIATION @enum(value: "variation")
+}
+
+enum SalesUnitKind {
+  PIECE @enum(value: "piece")
+  METER @enum(value: "meter")
+}
+
+enum ProductStatus {
+  DRAFT @enum(value: "draft")
+  PUBLISHED @enum(value: "published")
+  INACTIVE @enum(value: "inactive")
+}
+
+enum StockStatus {
+  IN_STOCK
+  ON_BACKORDER
+  OUT_OF_STOCK
+}
+
+"One localized text."
+type LocaleText {
+  locale: String!
+  value: String
+}

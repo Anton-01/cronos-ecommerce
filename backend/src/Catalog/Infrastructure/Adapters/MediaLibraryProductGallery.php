@@ -41,6 +41,14 @@ final class MediaLibraryProductGallery implements ProductGallery
         ($this->reorder)(new ReorderMedia(ProductModel::class, $productId, self::COLLECTION, $orderedMediaIds));
     }
 
+    public function list(string $productId): array
+    {
+        return MediaModel::query()->with('translations')->where(['model_type' => ProductModel::class, 'model_id' => $productId, 'collection_name' => self::COLLECTION])
+            ->orderBy('order_column')->get()
+            ->map(fn (MediaModel $m) => ['id' => $m->id, 'name' => $m->name, 'url' => $m->url, 'thumbUrl' => $m->thumb_url, 'status' => $m->status, 'alt' => $m->altFor((string) config('app.locale_default'))])
+            ->all();
+    }
+
     public function isImage(string $mediaId): bool
     {
         return MediaModel::query()->whereKey($mediaId)->where('mime_type', 'like', 'image/%')->exists();

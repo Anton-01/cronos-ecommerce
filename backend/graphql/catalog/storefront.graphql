@@ -1,0 +1,209 @@
+enum ProductSort {
+  NEWEST
+  PRICE_ASC
+  PRICE_DESC
+  NAME
+  RELEVANCE
+}
+
+"How a product is bought: by the piece, by free cut in steps, by whole rolls, or both for ribbons."
+type SalesInfo {
+  unit: SalesUnitKind!
+  "Cut length must be a multiple of this (e.g. 0.5 m)."
+  step: String!
+  min: String!
+  max: String
+  sellByCut: Boolean!
+  sellByRoll: Boolean!
+  rollLength: String
+  "Price of ONE whole roll (explicit or length x unit price). Null when rolls are not sold."
+  rollPrice: String
+}
+
+type GalleryImage {
+  id: ID!
+  url: String!
+  thumbUrl: String
+  alt: String
+  width: Int
+  height: Int
+  conversions: [MediaConversion!]!
+}
+
+type CategoryRef {
+  id: ID!
+  slug: String
+  name: String
+  depth: Int!
+}
+
+type CategoryNode {
+  id: ID!
+  slug: String
+  name: String
+  depth: Int!
+  children: [CategoryNode!]!
+}
+
+type Seo {
+  title: String
+  description: String
+}
+
+type CategoryPage {
+  id: ID!
+  slug: String
+  name: String
+  depth: Int!
+  description: String
+  breadcrumb: [CategoryRef!]!
+  children: [CategoryRef!]!
+  seo: Seo!
+  image: GalleryImage
+}
+
+type ProductCategory {
+  id: ID!
+  slug: String
+  name: String
+  isPrimary: Boolean!
+}
+
+type ProductTagRef {
+  id: ID!
+  slug: String
+  name: String
+}
+
+type AttributeOption {
+  id: ID!
+  code: String!
+  label: String
+  "Extra data, e.g. { hex: \"#C8285A\" } for colours."
+  meta: JSON
+}
+
+type ProductAttribute {
+  id: ID!
+  code: String!
+  type: String!
+  name: String
+  isVariation: Boolean!
+  isVisible: Boolean!
+  values: [AttributeOption!]!
+}
+
+type ProductVariation {
+  id: ID!
+  sku: String
+  "Resolved price: the variation's own, or the parent's when it does not override."
+  price: String
+  weight: String
+  dimensions: JSON
+  "Fields this variation overrides (the rest are inherited)."
+  overridden: [String!]!
+  valueIds: [ID!]!
+  stockStatus: StockStatus!
+  gallery: [GalleryImage!]!
+  rollPrice: String
+}
+
+type SeoAlternate {
+  locale: String!
+  slug: String
+}
+
+type ProductSeo {
+  title: String
+  description: String
+  canonicalSlug: String
+  alternates: [SeoAlternate!]!
+}
+
+type GroupItem {
+  quantity: String!
+  product: ProductSummary!
+}
+
+type ProductSummary {
+  id: ID!
+  type: ProductType!
+  slug: String
+  name: String
+  shortDescription: String
+  priceFrom: String
+  priceTo: String
+  sales: SalesInfo!
+  stockStatus: StockStatus!
+  image: GalleryImage
+}
+
+type ProductPage {
+  id: ID!
+  type: ProductType!
+  status: ProductStatus!
+  sku: String
+  slug: String
+  name: String
+  shortDescription: String
+  description: String
+  price: String
+  priceFrom: String
+  priceTo: String
+  weight: String
+  dimensions: JSON
+  sales: SalesInfo!
+  isCustomizable: Boolean!
+  stockStatus: StockStatus!
+  gallery: [GalleryImage!]!
+  categories: [ProductCategory!]!
+  tags: [ProductTagRef!]!
+  attributes: [ProductAttribute!]!
+  variations: [ProductVariation!]!
+  groupItems: [GroupItem!]!
+  seo: ProductSeo!
+  publishedAt: DateTime
+}
+
+type ProductConnection {
+  items: [ProductSummary!]!
+  total: Int!
+  hasNextPage: Boolean!
+  endCursor: String
+}
+
+input AttributeFilter {
+  code: String!
+  values: [String!]!
+}
+
+extend type Query {
+  "Active categories as a tree. Cached in Redis."
+  categoryTree(locale: String): [CategoryNode!]! @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Queries\\StorefrontCatalogQuery@categoryTree")
+
+  category(locale: String, slug: String!): CategoryPage @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Queries\\StorefrontCatalogQuery@category")
+
+  product(locale: String, slug: String!): ProductPage
+    @throttle(maxAttempts: 300, decayMinutes: 1, prefix: "product")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Queries\\StorefrontCatalogQuery@product")
+
+  "Shows a draft through a temporary link generated in the back office."
+  productPreview(locale: String, token: String!): ProductPage
+    @throttle(maxAttempts: 20, decayMinutes: 1, prefix: "product-preview")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Queries\\StorefrontCatalogQuery@preview")
+
+  products(
+    locale: String
+    category: String
+    tag: String
+    search: String @rules(apply: ["nullable", "max:100"])
+    priceMin: String
+    priceMax: String
+    attributes: [AttributeFilter!]
+    sort: ProductSort = NEWEST
+    first: Int = 24 @rules(apply: ["integer", "min:1", "max:48"])
+    after: String
+  ): ProductConnection!
+    @throttle(maxAttempts: 120, decayMinutes: 1, prefix: "products")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Queries\\StorefrontCatalogQuery@products")
+}

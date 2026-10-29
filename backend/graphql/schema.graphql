@@ -7,5 +7,7 @@ type Mutation
 
 #import settings.graphql
 #import settings/*.graphql
+#import catalog/types.graphql
+#import catalog/storefront.graphql
 #import media/types.graphql
 #import identity/*.graphql

@@ -94,6 +94,20 @@ class ProductModel extends Model implements AuditableContract
         return $this->translation()?->name ?? $this->parent?->translation()?->name;
     }
 
+    public function scopeInCategory(Builder $query, ?string $categoryId): Builder
+    {
+        return $categoryId === null || $categoryId === ''
+            ? $query
+            : $query->whereExists(fn ($e) => $e->selectRaw('1')->from('product_categories as pc')->join('categories as c', 'c.id', '=', 'pc.category_id')
+                ->join('categories as root', fn ($j) => $j->where('root.id', $categoryId))
+                ->whereColumn('pc.product_id', 'products.id')->whereRaw('c.path <@ root.path'));
+    }
+
+    public function firstImageUrl(): ?string
+    {
+        return $this->gallery->first()?->thumb_url;
+    }
+
     public function scopeSearch(Builder $query, ?string $term): Builder
     {
         if ($term === null || trim($term) === '') {

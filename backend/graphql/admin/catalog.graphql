@@ -1,0 +1,380 @@
+type AdminCategory {
+  id: ID!
+  parentId: ID
+  path: String!
+  depth: Int!
+  position: Int!
+  isActive: Boolean!
+  imageMediaId: ID
+  translations: [CategoryTranslation!]!
+}
+
+type CategoryTranslation {
+  locale: String!
+  name: String!
+  slug: String!
+  description: String
+  metaTitle: String
+  metaDescription: String
+}
+
+input CategoryTranslationInput {
+  locale: String!
+  name: String!
+  "Leave empty to derive it from the name."
+  slug: String
+  description: String
+  metaTitle: String
+  metaDescription: String
+}
+
+type AdminTag {
+  id: ID!
+  translations: [TagTranslation!]!
+}
+
+type TagTranslation {
+  locale: String!
+  name: String!
+  slug: String!
+}
+
+input TagTranslationInput {
+  locale: String!
+  name: String!
+  slug: String
+}
+
+type AdminAttributeValue {
+  id: ID!
+  attributeId: ID!
+  code: String!
+  meta: JSON
+  position: Int!
+  labels: [LocaleText!]!
+  inUse: Boolean!
+}
+
+type AdminAttribute {
+  id: ID!
+  code: String!
+  type: String!
+  isFilterable: Boolean!
+  position: Int!
+  names: [LocaleText!]!
+  values: [AdminAttributeValue!]!
+  inUse: Boolean!
+}
+
+input LocaleTextInput {
+  locale: String!
+  value: String!
+}
+
+type AdminSalesUnit {
+  unit: SalesUnitKind!
+  step: String!
+  min: String!
+  max: String
+  sellByCut: Boolean!
+  sellByRoll: Boolean!
+  rollLength: String
+  rollPrice: String
+}
+
+type ProductTranslation {
+  locale: String!
+  name: String
+  slug: String
+  shortDescription: String
+  description: String
+  metaTitle: String
+  metaDescription: String
+}
+
+type AdminProductAttribute {
+  attributeId: ID!
+  isVariation: Boolean!
+  isVisible: Boolean!
+}
+
+type AdminGroupItem {
+  productId: ID!
+  name: String!
+  defaultQuantity: String!
+}
+
+type AdminGalleryItem {
+  id: ID!
+  name: String!
+  url: String!
+  thumbUrl: String
+  status: MediaStatus!
+  alt: String
+}
+
+type AdminVariation {
+  id: ID!
+  sku: String
+  status: ProductStatus!
+  barcode: String
+  position: Int!
+  "The variation's own price; null means it inherits the parent's."
+  price: String
+  effectivePrice: String
+  weight: String
+  effectiveWeight: String
+  dimensions: JSON
+  overridden: [String!]!
+  valueIds: [ID!]!
+  stockQuantity: String!
+  publishProblems: [String!]!
+}
+
+type AdminProduct {
+  id: ID!
+  parentId: ID
+  type: ProductType!
+  status: ProductStatus!
+  sku: String
+  barcode: String
+  price: String
+  weight: String
+  dimensions: JSON
+  sales: AdminSalesUnit!
+  manageStock: Boolean!
+  allowBackorder: Boolean!
+  lowStockThreshold: String
+  stockQuantity: String!
+  isCustomizable: Boolean!
+  position: Int!
+  publishedAt: DateTime
+  translations: [ProductTranslation!]!
+  categoryIds: [ID!]!
+  primaryCategoryId: ID
+  tagIds: [ID!]!
+  attributes: [AdminProductAttribute!]!
+  offeredValueIds: [ID!]!
+  groupItems: [AdminGroupItem!]!
+  variations: [AdminVariation!]!
+  gallery: [AdminGalleryItem!]!
+  "Everything still missing before the product can be published (empty = ready)."
+  publishProblems: [String!]!
+}
+
+type AdminProductRow @model(class: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") {
+  id: ID!
+  type: ProductType!
+  status: ProductStatus!
+  sku: String
+  name: String
+  price: String
+  stockQuantity: String! @rename(attribute: "stock_quantity")
+  isCustomizable: Boolean! @rename(attribute: "is_customizable")
+  variationsCount: Int! @count(relation: "variations")
+  imageUrl: String @method(name: "firstImageUrl") @with(relation: "gallery")
+  publishedAt: DateTime @rename(attribute: "published_at")
+  updatedAt: DateTime! @rename(attribute: "updated_at")
+}
+
+type PreviewLink {
+  token: String!
+  expiresAt: DateTime!
+  "Relative path for the storefront; prefix it with the shop URL."
+  path: String!
+}
+
+input SalesUnitInput {
+  unit: SalesUnitKind!
+  "Cut length multiple. Pieces: 1."
+  step: String
+  min: String
+  max: String
+  sellByCut: Boolean
+  sellByRoll: Boolean
+  rollLength: String
+  rollPrice: String
+}
+
+input DimensionsInput {
+  length: String
+  width: String
+  height: String
+  unit: String
+}
+
+input ProductTranslationInput {
+  locale: String!
+  name: String!
+  slug: String
+  shortDescription: String
+  description: String
+  metaTitle: String
+  metaDescription: String
+}
+
+input CreateProductInput {
+  type: ProductType!
+  sku: String
+  barcode: String
+  price: String
+  weight: String
+  dimensions: DimensionsInput
+  sales: SalesUnitInput
+  manageStock: Boolean
+  allowBackorder: Boolean
+  lowStockThreshold: String
+  isCustomizable: Boolean
+  translations: [ProductTranslationInput!]!
+  categoryIds: [ID!]
+  primaryCategoryId: ID
+  tagIds: [ID!]
+}
+
+"Only the fields you send are changed; send null to clear one."
+input UpdateProductInput {
+  sku: String
+  barcode: String
+  price: String
+  weight: String
+  dimensions: DimensionsInput
+  sales: SalesUnitInput
+  manageStock: Boolean
+  allowBackorder: Boolean
+  lowStockThreshold: String
+  isCustomizable: Boolean
+  translations: [ProductTranslationInput!]
+  categoryIds: [ID!]
+  primaryCategoryId: ID
+  tagIds: [ID!]
+}
+
+input ProductAttributeInput {
+  attributeId: ID!
+  isVariation: Boolean
+  isVisible: Boolean
+}
+
+input GroupItemInput {
+  productId: ID!
+  defaultQuantity: String
+}
+
+input CreateVariationInput {
+  sku: String!
+  valueIds: [ID!]!
+  price: String
+  weight: String
+  dimensions: DimensionsInput
+  barcode: String
+}
+
+"Send only what changes. A null price/weight/dimensions makes the variation inherit from its parent again."
+input UpdateVariationInput {
+  sku: String
+  price: String
+  weight: String
+  dimensions: DimensionsInput
+  barcode: String
+  position: Int
+}
+
+extend type Query {
+  adminCategories: [AdminCategory!]!
+    @guard
+    @can(ability: "catalog.view", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Queries\\AdminCatalogQuery@categories")
+
+  adminTags(search: String): [AdminTag!]!
+    @guard
+    @can(ability: "catalog.view", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Queries\\AdminCatalogQuery@tags")
+
+  adminAttributes: [AdminAttribute!]!
+    @guard
+    @can(ability: "catalog.view", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Queries\\AdminCatalogQuery@attributes")
+
+  adminProducts(
+    search: String @scope(name: "search")
+    status: ProductStatus @eq
+    type: ProductType @eq
+    categoryId: ID @scope(name: "inCategory")
+    orderBy: [OrderByClause!] @orderBy(columns: ["updated_at", "published_at", "sku", "price"])
+  ): [AdminProductRow!]!
+    @guard
+    @can(ability: "catalog.view", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @paginate(type: CONNECTION, builder: "Cronos\\Catalog\\Interfaces\\GraphQL\\Queries\\AdminProductList", defaultCount: 25, maxCount: 100)
+
+  adminProduct(id: ID!): AdminProduct
+    @guard
+    @can(ability: "catalog.view", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Queries\\AdminCatalogQuery@product")
+}
+
+extend type Mutation {
+  createCategory(parentId: ID, position: Int, isActive: Boolean, imageMediaId: ID, translations: [CategoryTranslationInput!]!): AdminCategory!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\CategoryMutations@create")
+  updateCategory(id: ID!, position: Int, isActive: Boolean, imageMediaId: ID, translations: [CategoryTranslationInput!]): AdminCategory!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\CategoryMutations@update")
+  moveCategory(id: ID!, parentId: ID, position: Int): AdminCategory!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\CategoryMutations@move")
+  deleteCategory(id: ID!): Boolean!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\CategoryMutations@delete")
+
+  createTag(translations: [TagTranslationInput!]!): AdminTag!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\TagMutations@create")
+  updateTag(id: ID!, translations: [TagTranslationInput!]!): AdminTag!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\TagMutations@update")
+  deleteTag(id: ID!): Boolean!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\TagMutations@delete")
+
+  createAttribute(code: String!, type: String = "select", isFilterable: Boolean = true, position: Int = 0, names: [LocaleTextInput!]!): AdminAttribute!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\AttributeMutations@create")
+  updateAttribute(id: ID!, type: String, isFilterable: Boolean, position: Int, names: [LocaleTextInput!]): AdminAttribute!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\AttributeMutations@update")
+  deleteAttribute(id: ID!): Boolean!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\AttributeMutations@delete")
+  addAttributeValue(attributeId: ID!, code: String!, meta: JSON, position: Int = 0, labels: [LocaleTextInput!]!): AdminAttribute!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\AttributeMutations@addValue")
+  updateAttributeValue(id: ID!, meta: JSON, position: Int, labels: [LocaleTextInput!]): AdminAttribute!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\AttributeMutations@updateValue")
+  deleteAttributeValue(id: ID!): Boolean!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\AttributeMutations@deleteValue")
+
+  createProduct(input: CreateProductInput!): AdminProduct!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\ProductMutations@create")
+  updateProduct(id: ID!, input: UpdateProductInput!): AdminProduct!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\ProductMutations@update")
+  deleteProduct(id: ID!): Boolean!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\ProductMutations@delete")
+  setProductAttributes(id: ID!, attributes: [ProductAttributeInput!]!): AdminProduct!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\ProductMutations@setAttributes")
+  setProductOfferedValues(id: ID!, valueIds: [ID!]!): AdminProduct!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\ProductMutations@setOfferedValues")
+  setProductGroupItems(id: ID!, items: [GroupItemInput!]!): AdminProduct!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\ProductMutations@setGroupItems")
+  attachProductMedia(id: ID!, mediaId: ID!): AdminProduct!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\ProductMutations@attachMedia")
+  detachProductMedia(id: ID!, mediaId: ID!): AdminProduct!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\ProductMutations@detachMedia")
+  reorderProductMedia(id: ID!, mediaIds: [ID!]!): AdminProduct!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\ProductMutations@reorderMedia")
+
+  publishProduct(id: ID!): AdminProduct!
+    @guard @can(ability: "catalog.publish", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\ProductMutations@publish")
+  unpublishProduct(id: ID!, status: ProductStatus = INACTIVE): AdminProduct!
+    @guard @can(ability: "catalog.publish", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\ProductMutations@unpublish")
+  issueProductPreview(id: ID!, ttlMinutes: Int = 120): PreviewLink!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @throttle(maxAttempts: 30, decayMinutes: 1, prefix: "preview-issue")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\ProductMutations@issuePreview")
+
+  createVariation(parentId: ID!, input: CreateVariationInput!): AdminProduct!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\VariationMutations@create")
+  updateVariation(id: ID!, input: UpdateVariationInput!): AdminProduct!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\VariationMutations@update")
+  deleteVariation(id: ID!): AdminProduct!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\VariationMutations@delete")
+  generateVariations(parentId: ID!): AdminProduct!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\VariationMutations@generate")
+}

@@ -14,6 +14,9 @@ interface ProductGallery
     /** @param list<string> $orderedMediaIds */
     public function reorder(string $productId, array $orderedMediaIds): void;
 
+    /** @return list<array{id: string, name: string, url: string, thumbUrl: ?string, status: string, alt: ?string}> in display order */
+    public function list(string $productId): array;
+
     /** True when the media exists and is an image. */
     public function isImage(string $mediaId): bool;
 }
