@@ -65,6 +65,11 @@ extend type ProductVariation {
     @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\ProductPricingField")
 }
 
+extend type ClientContext {
+  "The active market of the visitor's country, when there is one: where to start the storefront."
+  suggestedMarket: String @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\SuggestedMarketField")
+}
+
 extend type Query {
   "Active markets with their currency; the storefront picks one by the visitor's country."
   markets: [PublicMarket!]!

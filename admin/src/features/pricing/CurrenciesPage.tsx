@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/features/auth/AuthProvider'
+import { useClock } from '@/lib/clock'
 import { NativeSelect, PageHeader } from '@/features/catalog/shared'
 import { useRun } from '@/features/catalog/products/useRun'
 import {
@@ -53,6 +54,7 @@ export function CurrenciesPage() {
 }
 
 function Currencies() {
+  const clock = useClock()
   const { can } = useAuth()
   const canManage = can('pricing.manage')
   const run = useRun()
@@ -95,7 +97,7 @@ function Currencies() {
             {c.isDefault ? (
               <Badge>Moneda base</Badge>
             ) : (
-              <span className="text-sm tabular-nums text-muted-foreground" title={c.rateUpdatedAt ? `Actualizado ${new Date(c.rateUpdatedAt).toLocaleString('es-MX')}` : undefined}>
+              <span className="text-sm tabular-nums text-muted-foreground" title={c.rateUpdatedAt ? `Actualizado ${clock.formatDateTime(c.rateUpdatedAt)}` : undefined}>
                 1 base = {Number(c.exchangeRate)} {c.code}
               </span>
             )}
@@ -168,6 +170,7 @@ function CurrencyForm({ onClose }: { onClose: () => void }) {
 }
 
 function RateForm({ currency, onClose }: { currency: Currency; onClose: () => void }) {
+  const clock = useClock()
   const run = useRun()
   const [setRate] = useMutation(SetExchangeRateDocument, { refetchQueries: ['AdminCurrencies', 'AdminCurrencyHistory'] })
   const { data } = useQuery(AdminCurrencyHistoryDocument, { variables: { currencyId: currency.id } })
@@ -196,7 +199,7 @@ function RateForm({ currency, onClose }: { currency: Currency; onClose: () => vo
               <li key={h.createdAt + h.rate} className="flex justify-between px-2 py-1">
                 <span className="tabular-nums">{Number(h.rate)}</span>
                 <span className="text-muted-foreground">
-                  {h.source} · {new Date(h.createdAt).toLocaleString('es-MX')}
+                  {h.source} · {clock.formatDateTime(h.createdAt)}
                 </span>
               </li>
             ))}

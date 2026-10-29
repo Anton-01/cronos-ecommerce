@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { useClock } from '@/lib/clock'
 import { fromApiDate, toApiDate } from '@/features/promotions/dates'
 import {
   AdminCurrenciesDocument,
@@ -59,6 +60,7 @@ export function CurrencyPrices({ productId, basePrice, sellsByRoll, canEdit }: {
 
 function CurrencyCard({ productId, basePrice, currency, row, canEdit, sellsByRoll }: { productId: string; basePrice: string | null | undefined; currency: Currency; row: Row | null; canEdit: boolean; sellsByRoll: boolean }) {
   const run = useRun()
+  const clock = useClock()
   const [save, { loading }] = useMutation(SetProductPriceDocument, { refetchQueries: ['AdminProductPrices'] })
   const [clear] = useMutation(ClearProductPriceDocument, { refetchQueries: ['AdminProductPrices'] })
   const [form, setForm] = useState({
@@ -99,10 +101,10 @@ function CurrencyCard({ productId, basePrice, currency, row, canEdit, sellsByRol
           <Labeled id={id('sale')} label="Precio de oferta">
             <Input id={id('sale')} inputMode="decimal" value={form.salePrice} disabled={!canEdit} onChange={set('salePrice')} />
           </Labeled>
-          <Labeled id={id('from')} label="Oferta desde (UTC)">
+          <Labeled id={id('from')} label={`Oferta desde (${clock.label})`}>
             <Input id={id('from')} type="datetime-local" value={form.saleStartsAt} disabled={!canEdit} onChange={set('saleStartsAt')} />
           </Labeled>
-          <Labeled id={id('to')} label="Oferta hasta (UTC)">
+          <Labeled id={id('to')} label={`Oferta hasta (${clock.label})`}>
             <Input id={id('to')} type="datetime-local" value={form.saleEndsAt} disabled={!canEdit} onChange={set('saleEndsAt')} />
           </Labeled>
         </div>

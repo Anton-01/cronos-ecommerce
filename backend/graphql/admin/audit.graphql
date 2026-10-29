@@ -1,0 +1,33 @@
+type AuditEntry {
+  id: ID!
+  event: String!
+  "Short model name, e.g. CouponModel."
+  entity: String!
+  entityId: ID!
+  userId: ID
+  userEmail: String
+  oldValues: JSON
+  newValues: JSON
+  ip: String
+  "Country of the IP the change came from; null for local/unknown networks."
+  country: String
+  "Timezone of the clock the change was made under."
+  timezone: String
+  "When it happened, on the viewer's clock."
+  createdAt: DateTime!
+  "When it happened, in UTC: the single reference every trail row shares."
+  createdAtUtc: String!
+}
+
+type AuditPage {
+  entries: [AuditEntry!]!
+  "Pass as `before` to read the next (older) page; null when there are no more."
+  nextBefore: ID
+}
+
+extend type Query {
+  "Immutable audit trail, newest first."
+  adminAudits(entity: String, entityId: ID, userId: ID, country: String, event: String, before: ID, first: Int = 50): AuditPage!
+    @guard @can(ability: "audits.view", model: "Cronos\\Audit\\Infrastructure\\Persistence\\Audit")
+    @field(resolver: "Cronos\\Audit\\Interfaces\\GraphQL\\AdminAuditsQuery")
+}

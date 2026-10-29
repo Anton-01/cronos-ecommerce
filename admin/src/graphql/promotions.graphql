@@ -111,6 +111,8 @@ query AdminFraudChecks($decision: FraudVerdict) {
     orderId
     email
     ip
+    country
+    timezone
     score
     decision
     reasons

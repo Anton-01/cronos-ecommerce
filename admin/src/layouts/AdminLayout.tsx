@@ -1,9 +1,10 @@
-import { Boxes, Coins, FolderTree, Images, LayoutDashboard, LogOut, Percent, Receipt, Settings, ShieldAlert, ShieldCheck, SlidersHorizontal, Tags, Ticket, User, Users } from 'lucide-react'
+import { Boxes, Coins, FolderTree, Images, LayoutDashboard, LogOut, Percent, Receipt, Settings, ShieldAlert, ScrollText, ShieldCheck, SlidersHorizontal, Tags, Ticket, User, Users } from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/features/auth/AuthProvider'
+import { useClock } from '@/lib/clock'
 import { cn } from '@/lib/utils'
 
 const NAV = [
@@ -19,12 +20,14 @@ const NAV = [
   { to: '/finance/coupons', label: 'Cupones', icon: Ticket, permission: 'promotions.view', end: false },
   { to: '/finance/promotions', label: 'Promociones', icon: Percent, permission: 'promotions.view', end: false },
   { to: '/finance/fraud', label: 'Antifraude', icon: ShieldAlert, permission: 'fraud.view', end: false },
+  { to: '/audit', label: 'Auditoría', icon: ScrollText, permission: 'audits.view', end: false },
   { to: '/media', label: 'Medios', icon: Images, permission: 'media.view', end: false },
   { to: '/settings', label: 'Configuración', icon: Settings, permission: 'settings.view', end: false },
 ] as const
 
 export function AdminLayout() {
   const { user, can, signOut } = useAuth()
+  const clock = useClock()
   const name = [user?.profile?.firstName, user?.profile?.lastName].filter(Boolean).join(' ') || user?.email
 
   return (
@@ -51,7 +54,10 @@ export function AdminLayout() {
         </nav>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 items-center justify-end border-b px-6">
+        <header className="flex h-14 items-center justify-end gap-3 border-b px-6">
+          <span className="hidden text-xs text-muted-foreground sm:inline" data-testid="clock" title="Zona horaria según tu IP: todas las fechas se muestran con ella">
+            {clock.timezone ? `${clock.country ?? '—'} · ${clock.timezone.replace(/_/g, ' ')} (UTC${clock.utcOffset})` : ''}
+          </span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="max-w-64">

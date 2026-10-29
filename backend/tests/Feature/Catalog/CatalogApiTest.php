@@ -56,7 +56,7 @@ class CatalogApiTest extends GraphQLTestCase
 
         $r = $this->gql('{ product(slug: "liston-de-saten") { id type publishedAt name price sales { unit step min max sellByCut sellByRoll rollLength rollPrice } stockStatus } }')->assertJsonMissingPath('errors');
 
-        $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $r->json('data.product.publishedAt'));
+        $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/', $r->json('data.product.publishedAt'));
         $r->assertJsonPath('data.product.type', 'SIMPLE')
             ->assertJsonPath('data.product.price', '18.00')
             ->assertJsonPath('data.product.sales', ['unit' => 'METER', 'step' => '0.500', 'min' => '1.000', 'max' => '50.000', 'sellByCut' => true, 'sellByRoll' => true, 'rollLength' => '25.000', 'rollPrice' => '400.00']);

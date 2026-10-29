@@ -1,0 +1,19 @@
+query AdminAudits($entity: String, $country: String, $event: String, $before: ID) {
+  adminAudits(entity: $entity, country: $country, event: $event, before: $before, first: 50) {
+    nextBefore
+    entries {
+      id
+      event
+      entity
+      entityId
+      userEmail
+      oldValues
+      newValues
+      ip
+      country
+      timezone
+      createdAt
+      createdAtUtc
+    }
+  }
+}

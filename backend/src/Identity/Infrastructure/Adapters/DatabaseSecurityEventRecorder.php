@@ -17,6 +17,8 @@ final class DatabaseSecurityEventRecorder implements SecurityEventRecorder
             'event' => $event,
             'email' => $email,
             'ip_address' => $client->ip,
+            'country_code' => $client->country,
+            'timezone' => $client->timezone,
             'user_agent' => $client->userAgent !== null ? mb_substr($client->userAgent, 0, 1023) : null,
             'context' => $context === [] ? null : json_encode($context, JSON_THROW_ON_ERROR),
             'created_at' => now(),

@@ -12,11 +12,14 @@ import { IssueProductPreviewDocument, PublishProductDocument, UnpublishProductDo
 import { NativeSelect } from '../shared'
 import { STATUS_LABEL } from './ProductsPage'
 import { type Product } from './tabs'
+import { useClock } from '@/lib/clock'
+
 import { useRun } from './useRun'
 
 const STOREFRONT = import.meta.env.VITE_STOREFRONT_URL ?? 'http://localhost:3000'
 
 export function PublishTab({ product }: { product: Product }) {
+  const clock = useClock()
   const { can } = useAuth()
   const run = useRun()
   const [publish, { loading: publishing }] = useMutation(PublishProductDocument)
@@ -41,7 +44,7 @@ export function PublishTab({ product }: { product: Product }) {
           <CardTitle className="flex items-center gap-2 text-base">
             Estado: <Badge variant={published ? 'success' : 'secondary'}>{STATUS_LABEL[product.status]}</Badge>
           </CardTitle>
-          <CardDescription>{published ? 'Visible en la tienda desde ' + (product.publishedAt ? new Date(product.publishedAt).toLocaleDateString('es-MX') : 'ahora') + '.' : 'Solo tú lo ves hasta que lo publiques.'}</CardDescription>
+          <CardDescription>{published ? 'Visible en la tienda desde ' + (product.publishedAt ? clock.formatDate(product.publishedAt) : 'ahora') + '.' : 'Solo tú lo ves hasta que lo publiques.'}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {ready ? (

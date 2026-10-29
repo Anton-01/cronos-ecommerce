@@ -25,6 +25,7 @@ import {
   type AdminCouponsQuery,
 } from '@/graphql/generated'
 
+import { useClock } from '@/lib/clock'
 import { fromApiDate, toApiDate } from './dates'
 import { ProductPicker } from './ProductPicker'
 
@@ -89,6 +90,7 @@ export function CouponsPage() {
 }
 
 function CouponForm({ coupon, onClose }: { coupon: Coupon | null; onClose: () => void }) {
+  const clock = useClock()
   const run = useRun()
   const { data: currencies } = useQuery(AdminCurrenciesDocument)
   const { data: markets } = useQuery(AdminMarketsDocument)
@@ -146,7 +148,7 @@ function CouponForm({ coupon, onClose }: { coupon: Coupon | null; onClose: () =>
     <form className="space-y-4" onSubmit={submit}>
       <DialogHeader>
         <DialogTitle>{coupon ? 'Editar cupón' : 'Nuevo cupón'}</DialogTitle>
-        <DialogDescription>Las fechas están en hora UTC. Un cupón no acumulable compite con las promociones automáticas: gana el que más ahorra.</DialogDescription>
+        <DialogDescription>Las fechas están en la {clock.label}. Un cupón no acumulable compite con las promociones automáticas: gana el que más ahorra.</DialogDescription>
       </DialogHeader>
       <div className="grid grid-cols-2 gap-3">
         <Field id="cp-code" label="Código">

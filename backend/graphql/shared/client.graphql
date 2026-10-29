@@ -1,0 +1,16 @@
+"Who is calling, as far as the IP tells. Every date in the API is expressed in this timezone."
+type ClientContext {
+  ip: String
+  "ISO-3166 alpha-2 country of the IP; null when it cannot be told (local network, unknown range)."
+  country: String
+  "IANA timezone used for every DateTime in this response, e.g. America/Mexico_City."
+  timezone: String!
+  "Offset of that timezone right now, e.g. -06:00."
+  utcOffset: String!
+  "How the location was found: ranges (IP database), header (trusted CDN country) or fallback."
+  source: String!
+}
+
+extend type Query {
+  clientContext: ClientContext! @field(resolver: "Cronos\\Shared\\Interfaces\\GraphQL\\ClientContextQuery")
+}

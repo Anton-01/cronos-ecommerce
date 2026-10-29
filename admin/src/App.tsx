@@ -24,6 +24,7 @@ const TaxesPage = lazy(() => import('@/features/pricing/TaxesPage').then((m) => 
 const CouponsPage = lazy(() => import('@/features/promotions/CouponsPage').then((m) => ({ default: m.CouponsPage })))
 const PromotionsPage = lazy(() => import('@/features/promotions/PromotionsPage').then((m) => ({ default: m.PromotionsPage })))
 const FraudPage = lazy(() => import('@/features/promotions/FraudPage').then((m) => ({ default: m.FraudPage })))
+const AuditPage = lazy(() => import('@/features/audit/AuditPage').then((m) => ({ default: m.AuditPage })))
 const RolesPage = lazy(() => import('@/features/roles/RolesPage').then((m) => ({ default: m.RolesPage })))
 
 const page = (node: React.ReactNode) => <Suspense fallback={<Skeleton className="h-64 w-full" />}>{node}</Suspense>
@@ -62,6 +63,9 @@ export function App() {
           </Route>
           <Route element={<RequireAuth permission="fraud.view" />}>
             <Route path="finance/fraud" element={page(<FraudPage />)} />
+          </Route>
+          <Route element={<RequireAuth permission="audits.view" />}>
+            <Route path="audit" element={page(<AuditPage />)} />
           </Route>
           <Route path="profile" element={page(<ProfilePage />)} />
           <Route element={<RequireAuth permission="roles.view" />}>

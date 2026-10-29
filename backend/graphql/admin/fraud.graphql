@@ -37,6 +37,9 @@ type FraudCheck {
   orderId: ID
   email: String
   ip: String
+  "Country of the IP and the timezone of the clock the check ran under."
+  country: String
+  timezone: String
   score: Int!
   decision: FraudVerdict!
   reasons: JSON!

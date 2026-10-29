@@ -158,7 +158,8 @@ return [
     |
     */
 
-    'driver' => 'database',
+    // `geo` is the database driver plus the caller's country and timezone (registered in AuditServiceProvider).
+    'driver' => 'geo',
 
     /*
     |--------------------------------------------------------------------------

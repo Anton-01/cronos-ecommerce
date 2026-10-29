@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { NativeSelect, PageHeader } from '@/features/catalog/shared'
 import { useRun } from '@/features/catalog/products/useRun'
+import { useClock } from '@/lib/clock'
 import { Actions, Field } from '@/features/pricing/CurrenciesPage'
 import {
   AdminFraudChecksDocument,
@@ -217,6 +218,7 @@ function RuleForm({ rule, onClose }: { rule: Rule | null; onClose: () => void })
 }
 
 function Checks() {
+  const clock = useClock()
   const [decision, setDecision] = useState<FraudVerdict | ''>('')
   const { data, loading } = useQuery(AdminFraudChecksDocument, { variables: { decision: decision || null } })
 
@@ -240,7 +242,7 @@ function Checks() {
                 <span className="flex-1 text-sm text-muted-foreground">
                   {c.email ?? 'sin correo'} · {c.ip ?? 'sin IP'}
                 </span>
-                <span className="text-xs text-muted-foreground">{new Date(c.createdAt).toLocaleString('es-MX')}</span>
+                <span className="text-xs text-muted-foreground">{clock.formatDateTime(c.createdAt)}{c.country ? ` · ${c.country}` : ''}</span>
               </div>
               {reasons.length > 0 && <p className="text-xs text-muted-foreground">{reasons.map((r) => `${r.rule}: ${r.detail}`).join(' · ')}</p>}
             </li>

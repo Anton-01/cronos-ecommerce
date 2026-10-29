@@ -12,7 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Behind a load balancer/CDN the real visitor IP (and so their country and clock) comes from X-Forwarded-For: list its
+        // addresses in TRUSTED_PROXIES (comma separated, or * for all). Left empty, forwarded headers are ignored.
+        $proxies = array_filter(array_map('trim', explode(',', (string) env('TRUSTED_PROXIES', ''))));
+        $proxies === [] || $middleware->trustProxies(at: $proxies === ['*'] ? '*' : $proxies);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

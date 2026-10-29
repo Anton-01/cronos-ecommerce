@@ -71,8 +71,8 @@ final class PricingApiTest extends GraphQLTestCase
 
         $id = $this->product();
         $set = 'mutation($p: ID!, $c: ID!, $i: ProductPriceInput!) { setProductPrice(productId: $p, currencyId: $c, input: $i) { currencyCode price salePrice saleStartsAt saleEndsAt } }';
-        $this->adminGql($set, ['p' => $id, 'c' => $usd, 'i' => ['price' => '7.50', 'salePrice' => '6', 'saleStartsAt' => '2026-01-01 00:00:00', 'saleEndsAt' => '2099-01-01 00:00:00']], $token)
-            ->assertJsonMissingPath('errors')->assertJsonPath('data.setProductPrice.currencyCode', 'USD')->assertJsonPath('data.setProductPrice.salePrice', '6')->assertJsonPath('data.setProductPrice.saleEndsAt', '2099-01-01 00:00:00');
+        $this->adminGql($set, ['p' => $id, 'c' => $usd, 'i' => ['price' => '7.50', 'salePrice' => '6', 'saleStartsAt' => '2026-01-01 00:00:00', 'saleEndsAt' => '2099-01-01T00:00:00+00:00']], $token)
+            ->assertJsonMissingPath('errors')->assertJsonPath('data.setProductPrice.currencyCode', 'USD')->assertJsonPath('data.setProductPrice.salePrice', '6')->assertJsonPath('data.setProductPrice.saleEndsAt', '2099-01-01T00:00:00+00:00');
         $this->adminGql('query($c: ID!) { adminCurrencyHistory(currencyId: $c) { rate source createdAt } }', ['c' => $usd], $token)->assertJsonMissingPath('errors')->assertJsonPath('data.adminCurrencyHistory.0.source', 'manual');
         $this->adminGql($set, ['p' => $id, 'c' => $usd, 'i' => ['price' => '5', 'salePrice' => '6']], $token)->assertJsonPath('errors.0.extensions.code', 'SALE_NOT_LOWER');
 

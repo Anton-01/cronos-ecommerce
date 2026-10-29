@@ -7,6 +7,7 @@ import { Toaster } from 'sonner'
 import { App } from './App'
 import { AuthProvider } from './features/auth/AuthProvider'
 import './index.css'
+import { ClockProvider } from './lib/clock'
 import { createApolloClient } from './lib/apollo'
 
 const client = createApolloClient()
@@ -15,10 +16,12 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ApolloProvider client={client}>
       <BrowserRouter>
-        <AuthProvider>
-          <App />
-          <Toaster richColors position="top-right" />
-        </AuthProvider>
+        <ClockProvider>
+          <AuthProvider>
+            <App />
+            <Toaster richColors position="top-right" />
+          </AuthProvider>
+        </ClockProvider>
       </BrowserRouter>
     </ApolloProvider>
   </StrictMode>,

@@ -8,6 +8,7 @@ use Cronos\Fraud\Domain\Ports\FraudRepository;
 use Cronos\Fraud\Domain\ValueObjects\FraudContext;
 use Cronos\Fraud\Domain\ValueObjects\FraudDecision;
 use Cronos\Fraud\Infrastructure\Persistence\Eloquent\FraudRuleModel;
+use Cronos\Shared\Infrastructure\Geo\CurrentClient;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -44,8 +45,10 @@ final class EloquentFraudRepository implements FraudRepository
     public function recordCheck(?string $orderId, FraudContext $ctx, FraudDecision $decision): string
     {
         $id = strtolower((string) Str::ulid());
+        $location = app(CurrentClient::class)->location();
         DB::table('fraud_checks')->insert([
             'id' => $id, 'order_id' => $orderId, 'email' => $ctx->email === null ? null : strtolower($ctx->email), 'ip' => $ctx->ip,
+            'country_code' => $location->country, 'timezone' => $location->timezone,
             'score' => $decision->score, 'decision' => $decision->decision, 'reasons' => json_encode($decision->reasons, JSON_THROW_ON_ERROR),
         ]);
 
@@ -57,7 +60,7 @@ final class EloquentFraudRepository implements FraudRepository
         return DB::table('fraud_checks')
             ->when($orderId, fn ($q) => $q->where('order_id', $orderId))->when($decision, fn ($q) => $q->where('decision', $decision))
             ->orderByDesc('id')->limit(min($limit, 200))->get()
-            ->map(fn ($r) => ['id' => $r->id, 'order_id' => $r->order_id, 'email' => $r->email, 'ip' => $r->ip, 'score' => (int) $r->score, 'decision' => $r->decision, 'reasons' => json_decode($r->reasons, true), 'created_at' => Carbon::parse($r->created_at)->utc()->format('Y-m-d H:i:s')])->all();
+            ->map(fn ($r) => ['id' => $r->id, 'order_id' => $r->order_id, 'email' => $r->email, 'ip' => $r->ip, 'country' => $r->country_code, 'timezone' => $r->timezone, 'score' => (int) $r->score, 'decision' => $r->decision, 'reasons' => json_decode($r->reasons, true), 'created_at' => Carbon::parse($r->created_at)->utc()->format('Y-m-d H:i:s')])->all();
     }
 
     /** @return array<string, mixed> */

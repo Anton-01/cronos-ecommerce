@@ -1,10 +1,11 @@
 "Public / customer schema served at /graphql. Admin operations live in admin.graphql."
-scalar DateTime @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\DateTime")
+scalar DateTime @scalar(class: "Cronos\\Shared\\Interfaces\\GraphQL\\ZonedDateTime")
 
 type Query
 
 type Mutation
 
+#import shared/client.graphql
 #import settings.graphql
 #import settings/*.graphql
 #import catalog/types.graphql

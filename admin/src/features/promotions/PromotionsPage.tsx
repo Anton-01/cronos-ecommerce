@@ -24,6 +24,7 @@ import {
   type AdminPromotionsQuery,
 } from '@/graphql/generated'
 
+import { useClock } from '@/lib/clock'
 import { fromApiDate, toApiDate } from './dates'
 import { ProductPicker } from './ProductPicker'
 
@@ -98,6 +99,7 @@ export function PromotionsPage() {
 }
 
 function PromotionForm({ promotion, onClose }: { promotion: Promotion | null; onClose: () => void }) {
+  const clock = useClock()
   const run = useRun()
   const { data: currencies } = useQuery(AdminCurrenciesDocument)
   const { data: markets } = useQuery(AdminMarketsDocument)
@@ -162,7 +164,7 @@ function PromotionForm({ promotion, onClose }: { promotion: Promotion | null; on
     <form className="space-y-4" onSubmit={submit}>
       <DialogHeader>
         <DialogTitle>{promotion ? 'Editar promoción' : 'Nueva promoción'}</DialogTitle>
-        <DialogDescription>Las fechas están en hora UTC.</DialogDescription>
+        <DialogDescription>Las fechas están en la {clock.label}.</DialogDescription>
       </DialogHeader>
       <div className="grid grid-cols-2 gap-3">
         <Field id="pr-name" label="Nombre">

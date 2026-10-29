@@ -1,5 +1,8 @@
 type Query {
+ clientContext: ClientContext!
  supportedLocales: [SupportedLocale!]!
+ "Immutable audit trail, newest first."
+ adminAudits(entity: String, entityId: ID, userId: ID, country: String, event: String, before: ID, first: Int = 50): AuditPage!
  adminCategories: [AdminCategory!]!
  adminTags(search: String): [AdminTag!]!
  adminAttributes: [AdminAttribute!]!
@@ -117,6 +120,18 @@ type Mutation {
 }
 "Back-office schema served at /admin/graphql. Every operation except adminLogin requires a token plus a permission."
 scalar DateTime
+"Who is calling, as far as the IP tells. Every date in the API is expressed in this timezone."
+type ClientContext {
+ ip: String
+ "ISO-3166 alpha-2 country of the IP; null when it cannot be told (local network, unknown range)."
+ country: String
+ "IANA timezone used for every DateTime in this response, e.g. America/Mexico_City."
+ timezone: String!
+ "Offset of that timezone right now, e.g. -06:00."
+ utcOffset: String!
+ "How the location was found: ranges (IP database), header (trusted CDN country) or fallback."
+ source: String!
+}
 "Any valid JSON value."
 scalar JSON
 type SettingTranslation {
@@ -226,6 +241,31 @@ type AuthPayload {
  token: String!
  expiresAt: DateTime
  user: User!
+}
+type AuditEntry {
+ id: ID!
+ event: String!
+ "Short model name, e.g. CouponModel."
+ entity: String!
+ entityId: ID!
+ userId: ID
+ userEmail: String
+ oldValues: JSON
+ newValues: JSON
+ ip: String
+ "Country of the IP the change came from; null for local/unknown networks."
+ country: String
+ "Timezone of the clock the change was made under."
+ timezone: String
+ "When it happened, on the viewer's clock."
+ createdAt: DateTime!
+ "When it happened, in UTC: the single reference every trail row shares."
+ createdAtUtc: String!
+}
+type AuditPage {
+ entries: [AuditEntry!]!
+ "Pass as `before` to read the next (older) page; null when there are no more."
+ nextBefore: ID
 }
 type AdminCategory {
  id: ID!
@@ -522,6 +562,9 @@ type FraudCheck {
  orderId: ID
  email: String
  ip: String
+ "Country of the IP and the timezone of the clock the check ran under."
+ country: String
+ timezone: String
  score: Int!
  decision: FraudVerdict!
  reasons: JSON!
