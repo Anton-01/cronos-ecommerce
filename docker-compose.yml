@@ -1,0 +1,124 @@
+name: cronos
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: docker/php/Dockerfile
+    target: dev
+  env_file: [backend/.env]
+  volumes: [./backend:/var/www/html]
+  networks: [backend]
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis-cache: { condition: service_healthy }
+    redis-queue: { condition: service_healthy }
+    redis-session: { condition: service_healthy }
+
+services:
+  app:
+    <<: *app
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep php-fpm >/dev/null"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports: ["8080:8080"]
+    volumes:
+      - ./backend/public:/var/www/html/public:ro
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [app]
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+
+  horizon:
+    <<: *app
+    command: php artisan horizon
+    healthcheck:
+      test: ["CMD-SHELL", "php artisan horizon:status | grep -q running"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  scheduler:
+    <<: *app
+    command: php artisan schedule:work
+
+  postgres:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_APP_USER: ${POSTGRES_APP_USER}
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/01-extensions.sql:/docker-entrypoint-initdb.d/01-extensions.sql:ro
+      - ./docker/postgres/02-roles.sh:/docker-entrypoint-initdb.d/02-roles.sh:ro
+    ports: ["127.0.0.1:5432:5432"]
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis-cache:
+    image: redis:7-alpine
+    command: ["redis-server", "/etc/redis/redis.conf", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes: ["./docker/redis/cache.conf:/etc/redis/redis.conf:ro"]
+    networks: [backend]
+    healthcheck: &redis-health
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD --no-auth-warning ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    environment: { REDIS_PASSWORD: "${REDIS_PASSWORD}" }
+
+  redis-queue:
+    image: redis:7-alpine
+    command: ["redis-server", "/etc/redis/redis.conf", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes: ["./docker/redis/queue.conf:/etc/redis/redis.conf:ro", "redis-queue:/data"]
+    networks: [backend]
+    healthcheck: *redis-health
+    environment: { REDIS_PASSWORD: "${REDIS_PASSWORD}" }
+
+  redis-session:
+    image: redis:7-alpine
+    command: ["redis-server", "/etc/redis/redis.conf", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes: ["./docker/redis/session.conf:/etc/redis/redis.conf:ro", "redis-session:/data"]
+    networks: [backend]
+    healthcheck: *redis-health
+    environment: { REDIS_PASSWORD: "${REDIS_PASSWORD}" }
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports: ["127.0.0.1:8025:8025"]
+    networks: [backend]
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes: [miniodata:/data]
+    ports: ["127.0.0.1:9001:9001"]
+    networks: [backend]
+
+networks:
+  backend:
+
+volumes:
+  pgdata:
+  redis-queue:
+  redis-session:
+  miniodata:

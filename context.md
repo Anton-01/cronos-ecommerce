@@ -501,8 +501,8 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho.
 - [ ] Respuestas a preguntas abiertas de §18 (bloquean decisiones puntuales, no el arranque)
 
 ### FASE 1 — Infraestructura base, autenticación y auditoría
-- [ ] Monorepo, `Makefile`, `.editorconfig`, hooks pre-commit
-- [ ] Docker: `app`, `nginx`, `postgres`, `pgbouncer`, `redis-*`, `mailpit`, `minio`, workers Horizon, scheduler; healthchecks; usuario no-root
+- [x] Monorepo skeleton, `Makefile`, `.editorconfig`, `.gitignore` (hooks pre-commit pendientes)
+- [~] Docker: `app`, `nginx`, `postgres`, `redis-*` (3), `mailpit`, `minio`, Horizon, scheduler escritos con healthchecks (sin validar: no hay daemon Docker en el sandbox). Pendiente: `pgbouncer`, imágenes prod de admin/storefront
 - [ ] Laravel base con estructura modular hexagonal + Deptrac + Larastan + Pint + Pest
 - [ ] Lighthouse: esquemas `/graphql` y `/admin/graphql`, límites de profundidad/complejidad, errores estandarizados, correlation id
 - [ ] PostgreSQL (extensiones) · Redis (cache/queue/session) · Horizon
@@ -597,4 +597,5 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho.
 
 | Fecha | Cambio |
 |---|---|
+| 2026-10-29 | Fase 1 iniciada: infra Docker/compose/Redis/Postgres escrita. **Bloqueo:** el entorno no permite `repo.packagist.org`, no se puede instalar Laravel/Lighthouse hasta habilitar el host. |
 | 2026-10-28 | Creación del Master Plan (Fase 0): arquitectura, ER mejorado, cobertura de retrospectiva, checklist. |
