@@ -158,9 +158,6 @@ extend type Mutation {
     @guard @can(ability: "pricing.manage", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
     @throttle(maxAttempts: 6, decayMinutes: 1, prefix: "fx-refresh")
     @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@refreshRates")
-  deleteCurrency(id: ID!): Boolean!
-    @guard @can(ability: "pricing.manage", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
-    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@deleteCurrency")
 
   createMarket(input: MarketInput!): AdminMarket!
     @guard @can(ability: "pricing.manage", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")

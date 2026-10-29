@@ -1,0 +1,135 @@
+fragment RestrictionFields on RestrictionsInfo {
+  productIds
+  categoryIds
+  marketCodes
+  excludeSaleItems
+  firstOrderOnly
+  minSubtotal
+}
+
+fragment CouponFields on AdminCoupon {
+  id
+  code
+  name
+  type
+  value
+  currency
+  minSpend
+  maxDiscount
+  maxUses
+  maxUsesPerUser
+  usesCount
+  isStackable
+  isActive
+  startsAt
+  expiresAt
+  restrictions {
+    ...RestrictionFields
+  }
+}
+
+query AdminCoupons($search: String) {
+  adminCoupons(search: $search) {
+    ...CouponFields
+  }
+}
+
+mutation CreateCoupon($input: CouponInput!) {
+  createCoupon(input: $input) {
+    id
+  }
+}
+
+mutation UpdateCoupon($id: ID!, $input: CouponInput!) {
+  updateCoupon(id: $id, input: $input) {
+    id
+  }
+}
+
+mutation DeleteCoupon($id: ID!) {
+  deleteCoupon(id: $id)
+}
+
+fragment PromotionFields on AdminPromotion {
+  id
+  name
+  description
+  priority
+  isStackable
+  isActive
+  startsAt
+  endsAt
+  conditions {
+    ...RestrictionFields
+  }
+  action {
+    type
+    value
+    currency
+    buy
+    get
+    percent
+  }
+}
+
+query AdminPromotions {
+  adminPromotions {
+    ...PromotionFields
+  }
+}
+
+mutation CreatePromotion($input: PromotionInput!) {
+  createPromotion(input: $input) {
+    id
+  }
+}
+
+mutation UpdatePromotion($id: ID!, $input: PromotionInput!) {
+  updatePromotion(id: $id, input: $input) {
+    id
+  }
+}
+
+mutation DeletePromotion($id: ID!) {
+  deletePromotion(id: $id)
+}
+
+query AdminFraudRules {
+  adminFraudRules {
+    id
+    name
+    type
+    params
+    score
+    isActive
+  }
+}
+
+query AdminFraudChecks($decision: FraudVerdict) {
+  adminFraudChecks(decision: $decision, first: 50) {
+    id
+    orderId
+    email
+    ip
+    score
+    decision
+    reasons
+    createdAt
+  }
+}
+
+mutation CreateFraudRule($input: FraudRuleInput!) {
+  createFraudRule(input: $input) {
+    id
+  }
+}
+
+mutation UpdateFraudRule($id: ID!, $input: FraudRuleInput!) {
+  updateFraudRule(id: $id, input: $input) {
+    id
+  }
+}
+
+mutation DeleteFraudRule($id: ID!) {
+  deleteFraudRule(id: $id)
+}

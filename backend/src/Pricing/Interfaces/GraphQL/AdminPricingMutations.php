@@ -61,14 +61,6 @@ final class AdminPricingMutations
     }
 
     /** @param array<string, mixed> $args */
-    public function deleteCurrency(mixed $root, array $args): bool
-    {
-        $this->currencies->delete((int) $args['id']);
-
-        return true;
-    }
-
-    /** @param array<string, mixed> $args */
     public function createMarket(mixed $root, array $args): array
     {
         return $this->market($this->markets->create(Present::snake($args['input'])));

@@ -19,6 +19,11 @@ const ProductEditor = lazy(() => import('@/features/catalog/products/ProductEdit
 const CategoriesPage = lazy(() => import('@/features/catalog/categories/CategoriesPage').then((m) => ({ default: m.CategoriesPage })))
 const TagsPage = lazy(() => import('@/features/catalog/tags/TagsPage').then((m) => ({ default: m.TagsPage })))
 const AttributesPage = lazy(() => import('@/features/catalog/attributes/AttributesPage').then((m) => ({ default: m.AttributesPage })))
+const CurrenciesPage = lazy(() => import('@/features/pricing/CurrenciesPage').then((m) => ({ default: m.CurrenciesPage })))
+const TaxesPage = lazy(() => import('@/features/pricing/TaxesPage').then((m) => ({ default: m.TaxesPage })))
+const CouponsPage = lazy(() => import('@/features/promotions/CouponsPage').then((m) => ({ default: m.CouponsPage })))
+const PromotionsPage = lazy(() => import('@/features/promotions/PromotionsPage').then((m) => ({ default: m.PromotionsPage })))
+const FraudPage = lazy(() => import('@/features/promotions/FraudPage').then((m) => ({ default: m.FraudPage })))
 const RolesPage = lazy(() => import('@/features/roles/RolesPage').then((m) => ({ default: m.RolesPage })))
 
 const page = (node: React.ReactNode) => <Suspense fallback={<Skeleton className="h-64 w-full" />}>{node}</Suspense>
@@ -46,6 +51,17 @@ export function App() {
             <Route path="catalog/categories" element={page(<CategoriesPage />)} />
             <Route path="catalog/tags" element={page(<TagsPage />)} />
             <Route path="catalog/attributes" element={page(<AttributesPage />)} />
+          </Route>
+          <Route element={<RequireAuth permission="pricing.view" />}>
+            <Route path="finance/currencies" element={page(<CurrenciesPage />)} />
+            <Route path="finance/taxes" element={page(<TaxesPage />)} />
+          </Route>
+          <Route element={<RequireAuth permission="promotions.view" />}>
+            <Route path="finance/coupons" element={page(<CouponsPage />)} />
+            <Route path="finance/promotions" element={page(<PromotionsPage />)} />
+          </Route>
+          <Route element={<RequireAuth permission="fraud.view" />}>
+            <Route path="finance/fraud" element={page(<FraudPage />)} />
           </Route>
           <Route path="profile" element={page(<ProfilePage />)} />
           <Route element={<RequireAuth permission="roles.view" />}>

@@ -1,0 +1,168 @@
+fragment CurrencyFields on AdminCurrency {
+  id
+  code
+  name
+  symbol
+  decimals
+  exchangeRate
+  isDefault
+  isActive
+  rateUpdatedAt
+}
+
+query AdminCurrencies {
+  adminCurrencies {
+    ...CurrencyFields
+  }
+}
+
+query AdminCurrencyHistory($currencyId: ID!) {
+  adminCurrencyHistory(currencyId: $currencyId) {
+    rate
+    source
+    createdAt
+  }
+}
+
+mutation CreateCurrency($input: CreateCurrencyInput!) {
+  createCurrency(input: $input) {
+    ...CurrencyFields
+  }
+}
+
+mutation UpdateCurrency($id: ID!, $input: UpdateCurrencyInput!) {
+  updateCurrency(id: $id, input: $input) {
+    ...CurrencyFields
+  }
+}
+
+mutation SetExchangeRate($currencyId: ID!, $rate: String!) {
+  setExchangeRate(currencyId: $currencyId, rate: $rate) {
+    ...CurrencyFields
+  }
+}
+
+mutation RefreshExchangeRates {
+  refreshExchangeRates {
+    updated {
+      code
+      rate
+    }
+    skipped {
+      code
+      reason
+    }
+  }
+}
+
+fragment MarketFields on AdminMarket {
+  id
+  code
+  name
+  countryCode
+  currencyId
+  defaultLocale
+  pricesIncludeTax
+  isActive
+}
+
+query AdminMarkets {
+  adminMarkets {
+    ...MarketFields
+  }
+}
+
+mutation CreateMarket($input: MarketInput!) {
+  createMarket(input: $input) {
+    ...MarketFields
+  }
+}
+
+mutation UpdateMarket($id: ID!, $input: MarketInput!) {
+  updateMarket(id: $id, input: $input) {
+    ...MarketFields
+  }
+}
+
+mutation DeleteMarket($id: ID!) {
+  deleteMarket(id: $id)
+}
+
+query AdminTaxClasses {
+  adminTaxClasses {
+    id
+    name
+    isDefault
+  }
+}
+
+query AdminTaxRates($taxClassId: ID, $marketId: ID) {
+  adminTaxRates(taxClassId: $taxClassId, marketId: $marketId) {
+    id
+    taxClassId
+    marketId
+    region
+    name
+    rate
+    priority
+    isCompound
+    startsAt
+    endsAt
+  }
+}
+
+mutation CreateTaxClass($name: String!, $isDefault: Boolean) {
+  createTaxClass(name: $name, isDefault: $isDefault) {
+    id
+  }
+}
+
+mutation UpdateTaxClass($id: ID!, $name: String, $isDefault: Boolean) {
+  updateTaxClass(id: $id, name: $name, isDefault: $isDefault) {
+    id
+  }
+}
+
+mutation DeleteTaxClass($id: ID!) {
+  deleteTaxClass(id: $id)
+}
+
+mutation CreateTaxRate($input: TaxRateInput!) {
+  createTaxRate(input: $input) {
+    id
+  }
+}
+
+mutation UpdateTaxRate($id: ID!, $input: TaxRateInput!) {
+  updateTaxRate(id: $id, input: $input) {
+    id
+  }
+}
+
+mutation DeleteTaxRate($id: ID!) {
+  deleteTaxRate(id: $id)
+}
+
+query AdminProductPrices($productId: ID!) {
+  adminProductPrices(productId: $productId) {
+    productId
+    currencyId
+    currencyCode
+    price
+    rollPrice
+    compareAtPrice
+    salePrice
+    saleStartsAt
+    saleEndsAt
+  }
+}
+
+mutation SetProductPrice($productId: ID!, $currencyId: ID!, $input: ProductPriceInput!) {
+  setProductPrice(productId: $productId, currencyId: $currencyId, input: $input) {
+    currencyId
+  }
+}
+
+mutation ClearProductPrice($productId: ID!, $currencyId: ID!) {
+  clearProductPrice(productId: $productId, currencyId: $currencyId)
+}

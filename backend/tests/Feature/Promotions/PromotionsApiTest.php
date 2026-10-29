@@ -3,6 +3,9 @@
 namespace Tests\Feature\Promotions;
 
 use Cronos\Catalog\Application\ProductManager;
+use Cronos\Fraud\Application\FraudService;
+use Cronos\Fraud\Domain\ValueObjects\FraudContext;
+use Cronos\Pricing\Domain\ValueObjects\Money;
 use Database\Seeders\FraudRulesSeeder;
 use Database\Seeders\PricingSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -90,6 +93,9 @@ final class PromotionsApiTest extends GraphQLTestCase
         $this->adminGql($create, ['i' => ['name' => 'Mal', 'type' => 'VELOCITY_IP', 'params' => ['max' => 0], 'score' => 10]], $token)->assertJsonPath('errors.0.extensions.code', 'INVALID_FRAUD_RULE');
 
         $this->adminGql('{ adminFraudChecks { id } }', [], $token)->assertJsonPath('data.adminFraudChecks', []);
+
+        app(FraudService::class)->assess(new FraudContext('203.0.113.1', 'x@example.com', null, new Money('10', 'MXN'), 'MX', 'MX'), 'order-9');
+        $this->adminGql('{ adminFraudChecks(orderId: "order-9") { orderId decision createdAt reasons } }', [], $token)->assertJsonMissingPath('errors')->assertJsonPath('data.adminFraudChecks.0.decision', 'ALLOW');
     }
 
     public function test_support_can_read_but_not_change_promotions_and_cannot_see_fraud_rules(): void

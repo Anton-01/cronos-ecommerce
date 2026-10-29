@@ -157,6 +157,7 @@ fragment ProductFull on AdminProduct {
   status
   sku
   barcode
+  taxClassId
   price
   weight
   dimensions

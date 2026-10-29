@@ -1,4 +1,4 @@
-import { Boxes, FolderTree, Images, LayoutDashboard, LogOut, Settings, ShieldCheck, SlidersHorizontal, Tags, User, Users } from 'lucide-react'
+import { Boxes, Coins, FolderTree, Images, LayoutDashboard, LogOut, Percent, Receipt, Settings, ShieldAlert, ShieldCheck, SlidersHorizontal, Tags, Ticket, User, Users } from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,11 @@ const NAV = [
   { to: '/catalog/categories', label: 'Categorías', icon: FolderTree, permission: 'catalog.view', end: false },
   { to: '/catalog/attributes', label: 'Atributos', icon: SlidersHorizontal, permission: 'catalog.view', end: false },
   { to: '/catalog/tags', label: 'Etiquetas', icon: Tags, permission: 'catalog.view', end: false },
+  { to: '/finance/currencies', label: 'Monedas y mercados', icon: Coins, permission: 'pricing.view', end: false },
+  { to: '/finance/taxes', label: 'Impuestos', icon: Receipt, permission: 'pricing.view', end: false },
+  { to: '/finance/coupons', label: 'Cupones', icon: Ticket, permission: 'promotions.view', end: false },
+  { to: '/finance/promotions', label: 'Promociones', icon: Percent, permission: 'promotions.view', end: false },
+  { to: '/finance/fraud', label: 'Antifraude', icon: ShieldAlert, permission: 'fraud.view', end: false },
   { to: '/media', label: 'Medios', icon: Images, permission: 'media.view', end: false },
   { to: '/settings', label: 'Configuración', icon: Settings, permission: 'settings.view', end: false },
 ] as const

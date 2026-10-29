@@ -96,7 +96,6 @@ type Mutation {
  updateCurrency(id: ID!, input: UpdateCurrencyInput!): AdminCurrency!
  setExchangeRate(currencyId: ID!, rate: String!): AdminCurrency!
  refreshExchangeRates: RateRefreshReport!
- deleteCurrency(id: ID!): Boolean!
  createMarket(input: MarketInput!): AdminMarket!
  updateMarket(id: ID!, input: MarketInput!): AdminMarket!
  deleteMarket(id: ID!): Boolean!

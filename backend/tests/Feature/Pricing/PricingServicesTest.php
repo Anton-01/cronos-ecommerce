@@ -38,7 +38,6 @@ final class PricingServicesTest extends PricingTestCase
         $mxn = $this->currencyId('MXN');
 
         foreach ([
-            fn () => $currencies->delete($mxn),
             fn () => $currencies->update($mxn, ['is_active' => false]),
             fn () => $currencies->setRate($mxn, '2'),
             fn () => $currencies->create(['code' => 'mxn', 'name' => 'dup', 'symbol' => '$', 'exchange_rate' => '1']),
@@ -67,12 +66,23 @@ final class PricingServicesTest extends PricingTestCase
         DB::table('exchange_rate_history')->update(['rate' => 9]);
     }
 
-    public function test_a_currency_in_use_cannot_be_deleted_or_change_its_decimals(): void
+    public function test_a_currency_sold_in_by_an_active_market_cannot_be_deactivated_or_change_its_decimals(): void
     {
         $usd = $this->currencyId('USD');
+        $currencies = app(CurrencyManager::class);
 
+        try {
+            $currencies->update($usd, ['is_active' => false]); // the US market sells in it
+            $this->fail('expected a conflict');
+        } catch (Conflict $e) {
+            $this->assertSame('CURRENCY_IN_USE', $e->errorCode());
+        }
+
+        $this->piece(price: '10.00');
+        $product = DB::table('products')->value('id');
+        app(ProductPriceManager::class)->set($product, $usd, ['price' => '1']);
         $this->expectException(Conflict::class);
-        app(CurrencyManager::class)->delete($usd); // the US market uses it
+        $currencies->update($usd, ['decimals' => 3]);
     }
 
     public function test_markets_need_an_active_currency_a_supported_locale_and_a_unique_code(): void

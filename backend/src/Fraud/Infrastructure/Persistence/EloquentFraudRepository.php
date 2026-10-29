@@ -8,6 +8,7 @@ use Cronos\Fraud\Domain\Ports\FraudRepository;
 use Cronos\Fraud\Domain\ValueObjects\FraudContext;
 use Cronos\Fraud\Domain\ValueObjects\FraudDecision;
 use Cronos\Fraud\Infrastructure\Persistence\Eloquent\FraudRuleModel;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -56,7 +57,7 @@ final class EloquentFraudRepository implements FraudRepository
         return DB::table('fraud_checks')
             ->when($orderId, fn ($q) => $q->where('order_id', $orderId))->when($decision, fn ($q) => $q->where('decision', $decision))
             ->orderByDesc('id')->limit(min($limit, 200))->get()
-            ->map(fn ($r) => ['id' => $r->id, 'order_id' => $r->order_id, 'email' => $r->email, 'ip' => $r->ip, 'score' => (int) $r->score, 'decision' => $r->decision, 'reasons' => json_decode($r->reasons, true), 'created_at' => $r->created_at])->all();
+            ->map(fn ($r) => ['id' => $r->id, 'order_id' => $r->order_id, 'email' => $r->email, 'ip' => $r->ip, 'score' => (int) $r->score, 'decision' => $r->decision, 'reasons' => json_decode($r->reasons, true), 'created_at' => Carbon::parse($r->created_at)->utc()->format('Y-m-d H:i:s')])->all();
     }
 
     /** @return array<string, mixed> */

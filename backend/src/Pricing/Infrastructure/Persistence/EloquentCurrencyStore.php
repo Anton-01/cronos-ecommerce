@@ -6,6 +6,7 @@ namespace Cronos\Pricing\Infrastructure\Persistence;
 
 use Cronos\Pricing\Domain\Ports\CurrencyStore;
 use Cronos\Pricing\Infrastructure\Persistence\Eloquent\CurrencyModel;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 final class EloquentCurrencyStore implements CurrencyStore
@@ -40,16 +41,16 @@ final class EloquentCurrencyStore implements CurrencyStore
         CurrencyModel::query()->findOrFail($id)->update($data);
     }
 
-    public function delete(int $id): void
-    {
-        CurrencyModel::query()->findOrFail($id)->delete();
-    }
-
     public function inUse(int $id): bool
     {
         return DB::table('markets')->where('currency_id', $id)->exists()
             || DB::table('product_prices')->where('currency_id', $id)->exists()
             || DB::table('coupons')->where('currency_id', $id)->exists();
+    }
+
+    public function usedByActiveMarket(int $id): bool
+    {
+        return DB::table('markets')->where(['currency_id' => $id, 'is_active' => true])->exists();
     }
 
     public function setRate(int $id, string $rate, string $source): void
@@ -63,7 +64,8 @@ final class EloquentCurrencyStore implements CurrencyStore
     public function history(int $id, int $limit = 30): array
     {
         return DB::table('exchange_rate_history')->where('currency_id', $id)->orderByDesc('id')->limit($limit)
-            ->get(['rate', 'source', 'created_at'])->map(fn ($r) => (array) $r)->all();
+            ->get(['rate', 'source', 'created_at'])
+            ->map(fn ($r) => ['rate' => $r->rate, 'source' => $r->source, 'created_at' => Carbon::parse($r->created_at)->utc()->format('Y-m-d H:i:s')])->all();
     }
 
     private function record(int $id, string $rate, string $source): void

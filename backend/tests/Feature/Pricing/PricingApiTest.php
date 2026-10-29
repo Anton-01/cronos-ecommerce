@@ -61,7 +61,7 @@ final class PricingApiTest extends GraphQLTestCase
         $usd = $this->adminGql('{ adminCurrencies { id code isDefault exchangeRate } }', [], $token)->json('data.adminCurrencies.1.id');
 
         $this->adminGql('mutation($id: ID!) { setExchangeRate(currencyId: $id, rate: "0.0600") { exchangeRate } }', ['id' => $usd], $token)->assertJsonPath('data.setExchangeRate.exchangeRate', '0.06000000');
-        $this->adminGql('mutation($id: ID!) { deleteCurrency(id: $id) }', ['id' => $usd], $token)->assertJsonPath('errors.0.extensions.code', 'CURRENCY_IN_USE');
+        $this->adminGql('mutation($id: ID!) { updateCurrency(id: $id, input: { isActive: false }) { id } }', ['id' => $usd], $token)->assertJsonPath('errors.0.extensions.code', 'CURRENCY_IN_USE');
 
         $class = $this->adminGql('{ adminTaxClasses { id isDefault } }', [], $token)->json('data.adminTaxClasses.0.id');
         $us = $this->adminGql('{ adminMarkets { id code } }', [], $token)->json('data.adminMarkets.1.id');
@@ -70,9 +70,10 @@ final class PricingApiTest extends GraphQLTestCase
         $this->adminGql('mutation($i: TaxRateInput!) { createTaxRate(input: $i) { id } }', ['i' => ['taxClassId' => $class, 'marketId' => $us, 'name' => 'Bad', 'rate' => '150']], $token)->assertJsonPath('errors.0.extensions.code', 'INVALID_PRICING');
 
         $id = $this->product();
-        $set = 'mutation($p: ID!, $c: ID!, $i: ProductPriceInput!) { setProductPrice(productId: $p, currencyId: $c, input: $i) { currencyCode price salePrice saleEndsAt } }';
+        $set = 'mutation($p: ID!, $c: ID!, $i: ProductPriceInput!) { setProductPrice(productId: $p, currencyId: $c, input: $i) { currencyCode price salePrice saleStartsAt saleEndsAt } }';
         $this->adminGql($set, ['p' => $id, 'c' => $usd, 'i' => ['price' => '7.50', 'salePrice' => '6', 'saleStartsAt' => '2026-01-01 00:00:00', 'saleEndsAt' => '2099-01-01 00:00:00']], $token)
-            ->assertJsonPath('data.setProductPrice.currencyCode', 'USD')->assertJsonPath('data.setProductPrice.salePrice', '6');
+            ->assertJsonMissingPath('errors')->assertJsonPath('data.setProductPrice.currencyCode', 'USD')->assertJsonPath('data.setProductPrice.salePrice', '6')->assertJsonPath('data.setProductPrice.saleEndsAt', '2099-01-01 00:00:00');
+        $this->adminGql('query($c: ID!) { adminCurrencyHistory(currencyId: $c) { rate source createdAt } }', ['c' => $usd], $token)->assertJsonMissingPath('errors')->assertJsonPath('data.adminCurrencyHistory.0.source', 'manual');
         $this->adminGql($set, ['p' => $id, 'c' => $usd, 'i' => ['price' => '5', 'salePrice' => '6']], $token)->assertJsonPath('errors.0.extensions.code', 'SALE_NOT_LOWER');
 
         $this->gql('{ product(slug: "mono") { pricing(market: "US", region: "TX") { price { amount } onSale compareAt { amount } taxAmount { amount } priceWithTax { amount } } } }')

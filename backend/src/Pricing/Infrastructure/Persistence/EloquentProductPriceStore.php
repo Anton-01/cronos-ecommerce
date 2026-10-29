@@ -6,6 +6,7 @@ namespace Cronos\Pricing\Infrastructure\Persistence;
 
 use Cronos\Pricing\Domain\Ports\ProductPriceStore;
 use Cronos\Pricing\Infrastructure\Persistence\Eloquent\ProductPriceModel;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 final class EloquentProductPriceStore implements ProductPriceStore
@@ -55,6 +56,12 @@ final class EloquentProductPriceStore implements ProductPriceStore
             ->get()->mapWithKeys(fn ($r) => [$r->product_id => $this->row((array) $r)])->all();
     }
 
+    /** Raw query-builder timestamps carry a zone offset the API's DateTime scalar rejects. */
+    private function stamp(?string $value): ?string
+    {
+        return $value === null ? null : Carbon::parse($value)->utc()->format('Y-m-d H:i:s');
+    }
+
     /** @param array<string, mixed> $r @return array<string, mixed> */
     private function row(array $r): array
     {
@@ -63,7 +70,7 @@ final class EloquentProductPriceStore implements ProductPriceStore
         return [
             'product_id' => $r['product_id'], 'currency_id' => (int) $r['currency_id'], 'currency_code' => $r['currency_code'] ?? null,
             'price' => $trim($r['price']), 'roll_price' => $trim($r['roll_price']), 'compare_at_price' => $trim($r['compare_at_price']),
-            'sale_price' => $trim($r['sale_price']), 'sale_starts_at' => $r['sale_starts_at'], 'sale_ends_at' => $r['sale_ends_at'],
+            'sale_price' => $trim($r['sale_price']), 'sale_starts_at' => $this->stamp($r['sale_starts_at']), 'sale_ends_at' => $this->stamp($r['sale_ends_at']),
         ];
     }
 }

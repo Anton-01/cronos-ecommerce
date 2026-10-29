@@ -21,9 +21,9 @@ interface CurrencyStore
     /** @param array<string, mixed> $data */
     public function update(int $id, array $data): void;
 
-    public function delete(int $id): void;
-
     public function inUse(int $id): bool;
+
+    public function usedByActiveMarket(int $id): bool;
 
     /** Stores the rate and appends it to the immutable history. */
     public function setRate(int $id, string $rate, string $source): void;

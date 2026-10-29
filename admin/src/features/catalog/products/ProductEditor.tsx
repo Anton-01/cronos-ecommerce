@@ -17,6 +17,7 @@ import { GroupTab } from './GroupTab'
 import { OrganizationTab } from './OrganizationTab'
 import { STATUS_LABEL, TYPE_LABEL } from './ProductsPage'
 import { PublishTab } from './PublishTab'
+import { PricesTab } from './PricesTab'
 import { SalesTab } from './SalesTab'
 import { VariationsTab } from './VariationsTab'
 import { displayName } from './tabs'
@@ -70,6 +71,7 @@ export function ProductEditor() {
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="general">General</TabsTrigger>
           {!grouped && <TabsTrigger value="sales">Venta</TabsTrigger>}
+          {!grouped && !product.parentId && can('pricing.view') && <TabsTrigger value="prices">Precios</TabsTrigger>}
           <TabsTrigger value="organization">Organización</TabsTrigger>
           {variable && <TabsTrigger value="variations">Variaciones</TabsTrigger>}
           {grouped && <TabsTrigger value="group">Kit</TabsTrigger>}
@@ -84,6 +86,11 @@ export function ProductEditor() {
         {!grouped && (
           <TabsContent value="sales">
             <SalesTab key={seed} product={product} canEdit={canEdit} />
+          </TabsContent>
+        )}
+        {!grouped && !product.parentId && can('pricing.view') && (
+          <TabsContent value="prices">
+            <PricesTab product={product} canEdit={canEdit} />
           </TabsContent>
         )}
         <TabsContent value="organization">

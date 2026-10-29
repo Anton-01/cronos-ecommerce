@@ -13,7 +13,8 @@ use Cronos\Pricing\Domain\Ports\CurrencyStore;
 
 /**
  * The default currency is the one product base prices are written in; it is created once (first currency)
- * and never changes, so every stored price keeps meaning the same thing.
+ * and never changes, so every stored price keeps meaning the same thing. Currencies are never deleted: their exchange-rate
+ * history is an immutable ledger, so a currency that is no longer sold in is deactivated.
  */
 final class CurrencyManager
 {
@@ -46,7 +47,10 @@ final class CurrencyManager
             ($data['decimals'] >= 0 && $data['decimals'] <= 4) || throw new InvalidPricing('Decimals must be between 0 and 4.');
             ! $this->currencies->inUse($id) || throw new Conflict('The decimals of a currency in use cannot change.', 'CURRENCY_IN_USE');
         }
-        ! (($data['is_active'] ?? true) === false && $current['is_default']) || throw new Conflict('The default currency cannot be deactivated.', 'DEFAULT_CURRENCY');
+        if (($data['is_active'] ?? true) === false) {
+            ! $current['is_default'] || throw new Conflict('The default currency cannot be deactivated.', 'DEFAULT_CURRENCY');
+            ! $this->currencies->usedByActiveMarket($id) || throw new Conflict('An active market sells in this currency; deactivate or move the market first.', 'CURRENCY_IN_USE');
+        }
 
         $this->currencies->update($id, array_filter($data, static fn ($v) => $v !== null));
     }
@@ -57,15 +61,6 @@ final class CurrencyManager
         ! $current['is_default'] || throw new Conflict('The default currency is always 1.', 'DEFAULT_CURRENCY');
 
         $this->currencies->setRate($id, $this->rate($rate), $source);
-    }
-
-    public function delete(int $id): void
-    {
-        $current = $this->currencies->find($id) ?? throw new NotFound('The currency');
-        ! $current['is_default'] || throw new Conflict('The default currency cannot be deleted.', 'DEFAULT_CURRENCY');
-        ! $this->currencies->inUse($id) || throw new Conflict('The currency is used by a market, a price or a coupon.', 'CURRENCY_IN_USE');
-
-        $this->currencies->delete($id);
     }
 
     private function rate(string $rate): string
