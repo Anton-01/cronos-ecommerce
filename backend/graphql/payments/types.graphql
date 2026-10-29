@@ -1,0 +1,4 @@
+enum PaymentMode {
+  SANDBOX @enum(value: "sandbox")
+  LIVE @enum(value: "live")
+}
