@@ -1,4 +1,4 @@
-import { Boxes, CreditCard, Coins, FolderTree, Images, LayoutDashboard, LogOut, Percent, Receipt, Settings, ShieldAlert, ScrollText, ShieldCheck, SlidersHorizontal, Tags, Ticket, User, Users, Warehouse } from 'lucide-react'
+import { Boxes, ClipboardList, CreditCard, PackageCheck, Coins, FolderTree, Images, LayoutDashboard, LogOut, Percent, Receipt, Settings, ShieldAlert, ScrollText, ShieldCheck, SlidersHorizontal, Tags, Ticket, User, Users, Warehouse } from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,8 @@ const NAV = [
   { to: '/catalog/categories', label: 'Categorías', icon: FolderTree, permission: 'catalog.view', end: false },
   { to: '/catalog/attributes', label: 'Atributos', icon: SlidersHorizontal, permission: 'catalog.view', end: false },
   { to: '/catalog/tags', label: 'Etiquetas', icon: Tags, permission: 'catalog.view', end: false },
+  { to: '/orders', label: 'Pedidos', icon: PackageCheck, permission: 'orders.view', end: false },
+  { to: '/custom-orders', label: 'Personalizados', icon: ClipboardList, permission: 'custom-orders.view', end: false },
   { to: '/payments', label: 'Pagos', icon: CreditCard, permission: 'payments.view', end: false },
   { to: '/inventory', label: 'Inventario', icon: Warehouse, permission: 'inventory.view', end: false },
   { to: '/finance/currencies', label: 'Monedas y mercados', icon: Coins, permission: 'pricing.view', end: false },

@@ -1,0 +1,204 @@
+fragment OrderRow on AdminOrder {
+  id
+  number
+  type
+  email
+  status
+  paymentStatus
+  fulfillmentStatus
+  currency
+  total
+  refunded
+  placedAt
+  createdAt
+  country
+}
+
+query AdminOrders($status: String, $paymentStatus: String, $search: String, $first: Int, $offset: Int) {
+  adminOrders(status: $status, paymentStatus: $paymentStatus, search: $search, first: $first, offset: $offset) {
+    total
+    rows {
+      ...OrderRow
+    }
+  }
+}
+
+query AdminOrder($id: ID!) {
+  adminOrder(id: $id) {
+    ...OrderRow
+    marketCode
+    taxIncluded
+    subtotal
+    discount
+    shipping
+    tax
+    couponCode
+    paymentId
+    fraudScore
+    fraudDecision
+    ip
+    timezone
+    nextStatuses
+    shippingAddress
+    items {
+      productId
+      name
+      sku
+      unit
+      quantity
+      unitPrice
+      discount
+      tax
+      total
+    }
+    history {
+      id
+      status
+      paymentStatus
+      note
+      notifyCustomer
+      country
+      createdAt
+    }
+    shipments {
+      id
+      carrier
+      service
+      status
+      trackingNumber
+      trackingUrl
+      shippedAt
+      deliveredAt
+      items {
+        orderItemId
+        name
+        quantity
+      }
+      events {
+        status
+        description
+        location
+        at
+      }
+    }
+  }
+}
+
+mutation TransitionOrder($id: ID!, $to: String!, $note: String, $notifyCustomer: Boolean) {
+  transitionOrder(id: $id, to: $to, note: $note, notifyCustomer: $notifyCustomer) {
+    id
+    status
+  }
+}
+
+mutation CancelOrder($id: ID!, $reason: String!, $refund: Boolean) {
+  cancelOrder(id: $id, reason: $reason, refund: $refund) {
+    order {
+      id
+      status
+    }
+    refundError
+  }
+}
+
+mutation CreateShipment($input: CreateShipmentInput!) {
+  createShipment(input: $input) {
+    id
+    status
+  }
+}
+
+mutation MarkShipmentDelivered($id: ID!) {
+  markShipmentDelivered(id: $id) {
+    id
+    status
+  }
+}
+
+fragment CustomOrderRow on AdminCustomOrder {
+  id
+  number
+  status
+  email
+  title
+  marketCode
+  budget
+  desiredDate
+  assignedTo
+  createdAt
+}
+
+query AdminCustomOrders($status: String, $search: String, $first: Int, $offset: Int) {
+  adminCustomOrders(status: $status, search: $search, first: $first, offset: $offset) {
+    total
+    rows {
+      ...CustomOrderRow
+    }
+  }
+}
+
+query AdminCustomOrder($id: ID!) {
+  adminCustomOrder(id: $id) {
+    ...CustomOrderRow
+    description
+    specifications
+    rejectionReason
+    orderId
+    messages {
+      id
+      author
+      body
+      internal
+      at
+    }
+    quotes {
+      id
+      version
+      status
+      currency
+      taxIncluded
+      subtotal
+      tax
+      shipping
+      total
+      validUntil
+      sentAt
+      lines {
+        description
+        unit
+        quantity
+        unitPrice
+        taxRate
+        total
+      }
+    }
+  }
+}
+
+mutation SetCustomOrderStatus($id: ID!, $to: String!, $reason: String) {
+  setCustomOrderStatus(id: $id, to: $to, reason: $reason) {
+    id
+    status
+  }
+}
+
+mutation AddCustomOrderStaffMessage($id: ID!, $body: String!, $internal: Boolean) {
+  addCustomOrderStaffMessage(id: $id, body: $body, internal: $internal) {
+    id
+  }
+}
+
+mutation CreateQuote($input: CreateQuoteInput!) {
+  createQuote(input: $input) {
+    id
+    status
+    total
+  }
+}
+
+mutation SendQuote($id: ID!) {
+  sendQuote(id: $id) {
+    id
+    status
+  }
+}

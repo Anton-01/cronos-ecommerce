@@ -7,6 +7,8 @@ type Query {
  adminTags(search: String): [AdminTag!]!
  adminAttributes: [AdminAttribute!]!
  adminProduct(id: ID!): AdminProduct
+ adminCustomOrders(status: String, search: String, assignedTo: ID, first: Int = 25, offset: Int = 0): AdminCustomOrderPage!
+ adminCustomOrder(id: ID!): AdminCustomOrder
  adminFraudRules: [AdminFraudRule!]!
  "Immutable log of assessments, newest first (at most 200)."
  adminFraudChecks(orderId: ID, decision: FraudVerdict, first: Int = 50): [FraudCheck!]!
@@ -22,6 +24,8 @@ type Query {
  "Checks the derived numbers against the Kardex and verifies its hash chains."
  adminInventoryHealth: InventoryHealth!
  mediaItem(id: ID!): Media
+ adminOrders(status: String, paymentStatus: String, search: String, first: Int = 25, offset: Int = 0): AdminOrderPage!
+ adminOrder(id: ID!): AdminOrder
  adminPaymentProviders: [AdminPaymentProvider!]!
  adminPayments(status: String, provider: String, mode: PaymentMode, search: String, anomaliesOnly: Boolean = false, first: Int = 25, offset: Int = 0): AdminPaymentPage!
  adminPayment(id: ID!): AdminPayment
@@ -97,6 +101,14 @@ type Mutation {
  updateVariation(id: ID!, input: UpdateVariationInput!): AdminProduct!
  deleteVariation(id: ID!): AdminProduct!
  generateVariations(parentId: ID!): AdminProduct!
+ assignCustomOrder(id: ID!, staffId: ID): AdminCustomOrder!
+ "Moves a request to in_review, or rejects it (the reason is shown to the customer)."
+ setCustomOrderStatus(id: ID!, to: String!, reason: String): AdminCustomOrder!
+ "Reply to the customer, or leave a note only staff can read when internal is true."
+ addCustomOrderStaffMessage(id: ID!, body: String!, internal: Boolean = false): AdminCustomOrder!
+ createQuote(input: CreateQuoteInput!): CustomQuote!
+ "Sends a draft quote to the customer (replacing the one that was open) and e-mails them."
+ sendQuote(id: ID!): CustomQuote!
  createFraudRule(input: FraudRuleInput!): AdminFraudRule!
  updateFraudRule(id: ID!, input: FraudRuleInput!): AdminFraudRule!
  deleteFraudRule(id: ID!): Boolean!
@@ -118,6 +130,10 @@ type Mutation {
  uploadMedia(file: Upload!, collection: String = "library"): Media!
  updateMedia(id: ID!, name: String, translations: [MediaTranslationInput!]): Media!
  deleteMedia(id: ID!): Boolean!
+ "Moves the order along its logistic states. Cancelling has its own action."
+ transitionOrder(id: ID!, to: String!, note: String, notifyCustomer: Boolean = false): AdminOrder!
+ "Cancels an unshipped order, puts the stock back and (optionally) refunds the whole payment."
+ cancelOrder(id: ID!, reason: String!, refund: Boolean = true): CancelOrderResult!
  configurePaymentProvider(code: String!, input: PaymentProviderSettingsInput!): AdminPaymentProvider!
  "Only the fields sent are replaced; empty ones keep their stored value. Pass the credentials of ONE mode."
  savePaymentCredentials(code: String!, mode: PaymentMode!, values: JSON!): AdminPaymentProvider!
@@ -155,6 +171,10 @@ type Mutation {
  updatePromotion(id: ID!, input: PromotionInput!): AdminPromotion!
  deletePromotion(id: ID!): Boolean!
  updateSettings(input: [SettingInput!]!): [AdminSetting!]!
+ "Creates a shipment. When it covers the rest of the order, the order moves to shipped and the customer is told."
+ createShipment(input: CreateShipmentInput!): OrderShipment!
+ "Confirms delivery by hand (carriers without notifications)."
+ markShipmentDelivered(id: ID!): OrderShipment!
 }
 "Back-office schema served at /admin/graphql. Every operation except adminLogin requires a token plus a permission."
 scalar DateTime
@@ -283,6 +303,131 @@ type AuthPayload {
 enum PaymentMode {
  SANDBOX
  LIVE
+}
+type TrackingEvent {
+ status: String!
+ description: String
+ location: String
+ at: DateTime!
+}
+type OrderShipment {
+ id: ID!
+ carrier: String!
+ service: String
+ status: String!
+ trackingNumber: String
+ trackingUrl: String
+ shippedAt: DateTime
+ deliveredAt: DateTime
+ estimatedDeliveryAt: DateTime
+ "Which order lines (and how much of each) travel in this shipment."
+ items: [ShipmentLine!]!
+ events: [TrackingEvent!]!
+}
+type ShipmentLine {
+ orderItemId: ID!
+ name: String!
+ quantity: String!
+}
+type OrderItem {
+ productId: ID
+ name: String!
+ sku: String
+ "piece, meter or roll"
+ unit: String!
+ quantity: String!
+ unitPrice: String!
+ discount: String!
+ taxRate: String!
+ tax: String!
+ subtotal: String!
+ total: String!
+}
+type OrderTimelineEntry {
+ status: String!
+ "Only notes meant for the customer."
+ note: String
+ at: DateTime!
+}
+type Order {
+ id: ID!
+ number: String!
+ status: String!
+ paymentStatus: String!
+ fulfillmentStatus: String!
+ currency: String!
+ taxIncluded: Boolean!
+ subtotal: String!
+ discount: String!
+ shipping: String!
+ tax: String!
+ total: String!
+ refunded: String!
+ couponCode: String
+ placedAt: DateTime
+ items: [OrderItem!]!
+ shippingAddress: JSON
+ timeline: [OrderTimelineEntry!]!
+ shipments: [OrderShipment!]!
+}
+type OrderPage {
+ total: Int!
+ rows: [Order!]!
+}
+type CustomOrderMessage {
+ id: ID!
+ "customer, staff or system"
+ author: String!
+ body: String!
+ at: DateTime!
+}
+type QuoteLine {
+ description: String!
+ "piece, meter, roll or service"
+ unit: String!
+ quantity: String!
+ unitPrice: String!
+ taxRate: String!
+ tax: String!
+ total: String!
+}
+type CustomQuote {
+ id: ID!
+ version: Int!
+ "draft (staff only), sent, accepted, rejected, expired or superseded"
+ status: String!
+ currency: String!
+ taxIncluded: Boolean!
+ subtotal: String!
+ tax: String!
+ shipping: String!
+ total: String!
+ validUntil: String
+ terms: String
+ sentAt: DateTime
+ lines: [QuoteLine!]!
+}
+type CustomOrder {
+ id: ID!
+ number: String!
+ "submitted, in_review, quoted, rejected, converted or expired"
+ status: String!
+ marketCode: String!
+ title: String!
+ description: String!
+ specifications: JSON!
+ desiredDate: String
+ budget: String
+ rejectionReason: String
+ createdAt: DateTime!
+ messages: [CustomOrderMessage!]!
+ quotes: [CustomQuote!]!
+ "Number of the order created when a quote was accepted."
+ orderNumber: String
+}
+type CustomOrderPage {
+ total: Int!
+ rows: [CustomOrder!]!
 }
 type AuditEntry {
  id: ID!
@@ -569,6 +714,55 @@ input UpdateVariationInput {
  barcode: String
  position: Int
 }
+type AdminCustomOrder {
+ id: ID!
+ number: String!
+ status: String!
+ email: String!
+ userId: ID!
+ marketCode: String!
+ title: String!
+ description: String!
+ specifications: JSON!
+ desiredDate: String
+ budget: String
+ assignedTo: ID
+ rejectionReason: String
+ orderId: ID
+ createdAt: DateTime!
+ "Everything, including internal staff notes."
+ messages: [AdminCustomOrderMessage!]!
+ "Every version, drafts included."
+ quotes: [CustomQuote!]!
+}
+type AdminCustomOrderMessage {
+ id: ID!
+ author: String!
+ authorId: ID
+ body: String!
+ internal: Boolean!
+ at: DateTime!
+}
+type AdminCustomOrderPage {
+ total: Int!
+ rows: [AdminCustomOrder!]!
+}
+input QuoteLineInput {
+ description: String!
+ unit: String!
+ quantity: String!
+ unitPrice: String!
+ "Percentage; defaults to the market's standard rate."
+ taxRate: String
+}
+input CreateQuoteInput {
+ requestId: ID!
+ lines: [QuoteLineInput!]!
+ shipping: String = "0"
+ "YYYY-MM-DD; defaults to 15 days from now."
+ validUntil: String
+ terms: String
+}
 enum FraudRuleType {
  VELOCITY_IP
  VELOCITY_EMAIL
@@ -741,6 +935,70 @@ input RecordMovementInput {
  increase: Boolean
  unitCost: String
  note: String
+}
+type AdminOrderHistory {
+ id: ID!
+ status: String!
+ paymentStatus: String!
+ note: String
+ notifyCustomer: Boolean!
+ createdBy: ID
+ ip: String
+ country: String
+ timezone: String
+ createdAt: DateTime!
+}
+type AdminOrder {
+ id: ID!
+ number: String!
+ type: String!
+ email: String!
+ userId: ID
+ marketCode: String!
+ currency: String!
+ taxIncluded: Boolean!
+ status: String!
+ paymentStatus: String!
+ fulfillmentStatus: String!
+ subtotal: String!
+ discount: String!
+ shipping: String!
+ tax: String!
+ total: String!
+ refunded: String!
+ couponCode: String
+ paymentId: ID
+ checkoutId: ID
+ fraudScore: Int!
+ fraudDecision: String!
+ ip: String
+ country: String
+ timezone: String
+ placedAt: DateTime
+ cancelledAt: DateTime
+ createdAt: DateTime!
+ items: [OrderItem!]!
+ shippingAddress: JSON
+ billingAddress: JSON
+ discounts: [AppliedDiscountLine!]!
+ history: [AdminOrderHistory!]!
+ "Statuses this order may move to by hand."
+ nextStatuses: [String!]!
+ shipments: [OrderShipment!]!
+}
+type AppliedDiscountLine {
+ source: String!
+ name: String!
+ amount: String!
+}
+type AdminOrderPage {
+ total: Int!
+ rows: [AdminOrder!]!
+}
+type CancelOrderResult {
+ order: AdminOrder!
+ "Set when the order was cancelled but the provider could not refund right now; retry from Payments."
+ refundError: String
 }
 type CredentialField {
  key: String!
@@ -1108,6 +1366,29 @@ input SettingInput {
  "Send null (or an empty string) to restore the default."
  value: JSON
  translations: [SettingTranslationInput!]
+}
+input ShipmentItemInput {
+ orderItemId: ID!
+ quantity: String!
+}
+input PackageInput {
+ weightKg: String
+ lengthCm: String
+ widthCm: String
+ heightCm: String
+}
+input CreateShipmentInput {
+ orderId: ID!
+ "Short code: estafeta, dhl, fedex, ups, usps.."
+ carrier: String!
+ service: String
+ trackingNumber: String
+ trackingUrl: String
+ "Leave empty to ship everything not yet shipped."
+ items: [ShipmentItemInput!]
+ packages: [PackageInput!]
+ cost: String
+ estimatedDeliveryAt: DateTime
 }
 "Information about pagination using a Relay style cursor connection."
 type PageInfo {
