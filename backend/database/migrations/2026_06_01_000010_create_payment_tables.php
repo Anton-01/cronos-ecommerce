@@ -111,7 +111,7 @@ return new class extends Migration
             $table->string('status', 12)->default('received'); // received | processing | processed | failed | dead | ignored | rejected
             $table->unsignedSmallInteger('attempts')->default(0);
             $table->text('last_error')->nullable();
-            $table->timestampTz('next_attempt_at')->nullable();
+            $table->timestampTz('next_attempt_at', 6)->nullable();
             $table->timestampTz('received_at')->useCurrent();
             $table->timestampTz('processed_at')->nullable();
             $table->char('payment_id', 26)->nullable();
@@ -131,7 +131,7 @@ return new class extends Migration
             $table->string('status', 12)->default('pending'); // pending | dispatched | failed
             $table->unsignedSmallInteger('attempts')->default(0);
             $table->text('last_error')->nullable();
-            $table->timestampTz('available_at')->useCurrent();
+            $table->timestampTz('available_at', 6)->useCurrent(); // whole-second rounding could round UP past now() and delay a message
             $table->timestampTz('dispatched_at')->nullable();
             $table->timestampTz('created_at')->useCurrent();
             $table->index(['status', 'available_at']);
