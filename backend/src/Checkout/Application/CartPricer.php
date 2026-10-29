@@ -76,7 +76,7 @@ final class CartPricer
 
             $meta = $known[$item['product_id']];
             $lines[] = [
-                'product_id' => $item['product_id'], 'sku' => $meta['sku'], 'name' => $meta['name'], 'by_roll' => $item['by_roll'], 'quantity' => $item['quantity'],
+                'product_id' => $item['product_id'], 'sku' => $meta['sku'], 'name' => $meta['name'], 'by_roll' => $item['by_roll'], 'unit' => $item['by_roll'] ? 'roll' : $meta['sales']->unit, 'tax_rate' => (string) $ratio->multipliedBy(100)->toScale(4, RoundingMode::HalfUp), 'quantity' => $item['quantity'],
                 'unit_price' => $item['by_roll'] ? $quote['roll_price']->value() : $quote['price']->value(),
                 'line_total' => $line->total->value(), 'discount' => $discount->value(), 'tax' => $lineTax->value(), 'total' => $due->value(),
             ];

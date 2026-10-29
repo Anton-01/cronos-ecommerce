@@ -49,9 +49,13 @@ final class SettleCheckoutOnPayment
             if ($checkout['status'] === 'paid' || $checkout['payment_id'] === $e->paymentId) {
                 if ($checkout['payment_id'] !== $e->paymentId) {
                     $this->review($checkout, $e, 'duplicate_payment', "A second payment {$e->paymentId} was captured for an already paid checkout: refund it.", false);
+
+                    return null;
                 }
 
-                return null; // same delivery twice: nothing to do
+                // Same delivery twice: the stock and coupon are done, but announce again in case a listener failed the first time
+                // (CheckoutPaid listeners are idempotent, so repeating it is how a lost order gets created).
+                return $checkout;
             }
             if ($checkout['status'] !== 'open') {
                 $this->review($checkout, $e, 'captured_after_'.$checkout['status'], "Payment {$e->paymentId} was captured after the checkout was {$checkout['status']}.", true);

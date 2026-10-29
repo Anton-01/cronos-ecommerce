@@ -30,4 +30,11 @@ interface InventoryQueries
 
     /** @return list<array<string, mixed>> */
     public function reservations(?string $productId, int $limit): array;
+
+    /**
+     * What an order took off the shelves (consumed reservations) and what has already been put back, per product and warehouse.
+     *
+     * @return list<array{product_id: string, warehouse_id: int, quantity: string, returned: string}>
+     */
+    public function soldForOrder(string $orderId): array;
 }

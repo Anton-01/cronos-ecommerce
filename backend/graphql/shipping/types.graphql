@@ -1,0 +1,27 @@
+type TrackingEvent {
+  status: String!
+  description: String
+  location: String
+  at: DateTime!
+}
+
+type OrderShipment {
+  id: ID!
+  carrier: String!
+  service: String
+  status: String!
+  trackingNumber: String
+  trackingUrl: String
+  shippedAt: DateTime
+  deliveredAt: DateTime
+  estimatedDeliveryAt: DateTime
+  "Which order lines (and how much of each) travel in this shipment."
+  items: [ShipmentLine!]!
+  events: [TrackingEvent!]!
+}
+
+type ShipmentLine {
+  orderItemId: ID!
+  name: String!
+  quantity: String!
+}

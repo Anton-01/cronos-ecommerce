@@ -1,0 +1,89 @@
+type AdminOrderHistory {
+  id: ID!
+  status: String!
+  paymentStatus: String!
+  note: String
+  notifyCustomer: Boolean!
+  createdBy: ID
+  ip: String
+  country: String
+  timezone: String
+  createdAt: DateTime!
+}
+
+type AdminOrder {
+  id: ID!
+  number: String!
+  type: String!
+  email: String!
+  userId: ID
+  marketCode: String!
+  currency: String!
+  taxIncluded: Boolean!
+  status: String!
+  paymentStatus: String!
+  fulfillmentStatus: String!
+  subtotal: String!
+  discount: String!
+  shipping: String!
+  tax: String!
+  total: String!
+  refunded: String!
+  couponCode: String
+  paymentId: ID
+  checkoutId: ID
+  fraudScore: Int!
+  fraudDecision: String!
+  ip: String
+  country: String
+  timezone: String
+  placedAt: DateTime
+  cancelledAt: DateTime
+  createdAt: DateTime!
+  items: [OrderItem!]!
+  shippingAddress: JSON
+  billingAddress: JSON
+  discounts: [AppliedDiscountLine!]!
+  history: [AdminOrderHistory!]!
+  "Statuses this order may move to by hand."
+  nextStatuses: [String!]!
+  shipments: [OrderShipment!]!
+}
+
+type AppliedDiscountLine {
+  source: String!
+  name: String!
+  amount: String!
+}
+
+type AdminOrderPage {
+  total: Int!
+  rows: [AdminOrder!]!
+}
+
+type CancelOrderResult {
+  order: AdminOrder!
+  "Set when the order was cancelled but the provider could not refund right now; retry from Payments."
+  refundError: String
+}
+
+extend type Query {
+  adminOrders(status: String, paymentStatus: String, search: String, first: Int = 25, offset: Int = 0): AdminOrderPage!
+    @guard @can(ability: "orders.view", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Orders\\Interfaces\\GraphQL\\AdminOrders@orders")
+  adminOrder(id: ID!): AdminOrder
+    @guard @can(ability: "orders.view", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Orders\\Interfaces\\GraphQL\\AdminOrders@order")
+}
+
+extend type Mutation {
+  "Moves the order along its logistic states. Cancelling has its own action."
+  transitionOrder(id: ID!, to: String!, note: String, notifyCustomer: Boolean = false): AdminOrder!
+    @guard @can(ability: "orders.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Orders\\Interfaces\\GraphQL\\AdminOrders@transition")
+  "Cancels an unshipped order, puts the stock back and (optionally) refunds the whole payment."
+  cancelOrder(id: ID!, reason: String!, refund: Boolean = true): CancelOrderResult!
+    @guard @can(ability: "orders.cancel", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @throttle(maxAttempts: 20, decayMinutes: 1, prefix: "order-cancel")
+    @field(resolver: "Cronos\\Orders\\Interfaces\\GraphQL\\AdminOrders@cancel")
+}

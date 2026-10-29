@@ -12,6 +12,9 @@ type Mutation
 #import catalog/storefront.graphql
 #import pricing/storefront.graphql
 #import promotions/storefront.graphql
+#import shipping/types.graphql
+#import orders/types.graphql
+#import orders/storefront.graphql
 #import checkout/storefront.graphql
 #import media/types.graphql
 #import payments/types.graphql

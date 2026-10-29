@@ -94,4 +94,14 @@ final class DatabaseInventoryQueries implements InventoryQueries
             'low_stock_threshold' => $threshold, 'low' => $threshold !== null && BigDecimal::of($available)->isLessThanOrEqualTo($threshold),
         ];
     }
+
+    public function soldForOrder(string $orderId): array
+    {
+        $rows = DB::table('inventory_movements')
+            ->where('reference_id', $orderId)->whereIn('reference_type', ['order', 'order_return'])
+            ->selectRaw("product_id, warehouse_id, SUM(CASE WHEN reference_type = 'order' THEN -quantity ELSE 0 END) AS sold, SUM(CASE WHEN reference_type = 'order_return' THEN quantity ELSE 0 END) AS returned")
+            ->groupBy('product_id', 'warehouse_id')->get();
+
+        return $rows->map(static fn ($r) => ['product_id' => $r->product_id, 'warehouse_id' => (int) $r->warehouse_id, 'quantity' => (string) $r->sold, 'returned' => (string) $r->returned])->all();
+    }
 }

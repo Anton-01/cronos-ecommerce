@@ -1,0 +1,14 @@
+extend type Query {
+  "The signed-in shopper's orders, newest first."
+  myOrders(first: Int = 10, offset: Int = 0): OrderPage!
+    @guard
+    @field(resolver: "Cronos\\Orders\\Interfaces\\GraphQL\\StorefrontOrders@mine")
+  "One of my orders by its number."
+  myOrder(number: String!): Order
+    @guard
+    @field(resolver: "Cronos\\Orders\\Interfaces\\GraphQL\\StorefrontOrders@mineByNumber")
+  "Guest tracking: the order number plus the email used to buy. Any other combination answers null."
+  trackOrder(number: String!, email: String!): Order
+    @throttle(maxAttempts: 20, decayMinutes: 1, prefix: "track-order")
+    @field(resolver: "Cronos\\Orders\\Interfaces\\GraphQL\\StorefrontOrders@track")
+}

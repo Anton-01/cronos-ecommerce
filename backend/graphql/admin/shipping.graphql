@@ -1,0 +1,36 @@
+input ShipmentItemInput {
+  orderItemId: ID!
+  quantity: String!
+}
+
+input PackageInput {
+  weightKg: String
+  lengthCm: String
+  widthCm: String
+  heightCm: String
+}
+
+input CreateShipmentInput {
+  orderId: ID!
+  "Short code: estafeta, dhl, fedex, ups, usps..."
+  carrier: String!
+  service: String
+  trackingNumber: String
+  trackingUrl: String
+  "Leave empty to ship everything not yet shipped."
+  items: [ShipmentItemInput!]
+  packages: [PackageInput!]
+  cost: String
+  estimatedDeliveryAt: DateTime
+}
+
+extend type Mutation {
+  "Creates a shipment. When it covers the rest of the order, the order moves to shipped and the customer is told."
+  createShipment(input: CreateShipmentInput!): OrderShipment!
+    @guard @can(ability: "orders.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Orders\\Interfaces\\GraphQL\\AdminOrders@createShipment")
+  "Confirms delivery by hand (carriers without notifications)."
+  markShipmentDelivered(id: ID!): OrderShipment!
+    @guard @can(ability: "orders.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Orders\\Interfaces\\GraphQL\\AdminOrders@markDelivered")
+}

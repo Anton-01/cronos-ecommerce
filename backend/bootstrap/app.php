@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         then: function (): void {
             // Provider callbacks: no session, no CSRF, own rate limit. The controller only stores and queues.
+            Route::middleware('throttle:webhooks')->post('/webhooks/shipping/{carrier}', \Cronos\Shipping\Interfaces\Http\ShippingWebhookController::class)->name('webhooks.shipping');
             Route::middleware('throttle:webhooks')->post('/webhooks/{provider}', WebhookController::class)->name('webhooks.receive');
         },
     )

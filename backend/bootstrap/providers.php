@@ -6,6 +6,8 @@ use Cronos\Audit\Infrastructure\AuditServiceProvider;
 use Cronos\Catalog\Infrastructure\CatalogServiceProvider;
 use Cronos\Checkout\Infrastructure\CheckoutServiceProvider;
 use Cronos\Fraud\Infrastructure\FraudServiceProvider;
+use Cronos\Orders\Infrastructure\OrdersServiceProvider;
+use Cronos\Shipping\Infrastructure\ShippingServiceProvider;
 use Cronos\Identity\Infrastructure\IdentityServiceProvider;
 use Cronos\Inventory\Infrastructure\InventoryServiceProvider;
 use Cronos\Media\Infrastructure\MediaServiceProvider;
@@ -30,4 +32,6 @@ return [
     PromotionsServiceProvider::class,
     FraudServiceProvider::class,
     CheckoutServiceProvider::class,
+    OrdersServiceProvider::class,
+    ShippingServiceProvider::class,
 ];

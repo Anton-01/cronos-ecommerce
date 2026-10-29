@@ -1,0 +1,48 @@
+type OrderItem {
+  productId: ID
+  name: String!
+  sku: String
+  "piece, meter or roll"
+  unit: String!
+  quantity: String!
+  unitPrice: String!
+  discount: String!
+  taxRate: String!
+  tax: String!
+  subtotal: String!
+  total: String!
+}
+
+type OrderTimelineEntry {
+  status: String!
+  "Only notes meant for the customer."
+  note: String
+  at: DateTime!
+}
+
+type Order {
+  id: ID!
+  number: String!
+  status: String!
+  paymentStatus: String!
+  fulfillmentStatus: String!
+  currency: String!
+  taxIncluded: Boolean!
+  subtotal: String!
+  discount: String!
+  shipping: String!
+  tax: String!
+  total: String!
+  refunded: String!
+  couponCode: String
+  placedAt: DateTime
+  items: [OrderItem!]!
+  shippingAddress: JSON
+  timeline: [OrderTimelineEntry!]!
+  shipments: [OrderShipment!]!
+}
+
+type OrderPage {
+  total: Int!
+  rows: [Order!]!
+}
