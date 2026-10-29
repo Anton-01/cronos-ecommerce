@@ -25,6 +25,7 @@ const CouponsPage = lazy(() => import('@/features/promotions/CouponsPage').then(
 const PromotionsPage = lazy(() => import('@/features/promotions/PromotionsPage').then((m) => ({ default: m.PromotionsPage })))
 const FraudPage = lazy(() => import('@/features/promotions/FraudPage').then((m) => ({ default: m.FraudPage })))
 const AuditPage = lazy(() => import('@/features/audit/AuditPage').then((m) => ({ default: m.AuditPage })))
+const InventoryPage = lazy(() => import('@/features/inventory/InventoryPage').then((m) => ({ default: m.InventoryPage })))
 const RolesPage = lazy(() => import('@/features/roles/RolesPage').then((m) => ({ default: m.RolesPage })))
 
 const page = (node: React.ReactNode) => <Suspense fallback={<Skeleton className="h-64 w-full" />}>{node}</Suspense>
@@ -52,6 +53,9 @@ export function App() {
             <Route path="catalog/categories" element={page(<CategoriesPage />)} />
             <Route path="catalog/tags" element={page(<TagsPage />)} />
             <Route path="catalog/attributes" element={page(<AttributesPage />)} />
+          </Route>
+          <Route element={<RequireAuth permission="inventory.view" />}>
+            <Route path="inventory" element={page(<InventoryPage />)} />
           </Route>
           <Route element={<RequireAuth permission="pricing.view" />}>
             <Route path="finance/currencies" element={page(<CurrenciesPage />)} />

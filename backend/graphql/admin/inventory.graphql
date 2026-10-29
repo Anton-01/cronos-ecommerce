@@ -1,0 +1,184 @@
+enum MovementType {
+  PURCHASE @enum(value: "purchase")
+  SALE @enum(value: "sale")
+  RETURN @enum(value: "return")
+  ADJUSTMENT @enum(value: "adjustment")
+  WASTE @enum(value: "waste")
+  TRANSFER_IN @enum(value: "transfer_in")
+  TRANSFER_OUT @enum(value: "transfer_out")
+  RESERVATION_CONSUME @enum(value: "reservation_consume")
+}
+
+"Movements a person may record by hand; sales and reservation consumption come from orders."
+enum ManualMovementType {
+  PURCHASE @enum(value: "purchase")
+  RETURN @enum(value: "return")
+  ADJUSTMENT @enum(value: "adjustment")
+  WASTE @enum(value: "waste")
+}
+
+type AdminWarehouse {
+  id: ID!
+  code: String!
+  name: String!
+  address: JSON!
+  marketCode: String
+  isDefault: Boolean!
+  isActive: Boolean!
+}
+
+input WarehouseInput {
+  code: String!
+  name: String!
+  address: JSON
+  marketCode: String
+  isDefault: Boolean
+  isActive: Boolean
+}
+
+type WarehouseStock {
+  warehouseId: ID!
+  warehouseCode: String!
+  onHand: String!
+  reserved: String!
+  available: String!
+}
+
+type StockRow {
+  productId: ID!
+  sku: String
+  name: String
+  type: ProductType!
+  "Totals across active warehouses (metres or pieces, three decimals)."
+  onHand: String!
+  reserved: String!
+  available: String!
+  lowStockThreshold: String
+  "At or below the low-stock threshold."
+  low: Boolean!
+  warehouses: [WarehouseStock!]!
+}
+
+type StockPage {
+  rows: [StockRow!]!
+  total: Int!
+}
+
+type KardexEntry {
+  "Public identifier of the movement (also what a compensation points at)."
+  id: ID!
+  productId: ID!
+  sku: String
+  productName: String
+  warehouseId: ID!
+  warehouseCode: String!
+  type: MovementType!
+  "Signed: positive enters, negative leaves."
+  quantity: String!
+  unitCost: String
+  "On-hand of that warehouse right after this movement."
+  balanceAfter: String!
+  referenceType: String
+  referenceId: String
+  note: String
+  "Id of the movement that undid this one, when it was compensated."
+  compensatedBy: ID
+  userEmail: String
+  ip: String
+  country: String
+  timezone: String
+  createdAt: DateTime!
+  createdAtUtc: String!
+}
+
+type KardexPage {
+  entries: [KardexEntry!]!
+  nextBefore: ID
+}
+
+type ActiveReservation {
+  id: ID!
+  productId: ID!
+  sku: String
+  warehouseCode: String!
+  quantity: String!
+  holderType: String!
+  holderId: String!
+  expiresAt: DateTime!
+}
+
+type TransferResult {
+  outId: ID!
+  inId: ID!
+}
+
+type InventoryHealth {
+  ok: Boolean!
+  levelMismatches: [String!]!
+  reservedMismatches: [String!]!
+  productMismatches: [String!]!
+  brokenChains: [String!]!
+}
+
+input RecordMovementInput {
+  productId: ID!
+  warehouseId: ID!
+  type: ManualMovementType!
+  "Always positive; the type decides the direction."
+  quantity: String!
+  "Only for ADJUSTMENT: true adds stock, false removes it."
+  increase: Boolean
+  unitCost: String
+  note: String
+}
+
+extend type Query {
+  adminWarehouses: [AdminWarehouse!]!
+    @guard @can(ability: "inventory.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\InventoryQuery@warehouses")
+  adminStock(search: String, warehouseId: ID, lowOnly: Boolean = false, first: Int = 25, offset: Int = 0): StockPage!
+    @guard @can(ability: "inventory.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\InventoryQuery@stock")
+  adminLowStock: [StockRow!]!
+    @guard @can(ability: "inventory.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\InventoryQuery@lowStock")
+  "The Kardex, newest first. Pass `before` from the previous page to continue."
+  adminKardex(productId: ID, warehouseId: ID, type: MovementType, before: ID, first: Int = 50): KardexPage!
+    @guard @can(ability: "inventory.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\InventoryQuery@kardex")
+  adminReservations(productId: ID): [ActiveReservation!]!
+    @guard @can(ability: "inventory.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\InventoryQuery@reservations")
+  "Checks the derived numbers against the Kardex and verifies its hash chains."
+  adminInventoryHealth: InventoryHealth!
+    @guard @can(ability: "inventory.manage", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\InventoryQuery@health")
+}
+
+extend type Mutation {
+  createWarehouse(input: WarehouseInput!): AdminWarehouse!
+    @guard @can(ability: "inventory.manage", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\InventoryMutations@createWarehouse")
+  updateWarehouse(id: ID!, input: WarehouseInput!): AdminWarehouse!
+    @guard @can(ability: "inventory.manage", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\InventoryMutations@updateWarehouse")
+  deleteWarehouse(id: ID!): Boolean!
+    @guard @can(ability: "inventory.manage", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\InventoryMutations@deleteWarehouse")
+  "Appends one movement to the Kardex. Returns its id."
+  recordMovement(input: RecordMovementInput!): ID!
+    @guard @can(ability: "inventory.manage", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @throttle(maxAttempts: 120, decayMinutes: 1, prefix: "inventory-move")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\InventoryMutations@recordMovement")
+  "Sets the stock of a warehouse to what was physically counted; the difference becomes an adjustment (null when nothing changed)."
+  setStockCount(productId: ID!, warehouseId: ID!, counted: String!, note: String): ID
+    @guard @can(ability: "inventory.manage", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\InventoryMutations@setStockCount")
+  transferStock(productId: ID!, fromWarehouseId: ID!, toWarehouseId: ID!, quantity: String!, note: String): TransferResult!
+    @guard @can(ability: "inventory.manage", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\InventoryMutations@transferStock")
+  "Undoes a movement with a new one that points back at it (a movement can be undone once). Returns the new id."
+  compensateMovement(id: ID!, reason: String!): ID!
+    @guard @can(ability: "inventory.manage", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\InventoryMutations@compensate")
+}

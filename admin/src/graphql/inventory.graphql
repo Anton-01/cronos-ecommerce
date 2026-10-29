@@ -1,0 +1,110 @@
+fragment WarehouseFields on AdminWarehouse {
+  id
+  code
+  name
+  marketCode
+  isDefault
+  isActive
+}
+
+query AdminWarehouses {
+  adminWarehouses {
+    ...WarehouseFields
+  }
+}
+
+query AdminStock($search: String, $warehouseId: ID, $lowOnly: Boolean, $first: Int, $offset: Int) {
+  adminStock(search: $search, warehouseId: $warehouseId, lowOnly: $lowOnly, first: $first, offset: $offset) {
+    total
+    rows {
+      productId
+      sku
+      name
+      type
+      onHand
+      reserved
+      available
+      lowStockThreshold
+      low
+      warehouses {
+        warehouseId
+        warehouseCode
+        onHand
+        reserved
+        available
+      }
+    }
+  }
+}
+
+query AdminKardex($productId: ID, $warehouseId: ID, $type: MovementType, $before: ID) {
+  adminKardex(productId: $productId, warehouseId: $warehouseId, type: $type, before: $before, first: 50) {
+    nextBefore
+    entries {
+      id
+      productId
+      sku
+      productName
+      warehouseCode
+      type
+      quantity
+      unitCost
+      balanceAfter
+      referenceType
+      referenceId
+      note
+      compensatedBy
+      userEmail
+      ip
+      country
+      timezone
+      createdAt
+      createdAtUtc
+    }
+  }
+}
+
+query AdminInventoryHealth {
+  adminInventoryHealth {
+    ok
+    levelMismatches
+    reservedMismatches
+    productMismatches
+    brokenChains
+  }
+}
+
+mutation RecordMovement($input: RecordMovementInput!) {
+  recordMovement(input: $input)
+}
+
+mutation SetStockCount($productId: ID!, $warehouseId: ID!, $counted: String!, $note: String) {
+  setStockCount(productId: $productId, warehouseId: $warehouseId, counted: $counted, note: $note)
+}
+
+mutation TransferStock($productId: ID!, $fromWarehouseId: ID!, $toWarehouseId: ID!, $quantity: String!, $note: String) {
+  transferStock(productId: $productId, fromWarehouseId: $fromWarehouseId, toWarehouseId: $toWarehouseId, quantity: $quantity, note: $note) {
+    outId
+    inId
+  }
+}
+
+mutation CompensateMovement($id: ID!, $reason: String!) {
+  compensateMovement(id: $id, reason: $reason)
+}
+
+mutation CreateWarehouse($input: WarehouseInput!) {
+  createWarehouse(input: $input) {
+    ...WarehouseFields
+  }
+}
+
+mutation UpdateWarehouse($id: ID!, $input: WarehouseInput!) {
+  updateWarehouse(id: $id, input: $input) {
+    ...WarehouseFields
+  }
+}
+
+mutation DeleteWarehouse($id: ID!) {
+  deleteWarehouse(id: $id)
+}

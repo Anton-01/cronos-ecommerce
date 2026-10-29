@@ -7,6 +7,7 @@ namespace Cronos\Catalog\Application\Listeners;
 use Cronos\Catalog\Application\CatalogTags;
 use Cronos\Catalog\Domain\Events\CatalogEntityChanged;
 use Cronos\Catalog\Domain\Ports\CatalogCache;
+use Cronos\Inventory\Domain\Events\StockChanged;
 use Cronos\Media\Domain\Events\MediaChanged;
 use Cronos\Media\Domain\Ports\MediaRepository;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +26,12 @@ final class PurgeCatalogCache
     public function handle(CatalogEntityChanged $event): void
     {
         DB::afterCommit(fn () => $this->cache->flush($this->tagsFor($event)));
+    }
+
+    /** Stock moved: the product's availability (in stock / out of stock) is part of what the storefront cached. */
+    public function handleStock(StockChanged $event): void
+    {
+        $this->handle(new CatalogEntityChanged('product', $event->productId));
     }
 
     /** A media file changed: purge the product (or category) that shows it. */

@@ -28,6 +28,7 @@ use Cronos\Catalog\Infrastructure\Persistence\EloquentCategoryRepository;
 use Cronos\Catalog\Infrastructure\Persistence\EloquentProductRepository;
 use Cronos\Catalog\Infrastructure\Persistence\EloquentStorefrontCatalog;
 use Cronos\Catalog\Infrastructure\Persistence\EloquentTagRepository;
+use Cronos\Inventory\Domain\Events\StockChanged;
 use Cronos\Media\Domain\Events\MediaChanged;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -54,5 +55,6 @@ final class CatalogServiceProvider extends ServiceProvider
 
         Event::listen(CatalogEntityChanged::class, [PurgeCatalogCache::class, 'handle']);
         Event::listen(MediaChanged::class, [PurgeCatalogCache::class, 'handleMedia']);
+        Event::listen(StockChanged::class, [PurgeCatalogCache::class, 'handleStock']);
     }
 }

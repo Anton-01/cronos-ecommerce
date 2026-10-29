@@ -13,6 +13,14 @@ type Query {
  adminMe: User
  user(id: ID!): User
  roles: [Role!]!
+ adminWarehouses: [AdminWarehouse!]!
+ adminStock(search: String, warehouseId: ID, lowOnly: Boolean = false, first: Int = 25, offset: Int = 0): StockPage!
+ adminLowStock: [StockRow!]!
+ "The Kardex, newest first. Pass `before` from the previous page to continue."
+ adminKardex(productId: ID, warehouseId: ID, type: MovementType, before: ID, first: Int = 50): KardexPage!
+ adminReservations(productId: ID): [ActiveReservation!]!
+ "Checks the derived numbers against the Kardex and verifies its hash chains."
+ adminInventoryHealth: InventoryHealth!
  mediaItem(id: ID!): Media
  adminCurrencies: [AdminCurrency!]!
  adminCurrencyHistory(currencyId: ID!): [RateHistoryEntry!]!
@@ -92,6 +100,16 @@ type Mutation {
  setUserActive(id: ID!, active: Boolean!): User!
  assignUserRoles(id: ID!, roles: [String!]!): User!
  updateMyAvatar(file: Upload!): User!
+ createWarehouse(input: WarehouseInput!): AdminWarehouse!
+ updateWarehouse(id: ID!, input: WarehouseInput!): AdminWarehouse!
+ deleteWarehouse(id: ID!): Boolean!
+ "Appends one movement to the Kardex. Returns its id."
+ recordMovement(input: RecordMovementInput!): ID!
+ "Sets the stock of a warehouse to what was physically counted; the difference becomes an adjustment (null when nothing changed)."
+ setStockCount(productId: ID!, warehouseId: ID!, counted: String!, note: String): ID
+ transferStock(productId: ID!, fromWarehouseId: ID!, toWarehouseId: ID!, quantity: String!, note: String): TransferResult!
+ "Undoes a movement with a new one that points back at it (a movement can be undone once). Returns the new id."
+ compensateMovement(id: ID!, reason: String!): ID!
  uploadMedia(file: Upload!, collection: String = "library"): Media!
  updateMedia(id: ID!, name: String, translations: [MediaTranslationInput!]): Media!
  deleteMedia(id: ID!): Boolean!
@@ -578,6 +596,127 @@ type Role {
 input AdminLoginInput {
  email: String!
  password: String!
+}
+enum MovementType {
+ PURCHASE
+ SALE
+ RETURN
+ ADJUSTMENT
+ WASTE
+ TRANSFER_IN
+ TRANSFER_OUT
+ RESERVATION_CONSUME
+}
+"Movements a person may record by hand; sales and reservation consumption come from orders."
+enum ManualMovementType {
+ PURCHASE
+ RETURN
+ ADJUSTMENT
+ WASTE
+}
+type AdminWarehouse {
+ id: ID!
+ code: String!
+ name: String!
+ address: JSON!
+ marketCode: String
+ isDefault: Boolean!
+ isActive: Boolean!
+}
+input WarehouseInput {
+ code: String!
+ name: String!
+ address: JSON
+ marketCode: String
+ isDefault: Boolean
+ isActive: Boolean
+}
+type WarehouseStock {
+ warehouseId: ID!
+ warehouseCode: String!
+ onHand: String!
+ reserved: String!
+ available: String!
+}
+type StockRow {
+ productId: ID!
+ sku: String
+ name: String
+ type: ProductType!
+ "Totals across active warehouses (metres or pieces, three decimals)."
+ onHand: String!
+ reserved: String!
+ available: String!
+ lowStockThreshold: String
+ "At or below the low-stock threshold."
+ low: Boolean!
+ warehouses: [WarehouseStock!]!
+}
+type StockPage {
+ rows: [StockRow!]!
+ total: Int!
+}
+type KardexEntry {
+ "Public identifier of the movement (also what a compensation points at)."
+ id: ID!
+ productId: ID!
+ sku: String
+ productName: String
+ warehouseId: ID!
+ warehouseCode: String!
+ type: MovementType!
+ "Signed: positive enters, negative leaves."
+ quantity: String!
+ unitCost: String
+ "On-hand of that warehouse right after this movement."
+ balanceAfter: String!
+ referenceType: String
+ referenceId: String
+ note: String
+ "Id of the movement that undid this one, when it was compensated."
+ compensatedBy: ID
+ userEmail: String
+ ip: String
+ country: String
+ timezone: String
+ createdAt: DateTime!
+ createdAtUtc: String!
+}
+type KardexPage {
+ entries: [KardexEntry!]!
+ nextBefore: ID
+}
+type ActiveReservation {
+ id: ID!
+ productId: ID!
+ sku: String
+ warehouseCode: String!
+ quantity: String!
+ holderType: String!
+ holderId: String!
+ expiresAt: DateTime!
+}
+type TransferResult {
+ outId: ID!
+ inId: ID!
+}
+type InventoryHealth {
+ ok: Boolean!
+ levelMismatches: [String!]!
+ reservedMismatches: [String!]!
+ productMismatches: [String!]!
+ brokenChains: [String!]!
+}
+input RecordMovementInput {
+ productId: ID!
+ warehouseId: ID!
+ type: ManualMovementType!
+ "Always positive; the type decides the direction."
+ quantity: String!
+ "Only for ADJUSTMENT: true adds stock, false removes it."
+ increase: Boolean
+ unitCost: String
+ note: String
 }
 type AdminCurrency {
  id: ID!
