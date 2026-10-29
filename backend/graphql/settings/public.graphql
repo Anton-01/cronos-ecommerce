@@ -1,0 +1,16 @@
+"A storefront-safe setting. Media settings resolve to { id, url } and translatable ones to the requested locale."
+type PublicSetting {
+  group: String!
+  key: String!
+  type: String!
+  value: JSON
+}
+
+extend type Query {
+  "Public settings in one locale (falls back to the default locale). Served from Redis."
+  publicSettings(locale: String): [PublicSetting!]!
+    @field(resolver: "Cronos\\Settings\\Interfaces\\GraphQL\\Queries\\PublicSettingsQuery")
+
+  supportedLocales: [SupportedLocale!]!
+    @field(resolver: "Cronos\\Settings\\Interfaces\\GraphQL\\Queries\\SupportedLocalesQuery")
+}

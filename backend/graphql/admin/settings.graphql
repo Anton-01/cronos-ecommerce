@@ -1,0 +1,39 @@
+type AdminSetting {
+  group: String!
+  key: String!
+  type: String!
+  label: String!
+  public: Boolean!
+  translatable: Boolean!
+  "Current value; media settings resolve to { id, url }. Null for translatable keys."
+  value: JSON
+  translations: [SettingTranslation!]!
+}
+
+input SettingTranslationInput {
+  locale: String!
+  value: String
+}
+
+input SettingInput {
+  group: String!
+  key: String!
+  "Send null (or an empty string) to restore the default."
+  value: JSON
+  translations: [SettingTranslationInput!]
+}
+
+extend type Query {
+  adminSettings: [AdminSetting!]!
+    @guard
+    @can(ability: "settings.view", model: "Cronos\\Settings\\Infrastructure\\Persistence\\Eloquent\\SettingModel")
+    @field(resolver: "Cronos\\Settings\\Interfaces\\GraphQL\\Queries\\AdminSettingsQuery")
+}
+
+extend type Mutation {
+  updateSettings(input: [SettingInput!]! @rules(apply: ["max:60"])): [AdminSetting!]!
+    @guard
+    @can(ability: "settings.update", model: "Cronos\\Settings\\Infrastructure\\Persistence\\Eloquent\\SettingModel")
+    @throttle(maxAttempts: 30, decayMinutes: 1, prefix: "settings-update")
+    @field(resolver: "Cronos\\Settings\\Interfaces\\GraphQL\\Mutations\\UpdateSettingsMutation")
+}

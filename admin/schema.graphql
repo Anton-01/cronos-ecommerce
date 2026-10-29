@@ -3,9 +3,10 @@ type Query {
  user(id: ID!): User
  roles: [Role!]!
  mediaItem(id: ID!): Media
+ adminSettings: [AdminSetting!]!
  users(
  search: String
- orderBy: [QueryUsersOrderByOrderByClause!] = { }
+ orderBy: [QueryUsersOrderByOrderByClause!]
  "Limits number of fetched items. Maximum allowed value: 100."
  first: Int! = 25
  "A cursor after which elements are returned."
@@ -16,7 +17,7 @@ type Query {
  collection: String
  kind: MediaKind
  status: MediaStatus
- orderBy: [QueryMediaOrderByOrderByClause!] = { }
+ orderBy: [QueryMediaOrderByOrderByClause!]
  "Limits number of fetched items. Maximum allowed value: 100."
  first: Int! = 24
  "A cursor after which elements are returned."
@@ -32,9 +33,20 @@ type Mutation {
  uploadMedia(file: Upload!, collection: String = "library"): Media!
  updateMedia(id: ID!, name: String, translations: [MediaTranslationInput!]): Media!
  deleteMedia(id: ID!): Boolean!
+ updateSettings(input: [SettingInput!]!): [AdminSetting!]!
 }
 "Back-office schema served at /admin/graphql. Every operation except adminLogin requires a token plus a permission."
 scalar DateTime
+"Any valid JSON value."
+scalar JSON
+type SettingTranslation {
+ locale: String!
+ value: String
+}
+type SupportedLocale {
+ code: String!
+ isDefault: Boolean!
+}
 scalar Upload
 enum MediaStatus {
  PENDING
@@ -116,6 +128,28 @@ type Role {
 input AdminLoginInput {
  email: String!
  password: String!
+}
+type AdminSetting {
+ group: String!
+ key: String!
+ type: String!
+ label: String!
+ public: Boolean!
+ translatable: Boolean!
+ "Current value; media settings resolve to { id, url }. Null for translatable keys."
+ value: JSON
+ translations: [SettingTranslation!]!
+}
+input SettingTranslationInput {
+ locale: String!
+ value: String
+}
+input SettingInput {
+ group: String!
+ key: String!
+ "Send null (or an empty string) to restore the default."
+ value: JSON
+ translations: [SettingTranslationInput!]
 }
 "Information about pagination using a Relay style cursor connection."
 type PageInfo {

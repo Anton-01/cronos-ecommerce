@@ -1,0 +1,11 @@
+scalar JSON @scalar(class: "Cronos\\Shared\\Interfaces\\GraphQL\\JsonScalar")
+
+type SettingTranslation {
+  locale: String!
+  value: String
+}
+
+type SupportedLocale {
+  code: String!
+  isDefault: Boolean!
+}

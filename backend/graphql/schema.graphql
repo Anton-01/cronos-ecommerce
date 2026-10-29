@@ -5,5 +5,7 @@ type Query
 
 type Mutation
 
+#import settings.graphql
+#import settings/*.graphql
 #import media/types.graphql
 #import identity/*.graphql
