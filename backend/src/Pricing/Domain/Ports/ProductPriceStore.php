@@ -17,7 +17,7 @@ interface ProductPriceStore
     public function productExists(string $productId): bool;
 
     /**
-     * Base prices (default currency) and tax class with variation inheritance applied.
+     * Base prices (default currency) and tax class: the product's own, else its parent's, else its category's.
      *
      * @param  list<string>  $productIds
      * @return array<string, array{price: ?string, roll_price: ?string, tax_class_id: ?int}>

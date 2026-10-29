@@ -7,9 +7,11 @@ namespace Cronos\Media\Application\Handlers;
 use Cronos\Media\Application\Commands\UploadMedia;
 use Cronos\Media\Domain\Events\MediaUploaded;
 use Cronos\Media\Domain\Exceptions\InvalidImage;
+use Cronos\Media\Domain\Exceptions\MalwareDetected;
 use Cronos\Media\Domain\Exceptions\MediaTooLarge;
 use Cronos\Media\Domain\Exceptions\UnsupportedMediaType;
 use Cronos\Media\Domain\Ports\ImageProcessor;
+use Cronos\Media\Domain\Ports\MalwareScanner;
 use Cronos\Media\Domain\Ports\MediaRepository;
 use Cronos\Media\Domain\Ports\MediaStorage;
 use Cronos\Media\Domain\Ports\MimeSniffer;
@@ -29,6 +31,7 @@ final class UploadMediaHandler
         private readonly MediaStorage $storage,
         private readonly MimeSniffer $sniffer,
         private readonly ImageProcessor $images,
+        private readonly MalwareScanner $scanner,
         private readonly DomainEventDispatcher $events,
     ) {}
 
@@ -50,6 +53,9 @@ final class UploadMediaHandler
         if (! isset($allowed[$mime]) || ($command->onlyMimes !== null && ! in_array($mime, $command->onlyMimes, true))) {
             throw new UnsupportedMediaType;
         }
+
+        // Scanned after the cheap checks (size, real type) so the daemon only sees plausible files.
+        ($signature = $this->scanner->scan($contents)) === null || throw new MalwareDetected($signature);
 
         $info = null;
         if (str_starts_with($mime, 'image/')) {

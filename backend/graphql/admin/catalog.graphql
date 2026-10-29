@@ -6,6 +6,8 @@ type AdminCategory {
   position: Int!
   isActive: Boolean!
   imageMediaId: ID
+  "Tax class inherited by the products of this category that have none of their own; null = store default."
+  taxClassId: ID
   translations: [CategoryTranslation!]!
 }
 
@@ -317,9 +319,9 @@ extend type Query {
 }
 
 extend type Mutation {
-  createCategory(parentId: ID, position: Int, isActive: Boolean, imageMediaId: ID, translations: [CategoryTranslationInput!]!): AdminCategory!
+  createCategory(parentId: ID, position: Int, isActive: Boolean, imageMediaId: ID, taxClassId: ID, translations: [CategoryTranslationInput!]!): AdminCategory!
     @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\CategoryMutations@create")
-  updateCategory(id: ID!, position: Int, isActive: Boolean, imageMediaId: ID, translations: [CategoryTranslationInput!]): AdminCategory!
+  updateCategory(id: ID!, position: Int, isActive: Boolean, imageMediaId: ID, taxClassId: ID, translations: [CategoryTranslationInput!]): AdminCategory!
     @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\CategoryMutations@update")
   moveCategory(id: ID!, parentId: ID, position: Int): AdminCategory!
     @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel") @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Mutations\\CategoryMutations@move")

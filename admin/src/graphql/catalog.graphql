@@ -1,5 +1,6 @@
 fragment CategoryFields on AdminCategory {
   id
+  taxClassId
   parentId
   path
   depth
@@ -21,14 +22,14 @@ query AdminCategories {
   }
 }
 
-mutation CreateCategory($parentId: ID, $isActive: Boolean, $translations: [CategoryTranslationInput!]!) {
-  createCategory(parentId: $parentId, isActive: $isActive, translations: $translations) {
+mutation CreateCategory($parentId: ID, $isActive: Boolean, $taxClassId: ID, $translations: [CategoryTranslationInput!]!) {
+  createCategory(parentId: $parentId, isActive: $isActive, taxClassId: $taxClassId, translations: $translations) {
     ...CategoryFields
   }
 }
 
-mutation UpdateCategory($id: ID!, $isActive: Boolean, $translations: [CategoryTranslationInput!]) {
-  updateCategory(id: $id, isActive: $isActive, translations: $translations) {
+mutation UpdateCategory($id: ID!, $isActive: Boolean, $taxClassId: ID, $translations: [CategoryTranslationInput!]) {
+  updateCategory(id: $id, isActive: $isActive, taxClassId: $taxClassId, translations: $translations) {
     ...CategoryFields
   }
 }

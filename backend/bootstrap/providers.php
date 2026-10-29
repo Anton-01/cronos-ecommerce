@@ -2,6 +2,7 @@
 
 use App\Providers\AppServiceProvider;
 use App\Providers\HorizonServiceProvider;
+use Cronos\Audit\Infrastructure\AuditServiceProvider;
 use Cronos\Catalog\Infrastructure\CatalogServiceProvider;
 use Cronos\Fraud\Infrastructure\FraudServiceProvider;
 use Cronos\Identity\Infrastructure\IdentityServiceProvider;
@@ -15,6 +16,7 @@ return [
     AppServiceProvider::class,
     HorizonServiceProvider::class,
     SharedServiceProvider::class,
+    AuditServiceProvider::class,
     IdentityServiceProvider::class,
     MediaServiceProvider::class,
     SettingsServiceProvider::class,

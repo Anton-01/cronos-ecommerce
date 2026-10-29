@@ -15,8 +15,8 @@ interface MediaRepository
 
     public function markProcessing(string $id): void;
 
-    /** @param array<string, mixed> $properties @param array<string, array{path: string, width: int, height: int}> $conversions */
-    public function markReady(string $id, ?int $width, ?int $height, array $properties, array $conversions): void;
+    /** @param array<string, mixed> $properties @param array<string, array{path: string, width: int, height: int}> $conversions @param array<string, array{path: string, width: int, height: int}> $responsive width-only renditions for srcset */
+    public function markReady(string $id, ?int $width, ?int $height, array $properties, array $conversions, array $responsive = []): void;
 
     public function markFailed(string $id, string $reason): void;
 
@@ -36,6 +36,15 @@ interface MediaRepository
 
     /** @return array{model_type: ?string, model_id: ?string, collection_name: string}|null */
     public function ownerOf(string $id): ?array;
+
+    /**
+     * Soft-deleted items whose files are still on disk, deleted before the cutoff.
+     *
+     * @return list<array{id: string, disk: string, paths: list<string>}>
+     */
+    public function deletedBefore(\DateTimeImmutable $cutoff, int $limit): array;
+
+    public function markPurged(string $id): void;
 
     /** Soft delete. Files stay on disk until the purge job removes them. */
     public function delete(string $id): void;

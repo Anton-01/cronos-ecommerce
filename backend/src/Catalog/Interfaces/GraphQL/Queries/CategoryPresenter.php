@@ -11,7 +11,7 @@ final class CategoryPresenter
     {
         return [
             'id' => $row['id'], 'parentId' => $row['parent_id'], 'path' => $row['path'], 'depth' => $row['depth'], 'position' => $row['position'],
-            'isActive' => $row['is_active'], 'imageMediaId' => $row['image_media_id'],
+            'isActive' => $row['is_active'], 'imageMediaId' => $row['image_media_id'], 'taxClassId' => $row['default_tax_class_id'],
             'translations' => array_values(array_map(fn (string $locale, array $t) => [
                 'locale' => $locale, 'name' => $t['name'], 'slug' => $t['slug'], 'description' => $t['description'] ?? null,
                 'metaTitle' => $t['meta_title'] ?? null, 'metaDescription' => $t['meta_description'] ?? null,

@@ -29,7 +29,11 @@ final class CategoryManager
         $translations = Localized::normalise($input['translations'], self::TEXT);
         $this->assertSlugsFree($translations);
 
-        return $this->categories->create($parentId, (int) ($input['position'] ?? 0), (bool) ($input['is_active'] ?? true), $input['image_media_id'] ?? null, $translations);
+        $taxClassId = $this->taxClass($input['default_tax_class_id'] ?? null);
+        $id = $this->categories->create($parentId, (int) ($input['position'] ?? 0), (bool) ($input['is_active'] ?? true), $input['image_media_id'] ?? null, $translations);
+        $taxClassId === null || $this->categories->update($id, ['default_tax_class_id' => $taxClassId], null);
+
+        return $id;
     }
 
     /** @param array{position?: int, is_active?: bool, image_media_id?: ?string, translations?: array<string, array<string, mixed>>} $input */
@@ -40,7 +44,10 @@ final class CategoryManager
         $translations = isset($input['translations']) ? Localized::normalise($input['translations'], self::TEXT) : null;
         $translations === null || $this->assertSlugsFree($translations, $id);
 
-        $this->categories->update($id, array_intersect_key($input, array_flip(['position', 'is_active', 'image_media_id'])), $translations);
+        $attributes = array_intersect_key($input, array_flip(['position', 'is_active', 'image_media_id', 'default_tax_class_id']));
+        array_key_exists('default_tax_class_id', $attributes) && $attributes['default_tax_class_id'] = $this->taxClass($attributes['default_tax_class_id']);
+
+        $this->categories->update($id, $attributes, $translations);
     }
 
     public function move(string $id, ?string $newParentId, int $position = 0): void
@@ -76,5 +83,15 @@ final class CategoryManager
         foreach ($translations as $locale => $t) {
             ! $this->categories->slugTaken($locale, $t['slug'], $exceptId) || throw new SlugTaken($t['slug'], $locale);
         }
+    }
+
+    private function taxClass(mixed $id): ?int
+    {
+        if ($id === null || $id === '') {
+            return null;
+        }
+        $this->categories->taxClassExists((int) $id) || throw new NotFound('The tax class');
+
+        return (int) $id;
     }
 }

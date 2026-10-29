@@ -28,6 +28,11 @@ final class EloquentCategoryRepository implements CategoryRepository
         return $this->query()->with('translations')->orderByRaw('categories.path')->orderBy('position')->get()->map(fn (CategoryModel $m) => $this->toRow($m))->all();
     }
 
+    public function taxClassExists(int $id): bool
+    {
+        return DB::table('tax_classes')->where('id', $id)->exists();
+    }
+
     public function create(?string $parentId, int $position, bool $isActive, ?string $imageMediaId, array $translations): string
     {
         return DB::transaction(function () use ($parentId, $position, $isActive, $imageMediaId, $translations): string {
@@ -131,7 +136,7 @@ final class EloquentCategoryRepository implements CategoryRepository
     {
         return [
             'id' => $m->id, 'parent_id' => $m->parent_id, 'path' => (string) $m->path, 'depth' => (int) $m->depth, 'position' => (int) $m->position,
-            'is_active' => (bool) $m->is_active, 'image_media_id' => $m->image_media_id,
+            'is_active' => (bool) $m->is_active, 'image_media_id' => $m->image_media_id, 'default_tax_class_id' => $m->default_tax_class_id,
             'translations' => $m->translations->mapWithKeys(fn ($t) => [$t->locale => [
                 'name' => $t->name, 'slug' => $t->slug, 'description' => $t->description, 'meta_title' => $t->meta_title, 'meta_description' => $t->meta_description,
             ]])->all(),

@@ -21,6 +21,7 @@ import {
 import { useAuth } from '@/features/auth/AuthProvider'
 
 import { useSupportedLocales } from '../shared'
+import { CurrencyPrices } from './PricesTab'
 import { STATUS_LABEL } from './ProductsPage'
 import { type Product } from './tabs'
 import { useRun } from './useRun'
@@ -174,6 +175,8 @@ function VariationRow({ product, variation: v, label, canEdit, canPublish }: { p
   const [unpublish] = useMutation(UnpublishProductDocument, { refetchQueries: ['AdminProduct'] })
   const dirty = sku !== (v.sku ?? '') || price !== (v.price ?? '')
   const published = v.status === 'PUBLISHED'
+  const [showPrices, setShowPrices] = useState(false)
+  const { can: canSee } = useAuth()
 
   return (
     <div className="space-y-2 rounded-lg border p-3">
@@ -214,6 +217,18 @@ function VariationRow({ product, variation: v, label, canEdit, canPublish }: { p
           )}
         </div>
       </div>
+      {canSee('pricing.view') && (
+        <div>
+          <Button size="sm" variant="ghost" aria-expanded={showPrices} onClick={() => setShowPrices((s) => !s)}>
+            {showPrices ? 'Ocultar precios por moneda' : 'Precios por moneda y ofertas'}
+          </Button>
+          {showPrices && (
+            <div className="mt-2">
+              <CurrencyPrices productId={v.id} basePrice={v.effectivePrice} sellsByRoll={product.sales.sellByRoll} canEdit={canEdit} />
+            </div>
+          )}
+        </div>
+      )}
       {!published && v.publishProblems.length > 0 && <p className="text-xs text-muted-foreground">Para publicar: {v.publishProblems.join('; ')}.</p>}
       <span className="sr-only">{product.id}</span>
     </div>

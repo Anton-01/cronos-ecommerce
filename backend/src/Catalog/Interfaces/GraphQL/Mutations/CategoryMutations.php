@@ -18,7 +18,7 @@ final class CategoryMutations
     {
         $id = $this->manager->create([
             'parent_id' => $args['parentId'] ?? null, 'position' => $args['position'] ?? 0, 'is_active' => $args['isActive'] ?? true,
-            'image_media_id' => $args['imageMediaId'] ?? null, 'translations' => Convert::translations($args['translations']),
+            'image_media_id' => $args['imageMediaId'] ?? null, 'default_tax_class_id' => $args['taxClassId'] ?? null, 'translations' => Convert::translations($args['translations']),
         ]);
 
         return CategoryPresenter::present($this->repo->find($id));
@@ -27,7 +27,8 @@ final class CategoryMutations
     /** @param array<string, mixed> $args */
     public function update(mixed $root, array $args): array
     {
-        $input = Convert::snake(array_diff_key($args, ['id' => 1, 'translations' => 1]));
+        $input = Convert::snake(array_diff_key($args, ['id' => 1, 'translations' => 1, 'taxClassId' => 1]));
+        array_key_exists('taxClassId', $args) && $input['default_tax_class_id'] = $args['taxClassId'];
         isset($args['translations']) && $input['translations'] = Convert::translations($args['translations']);
         $this->manager->update($args['id'], $input);
 

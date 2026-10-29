@@ -52,8 +52,8 @@ type Query {
  ): MediaConnection!
 }
 type Mutation {
- createCategory(parentId: ID, position: Int, isActive: Boolean, imageMediaId: ID, translations: [CategoryTranslationInput!]!): AdminCategory!
- updateCategory(id: ID!, position: Int, isActive: Boolean, imageMediaId: ID, translations: [CategoryTranslationInput!]): AdminCategory!
+ createCategory(parentId: ID, position: Int, isActive: Boolean, imageMediaId: ID, taxClassId: ID, translations: [CategoryTranslationInput!]!): AdminCategory!
+ updateCategory(id: ID!, position: Int, isActive: Boolean, imageMediaId: ID, taxClassId: ID, translations: [CategoryTranslationInput!]): AdminCategory!
  moveCategory(id: ID!, parentId: ID, position: Int): AdminCategory!
  deleteCategory(id: ID!): Boolean!
  createTag(translations: [TagTranslationInput!]!): AdminTag!
@@ -179,6 +179,8 @@ type Media {
  url: String!
  "Small rendition for grids; the original while conversions are still pending."
  thumbUrl: String
+ "Ready-made value for <img srcset>; null for documents or while renditions are still being generated."
+ srcset: String
  conversions: [MediaConversion!]!
  translations: [MediaTranslation!]!
  createdAt: DateTime!
@@ -233,6 +235,8 @@ type AdminCategory {
  position: Int!
  isActive: Boolean!
  imageMediaId: ID
+ "Tax class inherited by the products of this category that have none of their own; null = store default."
+ taxClassId: ID
  translations: [CategoryTranslation!]!
 }
 type CategoryTranslation {

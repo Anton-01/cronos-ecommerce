@@ -53,7 +53,7 @@ final class EloquentMediaRepository implements MediaRepository
         $this->quietly(fn () => MediaModel::query()->whereKey($id)->update(['status' => 'processing', 'failure_reason' => null]));
     }
 
-    public function markReady(string $id, ?int $width, ?int $height, array $properties, array $conversions): void
+    public function markReady(string $id, ?int $width, ?int $height, array $properties, array $conversions, array $responsive = []): void
     {
         $this->quietly(fn () => MediaModel::query()->whereKey($id)->update([
             'status' => 'ready',
@@ -61,9 +61,28 @@ final class EloquentMediaRepository implements MediaRepository
             'height' => $height,
             'custom_properties' => json_encode($properties, JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT),
             'generated_conversions' => json_encode($conversions, JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT),
+            'responsive_images' => json_encode($responsive, JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT),
             'failure_reason' => null,
         ]));
         $this->events->dispatch(new MediaChanged($id));
+    }
+
+    public function deletedBefore(\DateTimeImmutable $cutoff, int $limit): array
+    {
+        return MediaModel::onlyTrashed()->whereNull('purged_at')->where('deleted_at', '<', $cutoff)->orderBy('deleted_at')->limit($limit)->get()
+            ->map(fn (MediaModel $m) => [
+                'id' => $m->id, 'disk' => $m->disk,
+                'paths' => array_values(array_filter([
+                    $m->id.'/'.$m->file_name,
+                    ...array_column((array) ($m->generated_conversions ?? []), 'path'),
+                    ...array_column((array) ($m->responsive_images ?? []), 'path'),
+                ])),
+            ])->all();
+    }
+
+    public function markPurged(string $id): void
+    {
+        $this->quietly(fn () => MediaModel::onlyTrashed()->whereKey($id)->update(['purged_at' => now()]));
     }
 
     public function markFailed(string $id, string $reason): void

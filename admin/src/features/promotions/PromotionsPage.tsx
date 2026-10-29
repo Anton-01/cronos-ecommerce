@@ -25,6 +25,7 @@ import {
 } from '@/graphql/generated'
 
 import { fromApiDate, toApiDate } from './dates'
+import { ProductPicker } from './ProductPicker'
 
 type Promotion = AdminPromotionsQuery['adminPromotions'][number]
 
@@ -121,9 +122,11 @@ function PromotionForm({ promotion, onClose }: { promotion: Promotion | null; on
     minSubtotal: promotion?.conditions.minSubtotal ?? '',
     marketCodes: promotion?.conditions.marketCodes ?? [],
     categoryIds: promotion?.conditions.categoryIds ?? [],
+    productIds: promotion?.conditions.productIds ?? [],
     excludeSaleItems: promotion?.conditions.excludeSaleItems ?? false,
     firstOrderOnly: promotion?.conditions.firstOrderOnly ?? false,
   })
+  const [productNames, setProductNames] = useState<Record<string, string>>({})
   const toggle = (key: 'marketCodes' | 'categoryIds', value: string) => setForm((f) => ({ ...f, [key]: f[key].includes(value) ? f[key].filter((v) => v !== value) : [...f[key], value] }))
 
   const valid =
@@ -149,7 +152,7 @@ function PromotionForm({ promotion, onClose }: { promotion: Promotion | null; on
       isActive: form.isActive,
       startsAt: toApiDate(form.startsAt),
       endsAt: toApiDate(form.endsAt),
-      conditions: { minSubtotal: form.minSubtotal.trim() || null, marketCodes: form.marketCodes, categoryIds: form.categoryIds, excludeSaleItems: form.excludeSaleItems, firstOrderOnly: form.firstOrderOnly },
+      conditions: { minSubtotal: form.minSubtotal.trim() || null, marketCodes: form.marketCodes, categoryIds: form.categoryIds, productIds: form.productIds, excludeSaleItems: form.excludeSaleItems, firstOrderOnly: form.firstOrderOnly },
       action,
     }
     void run(() => (promotion ? update({ variables: { id: promotion.id, input } }) : create({ variables: { input } })), 'Promoción guardada').then((ok) => ok && onClose())
@@ -237,6 +240,7 @@ function PromotionForm({ promotion, onClose }: { promotion: Promotion | null; on
             ))}
           </div>
         )}
+        <ProductPicker value={form.productIds} names={productNames} onChange={(ids, names) => { setForm((f) => ({ ...f, productIds: ids })); setProductNames(names) }} />
         <label className="flex items-center gap-2 text-sm">
           <Checkbox checked={form.excludeSaleItems} onCheckedChange={(v) => setForm({ ...form, excludeSaleItems: v === true })} />
           No aplica a productos en oferta

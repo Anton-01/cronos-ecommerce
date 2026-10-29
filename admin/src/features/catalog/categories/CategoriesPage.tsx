@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/features/auth/AuthProvider'
 import {
   AdminCategoriesDocument,
+  AdminTaxClassesDocument,
   CreateCategoryDocument,
   DeleteCategoryDocument,
   MoveCategoryDocument,
@@ -100,6 +101,9 @@ function CategoryForm({ category, parentId, categories, onClose }: { category: C
   const [names, setNames] = useState<Record<string, string>>(() => Object.fromEntries((category?.translations ?? []).map((t) => [t.locale, t.name])))
   const [active, setActive] = useState(category?.isActive ?? true)
   const [parent, setParent] = useState(parentId ?? '')
+  const { can } = useAuth()
+  const { data: taxClasses } = useQuery(AdminTaxClassesDocument, { skip: !can('pricing.view') })
+  const [taxClassId, setTaxClassId] = useState(category?.taxClassId ?? '')
   const [create, { loading: creating }] = useMutation(CreateCategoryDocument, { refetchQueries: ['AdminCategories'] })
   const [update, { loading: updating }] = useMutation(UpdateCategoryDocument, { refetchQueries: ['AdminCategories'] })
   const [move] = useMutation(MoveCategoryDocument, { refetchQueries: ['AdminCategories'] })
@@ -114,10 +118,10 @@ function CategoryForm({ category, parentId, categories, onClose }: { category: C
       .map((l) => ({ locale: l.code, name: names[l.code]!.trim(), slug: category?.translations.find((t) => t.locale === l.code)?.slug }))
     try {
       if (category) {
-        await update({ variables: { id: category.id, isActive: active, translations } })
+        await update({ variables: { id: category.id, isActive: active, translations, ...(taxClasses ? { taxClassId: taxClassId || null } : {}) } })
         if ((parent || null) !== (category.parentId ?? null)) await move({ variables: { id: category.id, parentId: parent || null, position: 0 } })
       } else {
-        await create({ variables: { parentId: parent || null, isActive: active, translations } })
+        await create({ variables: { parentId: parent || null, isActive: active, translations, taxClassId: taxClassId || null } })
       }
       toast.success('Categoría guardada')
       onClose()
@@ -145,6 +149,20 @@ function CategoryForm({ category, parentId, categories, onClose }: { category: C
           ))}
         </NativeSelect>
       </div>
+      {taxClasses && (
+        <div className="space-y-1.5">
+          <Label htmlFor="cat-tax">Clase de impuesto</Label>
+          <NativeSelect id="cat-tax" value={taxClassId} onChange={(e) => setTaxClassId(e.target.value)}>
+            <option value="">Predeterminada de la tienda</option>
+            {taxClasses.adminTaxClasses.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </NativeSelect>
+          <p className="text-xs text-muted-foreground">La heredan los productos de esta categoría que no tengan una propia.</p>
+        </div>
+      )}
       <div className="flex items-center gap-2">
         <Checkbox id="cat-active" checked={active} onCheckedChange={(v) => setActive(v === true)} />
         <Label htmlFor="cat-active">Activa (visible en la tienda)</Label>

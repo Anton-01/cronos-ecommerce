@@ -28,6 +28,8 @@ type Media @model(class: "Cronos\\Media\\Infrastructure\\Persistence\\Eloquent\\
   url: String!
   "Small rendition for grids; the original while conversions are still pending."
   thumbUrl: String @rename(attribute: "thumb_url")
+  "Ready-made value for <img srcset>; null for documents or while renditions are still being generated."
+  srcset: String
   conversions: [MediaConversion!]! @method(name: "conversionList")
   translations: [MediaTranslation!]! @hasMany(relation: "translations")
   createdAt: DateTime! @rename(attribute: "created_at")

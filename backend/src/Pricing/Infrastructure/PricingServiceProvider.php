@@ -24,6 +24,7 @@ use Cronos\Pricing\Infrastructure\Persistence\EloquentTaxStore;
 use Cronos\Pricing\Infrastructure\Persistence\PricingObserver;
 use Cronos\Pricing\Interfaces\GraphQL\ProductPricingField;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 
 final class PricingServiceProvider extends ServiceProvider
@@ -55,7 +56,8 @@ final class PricingServiceProvider extends ServiceProvider
         }
 
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
-            $schedule->command('pricing:update-rates')->dailyAt('03:15')->withoutOverlapping()->onOneServer();
+            $schedule->command('pricing:update-rates')->dailyAt('03:15')->withoutOverlapping()->onOneServer()
+                ->onFailure(fn () => Log::critical('Scheduled exchange-rate refresh failed'));
         });
     }
 }

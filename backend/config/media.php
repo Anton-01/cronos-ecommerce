@@ -24,6 +24,23 @@ return [
         'large' => ['width' => 1600, 'height' => 1600, 'fit' => 'contain'],
     ],
 
+    // Width-only renditions for srcset (height follows the image's ratio). Widths wider than the original are skipped.
+    'responsive_widths' => [320, 640, 960, 1280, 1920],
+
+    // Soft-deleted items keep their files this many days (so a mistaken delete can be undone) before media:purge removes them.
+    'purge_after_days' => (int) env('MEDIA_PURGE_AFTER_DAYS', 30),
+
+    // Malware scan of every upload. `clamav` talks to a clamd daemon (host/port or unix socket); with fail_closed an
+    // unreachable scanner refuses uploads instead of letting them through unscanned.
+    'antivirus' => [
+        'driver' => env('MEDIA_ANTIVIRUS', 'null'),
+        'host' => env('CLAMAV_HOST', 'clamav'),
+        'port' => (int) env('CLAMAV_PORT', 3310),
+        'socket' => env('CLAMAV_SOCKET'),
+        'timeout' => (int) env('CLAMAV_TIMEOUT', 10),
+        'fail_closed' => (bool) env('MEDIA_ANTIVIRUS_FAIL_CLOSED', true),
+    ],
+
     'conversion_format' => 'webp',
     'conversion_quality' => 82,
 

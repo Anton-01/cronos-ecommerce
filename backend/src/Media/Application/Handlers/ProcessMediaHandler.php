@@ -48,7 +48,28 @@ final class ProcessMediaHandler
             $conversions[$conversion->name] = ['path' => $path, 'width' => $rendered->width, 'height' => $rendered->height];
         }
 
-        $this->media->markReady($record->id, $info?->width, $info?->height, $properties, $conversions);
+        $responsive = [];
+        if ($info !== null && $info->width > 0) {
+            foreach ($this->responsiveWidths($info->width) as $width) {
+                $height = max(1, (int) ceil($width * $info->height / $info->width));
+                $name = "w{$width}";
+                $path = "{$record->id}/responsive/{$name}.".config('media.conversion_format');
+                $rendered = $this->images->convert($contents, new Conversion($name, $width, $height, 'contain', (string) config('media.conversion_format'), (int) config('media.conversion_quality')));
+                $this->storage->put($record->disk, $path, $rendered->contents);
+                $responsive[$name] = ['path' => $path, 'width' => $rendered->width, 'height' => $rendered->height];
+            }
+        }
+
+        $this->media->markReady($record->id, $info?->width, $info?->height, $properties, $conversions, $responsive);
+    }
+
+    /** Configured widths narrower than the original: never upscale. @return list<int> */
+    private function responsiveWidths(int $originalWidth): array
+    {
+        $widths = array_filter(array_map('intval', (array) config('media.responsive_widths')), fn (int $w) => $w > 0 && $w < $originalWidth);
+        sort($widths);
+
+        return array_values(array_unique($widths));
     }
 
     /** @return list<Conversion> */

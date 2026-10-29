@@ -29,26 +29,35 @@ export const estimate = (base: string | null | undefined, currency: Currency): s
 }
 
 export function PricesTab({ product, canEdit }: { product: Product; canEdit: boolean }) {
-  const { data: currencies } = useQuery(AdminCurrenciesDocument)
-  const { data: rows } = useQuery(AdminProductPricesDocument, { variables: { productId: product.id } })
-  const sellsByRoll = product.sales.sellByRoll
-
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
         El precio base ({product.price ?? 'sin precio'}) está en la moneda base y se edita en la pestaña Venta. Aquí puedes fijar un precio propio por moneda, un precio tachado y una oferta programada. Sin precio propio, la
         moneda se convierte con su tipo de cambio.
       </p>
-      {currencies?.adminCurrencies
-        .filter((c) => c.isActive)
-        .map((c) => (
-          <CurrencyCard key={c.id + (rows?.adminProductPrices.find((r) => r.currencyId === c.id)?.price ?? '')} product={product} currency={c} row={rows?.adminProductPrices.find((r) => r.currencyId === c.id) ?? null} canEdit={canEdit} sellsByRoll={sellsByRoll} />
-        ))}
+      <CurrencyPrices productId={product.id} basePrice={product.price} sellsByRoll={product.sales.sellByRoll} canEdit={canEdit} />
     </div>
   )
 }
 
-function CurrencyCard({ product, currency, row, canEdit, sellsByRoll }: { product: Product; currency: Currency; row: Row | null; canEdit: boolean; sellsByRoll: boolean }) {
+/** One card per active currency for any product or variation: own price, strikethrough price and a scheduled sale. */
+export function CurrencyPrices({ productId, basePrice, sellsByRoll, canEdit }: { productId: string; basePrice: string | null | undefined; sellsByRoll: boolean; canEdit: boolean }) {
+  const { data: currencies } = useQuery(AdminCurrenciesDocument)
+  const { data: rows } = useQuery(AdminProductPricesDocument, { variables: { productId } })
+
+  return (
+    <div className="space-y-4">
+      {currencies?.adminCurrencies
+        .filter((c) => c.isActive)
+        .map((c) => {
+          const row = rows?.adminProductPrices.find((r) => r.currencyId === c.id) ?? null
+          return <CurrencyCard key={c.id + (row?.price ?? '') + (row?.salePrice ?? '')} productId={productId} basePrice={basePrice} currency={c} row={row} canEdit={canEdit} sellsByRoll={sellsByRoll} />
+        })}
+    </div>
+  )
+}
+
+function CurrencyCard({ productId, basePrice, currency, row, canEdit, sellsByRoll }: { productId: string; basePrice: string | null | undefined; currency: Currency; row: Row | null; canEdit: boolean; sellsByRoll: boolean }) {
   const run = useRun()
   const [save, { loading }] = useMutation(SetProductPriceDocument, { refetchQueries: ['AdminProductPrices'] })
   const [clear] = useMutation(ClearProductPriceDocument, { refetchQueries: ['AdminProductPrices'] })
@@ -61,7 +70,7 @@ function CurrencyCard({ product, currency, row, canEdit, sellsByRoll }: { produc
     saleEndsAt: fromApiDate(row?.saleEndsAt),
   })
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [key]: e.target.value })
-  const id = (key: string) => `${currency.code}-${key}`
+  const id = (key: string) => `${productId}-${currency.code}-${key}`
   const blank = (v: string) => v.trim() || null
 
   return (
@@ -70,7 +79,7 @@ function CurrencyCard({ product, currency, row, canEdit, sellsByRoll }: { produc
         <CardTitle className="flex items-center gap-2 text-base">
           {currency.code} {currency.isDefault && <Badge>Moneda base</Badge>} {row?.price && <Badge variant="secondary">Precio propio</Badge>}
         </CardTitle>
-        <CardDescription>{currency.isDefault ? 'Vacío = precio base del producto.' : `Vacío = ${estimate(product.price, currency) || '—'} ${currency.code} (convertido).`}</CardDescription>
+        <CardDescription>{currency.isDefault ? 'Vacío = precio base del producto.' : `Vacío = ${estimate(basePrice, currency) || '—'} ${currency.code} (convertido).`}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-3">
@@ -100,7 +109,7 @@ function CurrencyCard({ product, currency, row, canEdit, sellsByRoll }: { produc
         {canEdit && (
           <div className="flex justify-end gap-2">
             {row && (
-              <Button variant="ghost" onClick={() => void run(() => clear({ variables: { productId: product.id, currencyId: currency.id } }), `Precios de ${currency.code} restablecidos`)}>
+              <Button variant="ghost" onClick={() => void run(() => clear({ variables: { productId, currencyId: currency.id } }), `Precios de ${currency.code} restablecidos`)}>
                 Restablecer
               </Button>
             )}
@@ -111,7 +120,7 @@ function CurrencyCard({ product, currency, row, canEdit, sellsByRoll }: { produc
                   () =>
                     save({
                       variables: {
-                        productId: product.id,
+                        productId,
                         currencyId: currency.id,
                         input: { price: blank(form.price), rollPrice: blank(form.rollPrice), compareAtPrice: blank(form.compareAtPrice), salePrice: blank(form.salePrice), saleStartsAt: toApiDate(form.saleStartsAt), saleEndsAt: toApiDate(form.saleEndsAt) },
                       },

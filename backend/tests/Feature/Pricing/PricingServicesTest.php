@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Pricing;
 
+use Cronos\Catalog\Application\CategoryManager;
 use Cronos\Pricing\Application\CurrencyManager;
 use Cronos\Pricing\Application\ExchangeRateUpdater;
 use Cronos\Pricing\Application\MarketManager;
@@ -17,6 +18,7 @@ use Cronos\Pricing\Domain\Ports\MarketStore;
 use Cronos\Pricing\Domain\Ports\PricingCatalog;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 final class PricingServicesTest extends PricingTestCase
 {
@@ -220,5 +222,47 @@ final class PricingServicesTest extends PricingTestCase
 
         $this->expectException(Conflict::class);
         $taxes->deleteClass($extra);
+    }
+
+    public function test_a_down_rate_feed_fails_the_command_loudly_and_keeps_the_last_known_rate(): void
+    {
+        $this->app->bind(ExchangeRateProvider::class, fn () => new class implements ExchangeRateProvider
+        {
+            public function name(): string
+            {
+                return 'down';
+            }
+
+            public function fetch(string $base, array $targets): array
+            {
+                throw new \RuntimeException('connection refused');
+            }
+        });
+        Log::spy();
+
+        $this->artisan('pricing:update-rates')->assertFailed();
+
+        Log::shouldHaveReceived('critical')->once();
+        $this->assertSame('0.05500000', app(CurrencyStore::class)->findByCode('USD')['exchange_rate']);
+    }
+
+    public function test_a_product_takes_its_categorys_tax_class_unless_it_has_its_own(): void
+    {
+        $taxes = app(TaxManager::class);
+        $mx = $this->marketId('MX');
+        $zero = $taxes->createClass('Tasa 0');
+        $taxes->createRate(['tax_class_id' => $zero, 'market_id' => $mx, 'name' => 'IVA 0', 'rate' => '0']);
+        $food = $this->category('Alimentos');
+        app(CategoryManager::class)->update($food, ['default_tax_class_id' => $zero]);
+
+        $inCategory = $this->piece(name: 'En categoría', sku: 'IN-CAT', price: '100.00', extra: ['category_ids' => [$food], 'primary_category_id' => $food]);
+        $own = $this->piece(name: 'Propio', sku: 'OWN', price: '100.00', extra: ['category_ids' => [$food], 'primary_category_id' => $food, 'tax_class_id' => $this->defaultTaxClassId()]);
+        $plain = $this->piece(name: 'Plano', sku: 'PLAIN', price: '100.00');
+
+        $q = app(PriceQuoter::class)->quote([$inCategory, $own, $plain], 'MX');
+
+        $this->assertSame('0.00', $q[$inCategory]['tax_amount']->value(), 'category tax class: 0 % IVA');
+        $this->assertSame('13.79', $q[$own]['tax_amount']->value(), 'its own (default, 16 %) class wins; 100 includes tax');
+        $this->assertSame('13.79', $q[$plain]['tax_amount']->value());
     }
 }

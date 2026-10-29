@@ -24,6 +24,8 @@ type GalleryImage {
   id: ID!
   url: String!
   thumbUrl: String
+  "Value for <img srcset>."
+  srcset: String
   alt: String
   width: Int
   height: Int

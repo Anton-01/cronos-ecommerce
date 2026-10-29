@@ -337,7 +337,7 @@ final class EloquentStorefrontCatalog implements StorefrontCatalog
         $m->loadMissing('translations');
         $alt = $m->translations->firstWhere('locale', $locale)?->alt ?? $m->translations->firstWhere('locale', config('app.locale_default'))?->alt ?? $m->name;
 
-        return ['id' => $m->id, 'url' => $m->url, 'thumbUrl' => $m->thumb_url, 'alt' => $alt, 'width' => $m->width, 'height' => $m->height, 'conversions' => $m->conversionList()];
+        return ['id' => $m->id, 'url' => $m->url, 'thumbUrl' => $m->thumb_url, 'srcset' => $m->srcset, 'alt' => $alt, 'width' => $m->width, 'height' => $m->height, 'conversions' => $m->conversionList()];
     }
 
     /** @return array<string, mixed> */

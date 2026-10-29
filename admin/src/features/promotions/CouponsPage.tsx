@@ -26,6 +26,7 @@ import {
 } from '@/graphql/generated'
 
 import { fromApiDate, toApiDate } from './dates'
+import { ProductPicker } from './ProductPicker'
 
 type Coupon = AdminCouponsQuery['adminCoupons'][number]
 
@@ -110,9 +111,11 @@ function CouponForm({ coupon, onClose }: { coupon: Coupon | null; onClose: () =>
     isActive: coupon?.isActive ?? true,
     marketCodes: coupon?.restrictions.marketCodes ?? [],
     categoryIds: coupon?.restrictions.categoryIds ?? [],
+    productIds: coupon?.restrictions.productIds ?? [],
     excludeSaleItems: coupon?.restrictions.excludeSaleItems ?? false,
     firstOrderOnly: coupon?.restrictions.firstOrderOnly ?? false,
   })
+  const [productNames, setProductNames] = useState<Record<string, string>>({})
   const toggle = (key: 'marketCodes' | 'categoryIds', value: string) => setForm((f) => ({ ...f, [key]: f[key].includes(value) ? f[key].filter((v) => v !== value) : [...f[key], value] }))
   const needsValue = form.type !== 'FREE_SHIPPING'
   const valid = /^[A-Za-z0-9_-]{3,40}$/.test(form.code) && form.name.trim() && (!needsValue || Number(form.value) > 0) && (form.type !== 'PERCENTAGE' || Number(form.value) <= 100)
@@ -134,7 +137,7 @@ function CouponForm({ coupon, onClose }: { coupon: Coupon | null; onClose: () =>
       isActive: form.isActive,
       startsAt: toApiDate(form.startsAt),
       expiresAt: toApiDate(form.expiresAt),
-      restrictions: { marketCodes: form.marketCodes, categoryIds: form.categoryIds, excludeSaleItems: form.excludeSaleItems, firstOrderOnly: form.firstOrderOnly },
+      restrictions: { marketCodes: form.marketCodes, categoryIds: form.categoryIds, productIds: form.productIds, excludeSaleItems: form.excludeSaleItems, firstOrderOnly: form.firstOrderOnly },
     }
     void run(() => (coupon ? update({ variables: { id: coupon.id, input } }) : create({ variables: { input } })), 'Cupón guardado').then((ok) => ok && onClose())
   }
@@ -220,6 +223,7 @@ function CouponForm({ coupon, onClose }: { coupon: Coupon | null; onClose: () =>
             ))}
           </div>
         )}
+        <ProductPicker value={form.productIds} names={productNames} onChange={(ids, names) => { setForm((f) => ({ ...f, productIds: ids })); setProductNames(names) }} />
         <label className="flex items-center gap-2 text-sm">
           <Checkbox checked={form.excludeSaleItems} onCheckedChange={(v) => setForm({ ...form, excludeSaleItems: v === true })} />
           No aplica a productos en oferta

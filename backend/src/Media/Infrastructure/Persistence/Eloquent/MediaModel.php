@@ -99,6 +99,22 @@ class MediaModel extends Model implements AuditableContract
             ->all();
     }
 
+    /** `url 320w, url 640w, ...` for <img srcset>; the original is the widest candidate. Null for documents and while pending. */
+    public function getSrcsetAttribute(): ?string
+    {
+        $responsive = (array) ($this->responsive_images ?? []);
+        if (! $this->is_image || $responsive === []) {
+            return null;
+        }
+
+        $disk = Storage::disk($this->disk);
+        uasort($responsive, fn (array $a, array $b) => $a['width'] <=> $b['width']);
+        $candidates = array_map(fn (array $r) => $disk->url($r['path']).' '.$r['width'].'w', array_values($responsive));
+        $this->width === null || $candidates[] = $this->url.' '.$this->width.'w';
+
+        return implode(', ', $candidates);
+    }
+
     /** Best small rendition for lists, falling back to the original while conversions are pending. */
     public function getThumbUrlAttribute(): ?string
     {

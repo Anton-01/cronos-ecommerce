@@ -42,7 +42,11 @@ final class EloquentProductPriceStore implements ProductPriceStore
 
         return DB::table('products as p')->leftJoin('products as parent', 'parent.id', '=', 'p.parent_id')
             ->whereIn('p.id', $productIds)
-            ->selectRaw('p.id, COALESCE(p.price, parent.price) as price, COALESCE(p.roll_price, parent.roll_price) as roll_price, COALESCE(p.tax_class_id, parent.tax_class_id) as tax_class_id')
+            ->selectRaw('p.id, COALESCE(p.price, parent.price) as price, COALESCE(p.roll_price, parent.roll_price) as roll_price, COALESCE(p.tax_class_id, parent.tax_class_id, (
+                SELECT c.default_tax_class_id FROM product_categories pc JOIN categories c ON c.id = pc.category_id
+                WHERE pc.product_id = COALESCE(p.parent_id, p.id) AND c.default_tax_class_id IS NOT NULL AND c.deleted_at IS NULL
+                ORDER BY pc.is_primary DESC, c.depth DESC LIMIT 1
+            )) as tax_class_id')
             ->get()->mapWithKeys(fn ($r) => [$r->id => ['price' => $r->price, 'roll_price' => $r->roll_price, 'tax_class_id' => $r->tax_class_id]])->all();
     }
 
