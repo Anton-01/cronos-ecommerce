@@ -1,0 +1,200 @@
+type AdminCurrency {
+  id: ID!
+  code: String!
+  name: String!
+  symbol: String!
+  decimals: Int!
+  "Units of this currency per 1 unit of the default currency."
+  exchangeRate: String!
+  isDefault: Boolean!
+  isActive: Boolean!
+  rateUpdatedAt: DateTime
+}
+
+type RateHistoryEntry {
+  rate: String!
+  source: String!
+  createdAt: DateTime!
+}
+
+type RateRefreshReport {
+  updated: [RateRefreshLine!]!
+  skipped: [RateRefreshSkip!]!
+}
+
+type RateRefreshLine {
+  code: String!
+  rate: String!
+}
+
+type RateRefreshSkip {
+  code: String!
+  reason: String!
+}
+
+type AdminMarket {
+  id: ID!
+  code: String!
+  name: String!
+  countryCode: String!
+  currencyId: ID!
+  defaultLocale: String!
+  pricesIncludeTax: Boolean!
+  isActive: Boolean!
+}
+
+type AdminTaxClass {
+  id: ID!
+  name: String!
+  isDefault: Boolean!
+}
+
+type AdminTaxRate {
+  id: ID!
+  taxClassId: ID!
+  marketId: ID!
+  "State/province the rate is limited to; null applies to the whole market."
+  region: String
+  name: String!
+  "Percent, e.g. \"16\"."
+  rate: String!
+  priority: Int!
+  isCompound: Boolean!
+  startsAt: DateTime
+  endsAt: DateTime
+}
+
+type ProductPriceRow {
+  productId: ID!
+  currencyId: ID!
+  currencyCode: String!
+  price: String
+  rollPrice: String
+  compareAtPrice: String
+  salePrice: String
+  saleStartsAt: DateTime
+  saleEndsAt: DateTime
+}
+
+input CreateCurrencyInput {
+  code: String!
+  name: String!
+  symbol: String!
+  decimals: Int
+  exchangeRate: String
+}
+
+input UpdateCurrencyInput {
+  name: String
+  symbol: String
+  decimals: Int
+  isActive: Boolean
+}
+
+input MarketInput {
+  code: String!
+  name: String!
+  countryCode: String!
+  currencyId: ID!
+  defaultLocale: String
+  pricesIncludeTax: Boolean
+  isActive: Boolean
+}
+
+input TaxRateInput {
+  taxClassId: ID!
+  marketId: ID!
+  region: String
+  name: String!
+  rate: String!
+  priority: Int
+  isCompound: Boolean
+  startsAt: DateTime
+  endsAt: DateTime
+}
+
+input ProductPriceInput {
+  price: String
+  rollPrice: String
+  compareAtPrice: String
+  salePrice: String
+  saleStartsAt: DateTime
+  saleEndsAt: DateTime
+}
+
+extend type Query {
+  adminCurrencies: [AdminCurrency!]!
+    @guard @can(ability: "pricing.view", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingQuery@currencies")
+  adminCurrencyHistory(currencyId: ID!): [RateHistoryEntry!]!
+    @guard @can(ability: "pricing.view", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingQuery@history")
+  adminMarkets: [AdminMarket!]!
+    @guard @can(ability: "pricing.view", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingQuery@markets")
+  adminTaxClasses: [AdminTaxClass!]!
+    @guard @can(ability: "pricing.view", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingQuery@taxClasses")
+  adminTaxRates(taxClassId: ID, marketId: ID): [AdminTaxRate!]!
+    @guard @can(ability: "pricing.view", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingQuery@taxRates")
+  adminProductPrices(productId: ID!): [ProductPriceRow!]!
+    @guard @can(ability: "catalog.view", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingQuery@productPrices")
+}
+
+extend type Mutation {
+  createCurrency(input: CreateCurrencyInput!): AdminCurrency!
+    @guard @can(ability: "pricing.manage", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@createCurrency")
+  updateCurrency(id: ID!, input: UpdateCurrencyInput!): AdminCurrency!
+    @guard @can(ability: "pricing.manage", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@updateCurrency")
+  setExchangeRate(currencyId: ID!, rate: String!): AdminCurrency!
+    @guard @can(ability: "pricing.manage", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @throttle(maxAttempts: 30, decayMinutes: 1, prefix: "fx-set")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@setRate")
+  refreshExchangeRates: RateRefreshReport!
+    @guard @can(ability: "pricing.manage", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @throttle(maxAttempts: 6, decayMinutes: 1, prefix: "fx-refresh")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@refreshRates")
+  deleteCurrency(id: ID!): Boolean!
+    @guard @can(ability: "pricing.manage", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@deleteCurrency")
+
+  createMarket(input: MarketInput!): AdminMarket!
+    @guard @can(ability: "pricing.manage", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@createMarket")
+  updateMarket(id: ID!, input: MarketInput!): AdminMarket!
+    @guard @can(ability: "pricing.manage", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@updateMarket")
+  deleteMarket(id: ID!): Boolean!
+    @guard @can(ability: "pricing.manage", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@deleteMarket")
+
+  createTaxClass(name: String!, isDefault: Boolean): AdminTaxClass!
+    @guard @can(ability: "pricing.manage", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@createTaxClass")
+  updateTaxClass(id: ID!, name: String, isDefault: Boolean): AdminTaxClass!
+    @guard @can(ability: "pricing.manage", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@updateTaxClass")
+  deleteTaxClass(id: ID!): Boolean!
+    @guard @can(ability: "pricing.manage", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@deleteTaxClass")
+  createTaxRate(input: TaxRateInput!): AdminTaxRate!
+    @guard @can(ability: "pricing.manage", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@createTaxRate")
+  updateTaxRate(id: ID!, input: TaxRateInput!): AdminTaxRate!
+    @guard @can(ability: "pricing.manage", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@updateTaxRate")
+  deleteTaxRate(id: ID!): Boolean!
+    @guard @can(ability: "pricing.manage", model: "Cronos\\Pricing\\Infrastructure\\Persistence\\Eloquent\\CurrencyModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@deleteTaxRate")
+
+  setProductPrice(productId: ID!, currencyId: ID!, input: ProductPriceInput!): ProductPriceRow!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@setProductPrice")
+  clearProductPrice(productId: ID!, currencyId: ID!): Boolean!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\AdminPricingMutations@clearProductPrice")
+}

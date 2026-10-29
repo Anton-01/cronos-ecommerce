@@ -4,10 +4,21 @@ type Query {
  adminTags(search: String): [AdminTag!]!
  adminAttributes: [AdminAttribute!]!
  adminProduct(id: ID!): AdminProduct
+ adminFraudRules: [AdminFraudRule!]!
+ "Immutable log of assessments, newest first (at most 200)."
+ adminFraudChecks(orderId: ID, decision: FraudVerdict, first: Int = 50): [FraudCheck!]!
  adminMe: User
  user(id: ID!): User
  roles: [Role!]!
  mediaItem(id: ID!): Media
+ adminCurrencies: [AdminCurrency!]!
+ adminCurrencyHistory(currencyId: ID!): [RateHistoryEntry!]!
+ adminMarkets: [AdminMarket!]!
+ adminTaxClasses: [AdminTaxClass!]!
+ adminTaxRates(taxClassId: ID, marketId: ID): [AdminTaxRate!]!
+ adminProductPrices(productId: ID!): [ProductPriceRow!]!
+ adminCoupons(search: String): [AdminCoupon!]!
+ adminPromotions: [AdminPromotion!]!
  adminSettings: [AdminSetting!]!
  adminProducts(
  search: String
@@ -70,6 +81,9 @@ type Mutation {
  updateVariation(id: ID!, input: UpdateVariationInput!): AdminProduct!
  deleteVariation(id: ID!): AdminProduct!
  generateVariations(parentId: ID!): AdminProduct!
+ createFraudRule(input: FraudRuleInput!): AdminFraudRule!
+ updateFraudRule(id: ID!, input: FraudRuleInput!): AdminFraudRule!
+ deleteFraudRule(id: ID!): Boolean!
  adminLogin(input: AdminLoginInput!): AuthPayload!
  logout: Boolean!
  setUserActive(id: ID!, active: Boolean!): User!
@@ -78,6 +92,28 @@ type Mutation {
  uploadMedia(file: Upload!, collection: String = "library"): Media!
  updateMedia(id: ID!, name: String, translations: [MediaTranslationInput!]): Media!
  deleteMedia(id: ID!): Boolean!
+ createCurrency(input: CreateCurrencyInput!): AdminCurrency!
+ updateCurrency(id: ID!, input: UpdateCurrencyInput!): AdminCurrency!
+ setExchangeRate(currencyId: ID!, rate: String!): AdminCurrency!
+ refreshExchangeRates: RateRefreshReport!
+ deleteCurrency(id: ID!): Boolean!
+ createMarket(input: MarketInput!): AdminMarket!
+ updateMarket(id: ID!, input: MarketInput!): AdminMarket!
+ deleteMarket(id: ID!): Boolean!
+ createTaxClass(name: String!, isDefault: Boolean): AdminTaxClass!
+ updateTaxClass(id: ID!, name: String, isDefault: Boolean): AdminTaxClass!
+ deleteTaxClass(id: ID!): Boolean!
+ createTaxRate(input: TaxRateInput!): AdminTaxRate!
+ updateTaxRate(id: ID!, input: TaxRateInput!): AdminTaxRate!
+ deleteTaxRate(id: ID!): Boolean!
+ setProductPrice(productId: ID!, currencyId: ID!, input: ProductPriceInput!): ProductPriceRow!
+ clearProductPrice(productId: ID!, currencyId: ID!): Boolean!
+ createCoupon(input: CouponInput!): AdminCoupon!
+ updateCoupon(id: ID!, input: CouponInput!): AdminCoupon!
+ deleteCoupon(id: ID!): Boolean!
+ createPromotion(input: PromotionInput!): AdminPromotion!
+ updatePromotion(id: ID!, input: PromotionInput!): AdminPromotion!
+ deletePromotion(id: ID!): Boolean!
  updateSettings(input: [SettingInput!]!): [AdminSetting!]!
 }
 "Back-office schema served at /admin/graphql. Every operation except adminLogin requires a token plus a permission."
@@ -315,6 +351,8 @@ type AdminProduct {
  status: ProductStatus!
  sku: String
  barcode: String
+ "Tax class; null means the default class."
+ taxClassId: ID
  price: String
  weight: String
  dimensions: JSON
@@ -388,6 +426,7 @@ input CreateProductInput {
  type: ProductType!
  sku: String
  barcode: String
+ taxClassId: ID
  price: String
  weight: String
  dimensions: DimensionsInput
@@ -405,6 +444,7 @@ input CreateProductInput {
 input UpdateProductInput {
  sku: String
  barcode: String
+ taxClassId: ID
  price: String
  weight: String
  dimensions: DimensionsInput
@@ -444,6 +484,46 @@ input UpdateVariationInput {
  barcode: String
  position: Int
 }
+enum FraudRuleType {
+ VELOCITY_IP
+ VELOCITY_EMAIL
+ FAILED_PAYMENTS
+ AMOUNT_OVER
+ COUNTRY_MISMATCH
+ HIGH_RISK_COUNTRY
+}
+enum FraudVerdict {
+ ALLOW
+ REVIEW
+ BLOCK
+}
+type AdminFraudRule {
+ id: ID!
+ name: String!
+ type: FraudRuleType!
+ "Rule-specific settings, e.g. {max, window_minutes} or {amounts: {MXN: \"15000\"}}."
+ params: JSON!
+ "Points added to the checkout's risk score when the rule fires."
+ score: Int!
+ isActive: Boolean!
+}
+input FraudRuleInput {
+ name: String!
+ type: FraudRuleType!
+ params: JSON
+ score: Int!
+ isActive: Boolean
+}
+type FraudCheck {
+ id: ID!
+ orderId: ID
+ email: String
+ ip: String
+ score: Int!
+ decision: FraudVerdict!
+ reasons: JSON!
+ createdAt: DateTime!
+}
 type Role {
  id: ID!
  name: String!
@@ -452,6 +532,221 @@ type Role {
 input AdminLoginInput {
  email: String!
  password: String!
+}
+type AdminCurrency {
+ id: ID!
+ code: String!
+ name: String!
+ symbol: String!
+ decimals: Int!
+ "Units of this currency per 1 unit of the default currency."
+ exchangeRate: String!
+ isDefault: Boolean!
+ isActive: Boolean!
+ rateUpdatedAt: DateTime
+}
+type RateHistoryEntry {
+ rate: String!
+ source: String!
+ createdAt: DateTime!
+}
+type RateRefreshReport {
+ updated: [RateRefreshLine!]!
+ skipped: [RateRefreshSkip!]!
+}
+type RateRefreshLine {
+ code: String!
+ rate: String!
+}
+type RateRefreshSkip {
+ code: String!
+ reason: String!
+}
+type AdminMarket {
+ id: ID!
+ code: String!
+ name: String!
+ countryCode: String!
+ currencyId: ID!
+ defaultLocale: String!
+ pricesIncludeTax: Boolean!
+ isActive: Boolean!
+}
+type AdminTaxClass {
+ id: ID!
+ name: String!
+ isDefault: Boolean!
+}
+type AdminTaxRate {
+ id: ID!
+ taxClassId: ID!
+ marketId: ID!
+ "State/province the rate is limited to; null applies to the whole market."
+ region: String
+ name: String!
+ "Percent, e.g. \"16\"."
+ rate: String!
+ priority: Int!
+ isCompound: Boolean!
+ startsAt: DateTime
+ endsAt: DateTime
+}
+type ProductPriceRow {
+ productId: ID!
+ currencyId: ID!
+ currencyCode: String!
+ price: String
+ rollPrice: String
+ compareAtPrice: String
+ salePrice: String
+ saleStartsAt: DateTime
+ saleEndsAt: DateTime
+}
+input CreateCurrencyInput {
+ code: String!
+ name: String!
+ symbol: String!
+ decimals: Int
+ exchangeRate: String
+}
+input UpdateCurrencyInput {
+ name: String
+ symbol: String
+ decimals: Int
+ isActive: Boolean
+}
+input MarketInput {
+ code: String!
+ name: String!
+ countryCode: String!
+ currencyId: ID!
+ defaultLocale: String
+ pricesIncludeTax: Boolean
+ isActive: Boolean
+}
+input TaxRateInput {
+ taxClassId: ID!
+ marketId: ID!
+ region: String
+ name: String!
+ rate: String!
+ priority: Int
+ isCompound: Boolean
+ startsAt: DateTime
+ endsAt: DateTime
+}
+input ProductPriceInput {
+ price: String
+ rollPrice: String
+ compareAtPrice: String
+ salePrice: String
+ saleStartsAt: DateTime
+ saleEndsAt: DateTime
+}
+enum CouponType {
+ FIXED
+ PERCENTAGE
+ FREE_SHIPPING
+}
+enum PromotionActionType {
+ PERCENTAGE_OFF
+ FIXED_OFF
+ FREE_SHIPPING
+ BUY_X_GET_Y
+}
+"Who or what a coupon/promotion applies to; empty lists mean no restriction."
+type RestrictionsInfo {
+ productIds: [ID!]!
+ categoryIds: [ID!]!
+ marketCodes: [String!]!
+ excludeSaleItems: Boolean!
+ firstOrderOnly: Boolean!
+ minSubtotal: String
+}
+input RestrictionsInput {
+ productIds: [ID!]
+ categoryIds: [ID!]
+ marketCodes: [String!]
+ excludeSaleItems: Boolean
+ firstOrderOnly: Boolean
+ minSubtotal: String
+}
+type AdminCoupon {
+ id: ID!
+ code: String!
+ name: String!
+ type: CouponType!
+ "Percent for PERCENTAGE, amount for FIXED, ignored for FREE_SHIPPING."
+ value: String!
+ "Currency of a FIXED coupon."
+ currency: String
+ minSpend: String
+ maxDiscount: String
+ maxUses: Int
+ maxUsesPerUser: Int
+ usesCount: Int!
+ isStackable: Boolean!
+ isActive: Boolean!
+ startsAt: DateTime
+ expiresAt: DateTime
+ restrictions: RestrictionsInfo!
+}
+input CouponInput {
+ code: String!
+ name: String!
+ type: CouponType!
+ value: String
+ currency: String
+ minSpend: String
+ maxDiscount: String
+ maxUses: Int
+ maxUsesPerUser: Int
+ isStackable: Boolean
+ isActive: Boolean
+ startsAt: DateTime
+ expiresAt: DateTime
+ restrictions: RestrictionsInput
+}
+type PromotionAction {
+ type: PromotionActionType!
+ value: String
+ currency: String
+ buy: Int
+ get: Int
+ percent: String
+}
+input PromotionActionInput {
+ type: PromotionActionType!
+ value: String
+ currency: String
+ buy: Int
+ get: Int
+ percent: String
+}
+type AdminPromotion {
+ id: ID!
+ name: String!
+ description: String
+ "Lower runs first."
+ priority: Int!
+ "A non-stackable promotion applies alone."
+ isStackable: Boolean!
+ isActive: Boolean!
+ startsAt: DateTime
+ endsAt: DateTime
+ conditions: RestrictionsInfo!
+ action: PromotionAction!
+}
+input PromotionInput {
+ name: String!
+ description: String
+ priority: Int
+ isStackable: Boolean
+ isActive: Boolean
+ startsAt: DateTime
+ endsAt: DateTime
+ conditions: RestrictionsInput
+ action: PromotionActionInput!
 }
 type AdminSetting {
  group: String!

@@ -1,0 +1,66 @@
+enum FraudRuleType {
+  VELOCITY_IP @enum(value: "velocity_ip")
+  VELOCITY_EMAIL @enum(value: "velocity_email")
+  FAILED_PAYMENTS @enum(value: "failed_payments")
+  AMOUNT_OVER @enum(value: "amount_over")
+  COUNTRY_MISMATCH @enum(value: "country_mismatch")
+  HIGH_RISK_COUNTRY @enum(value: "high_risk_country")
+}
+
+enum FraudVerdict {
+  ALLOW @enum(value: "allow")
+  REVIEW @enum(value: "review")
+  BLOCK @enum(value: "block")
+}
+
+type AdminFraudRule {
+  id: ID!
+  name: String!
+  type: FraudRuleType!
+  "Rule-specific settings, e.g. {max, window_minutes} or {amounts: {MXN: \"15000\"}}."
+  params: JSON!
+  "Points added to the checkout's risk score when the rule fires."
+  score: Int!
+  isActive: Boolean!
+}
+
+input FraudRuleInput {
+  name: String!
+  type: FraudRuleType!
+  params: JSON
+  score: Int!
+  isActive: Boolean
+}
+
+type FraudCheck {
+  id: ID!
+  orderId: ID
+  email: String
+  ip: String
+  score: Int!
+  decision: FraudVerdict!
+  reasons: JSON!
+  createdAt: DateTime!
+}
+
+extend type Query {
+  adminFraudRules: [AdminFraudRule!]!
+    @guard @can(ability: "fraud.view", model: "Cronos\\Fraud\\Infrastructure\\Persistence\\Eloquent\\FraudRuleModel")
+    @field(resolver: "Cronos\\Fraud\\Interfaces\\GraphQL\\AdminFraudQuery@rules")
+  "Immutable log of assessments, newest first (at most 200)."
+  adminFraudChecks(orderId: ID, decision: FraudVerdict, first: Int = 50): [FraudCheck!]!
+    @guard @can(ability: "fraud.view", model: "Cronos\\Fraud\\Infrastructure\\Persistence\\Eloquent\\FraudRuleModel")
+    @field(resolver: "Cronos\\Fraud\\Interfaces\\GraphQL\\AdminFraudQuery@checks")
+}
+
+extend type Mutation {
+  createFraudRule(input: FraudRuleInput!): AdminFraudRule!
+    @guard @can(ability: "fraud.manage", model: "Cronos\\Fraud\\Infrastructure\\Persistence\\Eloquent\\FraudRuleModel")
+    @field(resolver: "Cronos\\Fraud\\Interfaces\\GraphQL\\AdminFraudMutations@create")
+  updateFraudRule(id: ID!, input: FraudRuleInput!): AdminFraudRule!
+    @guard @can(ability: "fraud.manage", model: "Cronos\\Fraud\\Infrastructure\\Persistence\\Eloquent\\FraudRuleModel")
+    @field(resolver: "Cronos\\Fraud\\Interfaces\\GraphQL\\AdminFraudMutations@update")
+  deleteFraudRule(id: ID!): Boolean!
+    @guard @can(ability: "fraud.manage", model: "Cronos\\Fraud\\Infrastructure\\Persistence\\Eloquent\\FraudRuleModel")
+    @field(resolver: "Cronos\\Fraud\\Interfaces\\GraphQL\\AdminFraudMutations@delete")
+}

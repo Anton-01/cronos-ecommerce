@@ -1,0 +1,144 @@
+enum CouponType {
+  FIXED @enum(value: "fixed")
+  PERCENTAGE @enum(value: "percentage")
+  FREE_SHIPPING @enum(value: "free_shipping")
+}
+
+enum PromotionActionType {
+  PERCENTAGE_OFF @enum(value: "percentage_off")
+  FIXED_OFF @enum(value: "fixed_off")
+  FREE_SHIPPING @enum(value: "free_shipping")
+  BUY_X_GET_Y @enum(value: "buy_x_get_y")
+}
+
+"Who or what a coupon/promotion applies to; empty lists mean no restriction."
+type RestrictionsInfo {
+  productIds: [ID!]!
+  categoryIds: [ID!]!
+  marketCodes: [String!]!
+  excludeSaleItems: Boolean!
+  firstOrderOnly: Boolean!
+  minSubtotal: String
+}
+
+input RestrictionsInput {
+  productIds: [ID!]
+  categoryIds: [ID!]
+  marketCodes: [String!]
+  excludeSaleItems: Boolean
+  firstOrderOnly: Boolean
+  minSubtotal: String
+}
+
+type AdminCoupon {
+  id: ID!
+  code: String!
+  name: String!
+  type: CouponType!
+  "Percent for PERCENTAGE, amount for FIXED, ignored for FREE_SHIPPING."
+  value: String!
+  "Currency of a FIXED coupon."
+  currency: String
+  minSpend: String
+  maxDiscount: String
+  maxUses: Int
+  maxUsesPerUser: Int
+  usesCount: Int!
+  isStackable: Boolean!
+  isActive: Boolean!
+  startsAt: DateTime
+  expiresAt: DateTime
+  restrictions: RestrictionsInfo!
+}
+
+input CouponInput {
+  code: String!
+  name: String!
+  type: CouponType!
+  value: String
+  currency: String
+  minSpend: String
+  maxDiscount: String
+  maxUses: Int
+  maxUsesPerUser: Int
+  isStackable: Boolean
+  isActive: Boolean
+  startsAt: DateTime
+  expiresAt: DateTime
+  restrictions: RestrictionsInput
+}
+
+type PromotionAction {
+  type: PromotionActionType!
+  value: String
+  currency: String
+  buy: Int
+  get: Int
+  percent: String
+}
+
+input PromotionActionInput {
+  type: PromotionActionType!
+  value: String
+  currency: String
+  buy: Int
+  get: Int
+  percent: String
+}
+
+type AdminPromotion {
+  id: ID!
+  name: String!
+  description: String
+  "Lower runs first."
+  priority: Int!
+  "A non-stackable promotion applies alone."
+  isStackable: Boolean!
+  isActive: Boolean!
+  startsAt: DateTime
+  endsAt: DateTime
+  conditions: RestrictionsInfo!
+  action: PromotionAction!
+}
+
+input PromotionInput {
+  name: String!
+  description: String
+  priority: Int
+  isStackable: Boolean
+  isActive: Boolean
+  startsAt: DateTime
+  endsAt: DateTime
+  conditions: RestrictionsInput
+  action: PromotionActionInput!
+}
+
+extend type Query {
+  adminCoupons(search: String): [AdminCoupon!]!
+    @guard @can(ability: "promotions.view", model: "Cronos\\Promotions\\Infrastructure\\Persistence\\Eloquent\\CouponModel")
+    @field(resolver: "Cronos\\Promotions\\Interfaces\\GraphQL\\AdminPromotionsQuery@coupons")
+  adminPromotions: [AdminPromotion!]!
+    @guard @can(ability: "promotions.view", model: "Cronos\\Promotions\\Infrastructure\\Persistence\\Eloquent\\CouponModel")
+    @field(resolver: "Cronos\\Promotions\\Interfaces\\GraphQL\\AdminPromotionsQuery@promotions")
+}
+
+extend type Mutation {
+  createCoupon(input: CouponInput!): AdminCoupon!
+    @guard @can(ability: "promotions.manage", model: "Cronos\\Promotions\\Infrastructure\\Persistence\\Eloquent\\CouponModel")
+    @field(resolver: "Cronos\\Promotions\\Interfaces\\GraphQL\\AdminPromotionsMutations@createCoupon")
+  updateCoupon(id: ID!, input: CouponInput!): AdminCoupon!
+    @guard @can(ability: "promotions.manage", model: "Cronos\\Promotions\\Infrastructure\\Persistence\\Eloquent\\CouponModel")
+    @field(resolver: "Cronos\\Promotions\\Interfaces\\GraphQL\\AdminPromotionsMutations@updateCoupon")
+  deleteCoupon(id: ID!): Boolean!
+    @guard @can(ability: "promotions.manage", model: "Cronos\\Promotions\\Infrastructure\\Persistence\\Eloquent\\CouponModel")
+    @field(resolver: "Cronos\\Promotions\\Interfaces\\GraphQL\\AdminPromotionsMutations@deleteCoupon")
+  createPromotion(input: PromotionInput!): AdminPromotion!
+    @guard @can(ability: "promotions.manage", model: "Cronos\\Promotions\\Infrastructure\\Persistence\\Eloquent\\CouponModel")
+    @field(resolver: "Cronos\\Promotions\\Interfaces\\GraphQL\\AdminPromotionsMutations@createPromotion")
+  updatePromotion(id: ID!, input: PromotionInput!): AdminPromotion!
+    @guard @can(ability: "promotions.manage", model: "Cronos\\Promotions\\Infrastructure\\Persistence\\Eloquent\\CouponModel")
+    @field(resolver: "Cronos\\Promotions\\Interfaces\\GraphQL\\AdminPromotionsMutations@updatePromotion")
+  deletePromotion(id: ID!): Boolean!
+    @guard @can(ability: "promotions.manage", model: "Cronos\\Promotions\\Infrastructure\\Persistence\\Eloquent\\CouponModel")
+    @field(resolver: "Cronos\\Promotions\\Interfaces\\GraphQL\\AdminPromotionsMutations@deletePromotion")
+}

@@ -1,0 +1,47 @@
+input PreviewItemInput {
+  productId: ID!
+  "Decimal quantity: pieces, metres, or rolls when byRoll is true."
+  quantity: String!
+  byRoll: Boolean = false
+}
+
+input PreviewDiscountsInput {
+  market: String!
+  region: String
+  "Between 1 and 50 lines."
+  items: [PreviewItemInput!]!
+  couponCode: String
+  "Shipping cost in the market currency, so a free-shipping coupon has something to discount."
+  shipping: String
+}
+
+type AppliedDiscount {
+  kind: String!
+  id: ID!
+  name: String!
+  amount: Money!
+}
+
+type DiscountLine {
+  index: Int!
+  total: Money!
+  discount: Money!
+}
+
+type DiscountPreview {
+  currency: String!
+  subtotal: Money!
+  itemsDiscount: Money!
+  shippingDiscount: Money!
+  totalDiscount: Money!
+  applied: [AppliedDiscount!]!
+  lines: [DiscountLine!]!
+  couponApplied: Boolean!
+}
+
+extend type Query {
+  "Prices a basket in a market and applies automatic promotions plus an optional coupon. Failure codes: COUPON_NOT_FOUND, COUPON_EXPIRED, COUPON_EXHAUSTED, COUPON_MIN_SPEND, ..."
+  previewDiscounts(input: PreviewDiscountsInput!): DiscountPreview!
+    @throttle(maxAttempts: 30, decayMinutes: 1, prefix: "coupon-preview")
+    @field(resolver: "Cronos\\Promotions\\Interfaces\\GraphQL\\PreviewDiscountsQuery")
+}

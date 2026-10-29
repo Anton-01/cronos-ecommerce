@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Pricing;
 
+use Cronos\Pricing\Domain\Ports\CurrencyStore;
+use Cronos\Pricing\Domain\Ports\MarketStore;
+use Cronos\Pricing\Domain\Ports\TaxStore;
 use Database\Seeders\PricingSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\Cache;
@@ -19,16 +22,16 @@ abstract class PricingTestCase extends CatalogTestCase
 
     protected function currencyId(string $code): int
     {
-        return app(\Cronos\Pricing\Domain\Ports\CurrencyStore::class)->findByCode($code)['id'];
+        return app(CurrencyStore::class)->findByCode($code)['id'];
     }
 
     protected function marketId(string $code): int
     {
-        return collect(app(\Cronos\Pricing\Domain\Ports\MarketStore::class)->all())->firstWhere('code', $code)['id'];
+        return collect(app(MarketStore::class)->all())->firstWhere('code', $code)['id'];
     }
 
     protected function defaultTaxClassId(): int
     {
-        return collect(app(\Cronos\Pricing\Domain\Ports\TaxStore::class)->classes())->firstWhere('is_default', true)['id'];
+        return collect(app(TaxStore::class)->classes())->firstWhere('is_default', true)['id'];
     }
 }

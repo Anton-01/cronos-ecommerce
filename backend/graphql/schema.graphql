@@ -9,5 +9,7 @@ type Mutation
 #import settings/*.graphql
 #import catalog/types.graphql
 #import catalog/storefront.graphql
+#import pricing/storefront.graphql
+#import promotions/storefront.graphql
 #import media/types.graphql
 #import identity/*.graphql

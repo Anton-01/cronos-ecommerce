@@ -13,7 +13,9 @@ use Cronos\Pricing\Domain\Exceptions\InvalidPricing;
 use Cronos\Pricing\Domain\Exceptions\NotFound;
 use Cronos\Pricing\Domain\Ports\CurrencyStore;
 use Cronos\Pricing\Domain\Ports\ExchangeRateProvider;
+use Cronos\Pricing\Domain\Ports\MarketStore;
 use Cronos\Pricing\Domain\Ports\PricingCatalog;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 final class PricingServicesTest extends PricingTestCase
@@ -61,7 +63,7 @@ final class PricingServicesTest extends PricingTestCase
         $history = app(CurrencyStore::class)->history($usd);
         $this->assertSame(['0.05700000', 'initial'], [$history[0]['rate'], $history[1]['source']]);
 
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
         DB::table('exchange_rate_history')->update(['rate' => 9]);
     }
 
@@ -79,7 +81,7 @@ final class PricingServicesTest extends PricingTestCase
         $usd = $this->currencyId('USD');
 
         $id = $markets->create(['code' => 'ca', 'name' => 'Canada', 'country_code' => 'ca', 'currency_id' => $usd, 'default_locale' => 'en-US']);
-        $this->assertSame('CA', app(\Cronos\Pricing\Domain\Ports\MarketStore::class)->find($id)['code']);
+        $this->assertSame('CA', app(MarketStore::class)->find($id)['code']);
 
         $this->expectException(Conflict::class);
         $markets->create(['code' => 'CA', 'name' => 'dup', 'country_code' => 'CA', 'currency_id' => $usd]);

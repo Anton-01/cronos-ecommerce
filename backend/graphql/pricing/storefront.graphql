@@ -1,0 +1,72 @@
+type Money {
+  "Decimal string at the currency's own scale, e.g. \"116.00\"."
+  amount: String!
+  currency: String!
+}
+
+type TaxLine {
+  name: String!
+  "Percent, e.g. \"16\"."
+  rate: String!
+  amount: Money!
+}
+
+"What a shopper in one market pays for a product, with the tax shown the way that market expects."
+type Pricing {
+  market: String!
+  currency: String!
+  "True when shelf prices already contain tax (Mexico); false when it is added at checkout (US)."
+  taxIncluded: Boolean!
+  "The price in force right now (the sale price while a sale is open)."
+  price: Money!
+  "The regular price, ignoring any sale."
+  listPrice: Money!
+  "Strikethrough price to show next to `price`, when there is one."
+  compareAt: Money
+  onSale: Boolean!
+  saleEndsAt: DateTime
+  priceWithTax: Money!
+  priceWithoutTax: Money!
+  taxAmount: Money!
+  taxLines: [TaxLine!]!
+  "Price of a whole roll, for products sold by roll."
+  rollPrice: Money
+  rollPriceWithTax: Money
+}
+
+type PublicCurrency {
+  code: String!
+  symbol: String!
+  decimals: Int!
+}
+
+type PublicMarket {
+  code: String!
+  name: String!
+  countryCode: String!
+  currency: PublicCurrency!
+  defaultLocale: String!
+  pricesIncludeTax: Boolean!
+}
+
+extend type ProductSummary {
+  "Price in a market. For variable products this is the parent's own price; choose a variation for the exact one."
+  pricing(market: String!, "State/province code for regional sales tax, e.g. CA.", region: String): Pricing
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\ProductPricingField")
+}
+
+extend type ProductPage {
+  pricing(market: String!, region: String): Pricing
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\ProductPricingField")
+}
+
+extend type ProductVariation {
+  pricing(market: String!, region: String): Pricing
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\ProductPricingField")
+}
+
+extend type Query {
+  "Active markets with their currency; the storefront picks one by the visitor's country."
+  markets: [PublicMarket!]!
+    @field(resolver: "Cronos\\Pricing\\Interfaces\\GraphQL\\PublicMarketsQuery")
+}

@@ -3,9 +3,11 @@
 use App\Providers\AppServiceProvider;
 use App\Providers\HorizonServiceProvider;
 use Cronos\Catalog\Infrastructure\CatalogServiceProvider;
+use Cronos\Fraud\Infrastructure\FraudServiceProvider;
 use Cronos\Identity\Infrastructure\IdentityServiceProvider;
 use Cronos\Media\Infrastructure\MediaServiceProvider;
 use Cronos\Pricing\Infrastructure\PricingServiceProvider;
+use Cronos\Promotions\Infrastructure\PromotionsServiceProvider;
 use Cronos\Settings\Infrastructure\SettingsServiceProvider;
 use Cronos\Shared\Infrastructure\SharedServiceProvider;
 
@@ -18,4 +20,6 @@ return [
     SettingsServiceProvider::class,
     CatalogServiceProvider::class,
     PricingServiceProvider::class,
+    PromotionsServiceProvider::class,
+    FraudServiceProvider::class,
 ];

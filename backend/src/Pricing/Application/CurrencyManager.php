@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cronos\Pricing\Application;
 
 use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
 use Cronos\Pricing\Domain\Exceptions\Conflict;
 use Cronos\Pricing\Domain\Exceptions\InvalidPricing;
 use Cronos\Pricing\Domain\Exceptions\NotFound;
@@ -71,6 +72,6 @@ final class CurrencyManager
     {
         (is_numeric($rate) && BigDecimal::of($rate)->isPositive()) || throw new InvalidPricing('The exchange rate must be greater than zero.', 'INVALID_RATE');
 
-        return (string) BigDecimal::of($rate)->toScale(8, \Brick\Math\RoundingMode::HalfUp);
+        return (string) BigDecimal::of($rate)->toScale(8, RoundingMode::HalfUp);
     }
 }

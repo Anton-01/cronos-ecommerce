@@ -44,8 +44,11 @@ final class ProductPriceManager
         return $v === null || trim($v) === '' ? null : trim($v);
     }
 
-    private function date(?string $v): ?DateTimeImmutable
+    private function date(string|\DateTimeInterface|null $v): ?DateTimeImmutable
     {
+        if ($v instanceof \DateTimeInterface) {
+            return DateTimeImmutable::createFromInterface($v);
+        }
         try {
             return $this->blank($v) === null ? null : new DateTimeImmutable($v);
         } catch (\Exception) {

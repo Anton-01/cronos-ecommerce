@@ -22,6 +22,7 @@ use Cronos\Pricing\Infrastructure\Persistence\EloquentMarketStore;
 use Cronos\Pricing\Infrastructure\Persistence\EloquentProductPriceStore;
 use Cronos\Pricing\Infrastructure\Persistence\EloquentTaxStore;
 use Cronos\Pricing\Infrastructure\Persistence\PricingObserver;
+use Cronos\Pricing\Interfaces\GraphQL\ProductPricingField;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider;
 
@@ -36,6 +37,12 @@ final class PricingServiceProvider extends ServiceProvider
         PricingCatalog::class => CachedPricingCatalog::class,
         ExchangeRateProvider::class => HttpExchangeRateProvider::class,
     ];
+
+    public function register(): void
+    {
+        // Holds the per-request batch of products waiting to be priced.
+        $this->app->scoped(ProductPricingField::class);
+    }
 
     public function boot(): void
     {
