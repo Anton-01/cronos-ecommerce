@@ -528,12 +528,17 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho.
 - [ ] **Pendiente:** responsive images (`responsive_images` existe en BD pero no se genera aún)
 
 ### FASE 3 — Catálogo avanzado y taxonomía (PIM)
-- [ ] Categorías jerárquicas (ltree) y tags (soft delete) con traducciones
-- [ ] Atributos/valores; productos simple/variable/agrupado/variación con herencia y overrides
-- [ ] **Venta por metro/pieza** (`sell_unit`, paso, mín/máx, rollo) con validaciones de dominio
-- [ ] Estados borrador/publicado/inactivo + `preview_token` temporal
-- [ ] Observers → purga exacta de caché de catálogo; búsqueda FTS
-- [ ] Admin: CRUD PIM (editor de variaciones, galería)
+- [x] Categorías jerárquicas (ltree; mover = un solo `UPDATE`; profundidad máx. 5, sin ciclos) y tags con borrado lógico, traducciones y slug por idioma (índices únicos parciales; `deleted_at` espejado en las tablas de traducción)
+- [x] Atributos/valores (select, color con HEX en `meta`, texto, número); productos simple/variable/agrupado/variación con herencia (`NULL` = hereda precio, peso, dimensiones y código de barras), `combination_hash` único por padre, generador de combinaciones (tope 200) con SKU derivado de los códigos
+- [x] **Venta por metro/pieza** (`SalesUnit`): paso, mín/máx, **corte libre y/o rollo completo** (`sell_by_cut`, `sell_by_roll`, `roll_length`, `roll_price`), aritmética decimal exacta (brick/math) y `CHECK` en BD. Decisión del usuario: el listón se vende en **ambos** modos
+- [x] Estados borrador/publicado/inactivo con `PublishingPolicy` (lista de requisitos faltantes) + enlaces de vista previa temporales (token con hash, caducan)
+- [x] Búsqueda FTS (tsvector + `unaccent`, configuraciones spanish/english); lectura pública con caché por etiquetas (`catalog:*`) purgada después del commit por observer; tope de página 48
+- [x] GraphQL: tienda (`categoryTree`, `category`, `product`, `productPreview`, `products`) y admin (~35 mutaciones, permisos `catalog.view/manage/publish`)
+- [x] Admin: categorías (árbol), etiquetas, atributos, listado con filtros y editor de producto (General, Venta, Organización, Variaciones, Agrupado, Galería, Publicación). 55 tests Vitest + recorrido E2E real en Chromium (listón por corte y rollo, variable con 4 variaciones, vista previa, rol de solo lectura)
+- Tests: backend 132 (PostgreSQL 16 real), admin 55
+- Decisiones: (1) columna `price` provisional en `products`; la Fase 4 la moverá a precios por moneda/mercado; (2) `stock_quantity` solo lo escribirá el Kardex (Fase 5); (3) cambios de categoría/tag/atributo purgan el caché de catálogo completo (grueso pero correcto); (4) respaldo de idioma por campo, no por registro; (5) la capa Application agrupa casos de uso por agregado ("Managers")
+- Hallazgos del E2E corregidos: Lighthouse `@eq`/`@scope` con `null` explícito filtraba `= NULL` (Apollo envía las variables no usadas como `null`) → filtros del listado admin movidos al constructor; el escalar `DateTime` de Lighthouse no acepta ISO-8601 con zona (`publishedAt` rompía la mutación de publicar) → formato `Y-m-d H:i:s`; ninguna prueba cubría ambos casos, ahora sí
+- [ ] **Pendiente:** Pest, Larastan y Deptrac siguen sin instalarse (`phpstan/phpstan` solo se distribuye como zip de GitHub y el entorno devuelve 403 a esas descargas; `git clone` sí funciona)
 
 ### FASE 4 — Finanzas, precios, promociones y fraude
 - [ ] Monedas + tipo de cambio (job de actualización + historial); `markets`
@@ -601,6 +606,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho.
 
 | Fecha | Cambio |
 |---|---|
+| 2026-10-29 | **Fase 3** (backend 132 tests, admin 55 tests, E2E real). Nota: el mensaje del commit de backend de esta fase dice por error "168 overall"; la cifra real era 131. Diagnóstico de COMPOSER_AUTH: el token no es la causa; el proxy responde 403 a las descargas de archivos de GitHub (api/codeload), por eso `phpstan/phpstan` (solo dist) no se instala. Se dejó `composer config --global use-github-api false`. |
 | 2026-10-29 | **Fase 2** (backend 51 tests, admin 25 tests, E2E real). Desviaciones del plan: (1) `settings` no guarda `type`/`is_public` — el catálogo en código es la fuente de verdad, así un dato nunca puede volver público algo privado; (2) la tabla `locales` se sustituye por `config('app.supported_locales')`; (3) `media.model_type` guarda el nombre de clase (igual que roles/tokens/audits) en vez de un alias, porque un `morphMap` global habría roto las filas existentes de Spatie/Sanctum. Hallazgos del E2E corregidos: `@orderBy` con valor por defecto en el SDL **no** se aplica con `@paginate` (listados sin `ORDER BY`) → constructor de consulta "más recientes primero"; el desempate por `id` sigue la dirección del orden pedido; `jsonb` no conserva el orden de claves (conversiones). |
 | 2026-10-29 | Admin Fase 1 (ver checklist). Hallazgos del E2E corregidos: límite de complejidad GraphQL 500→3000 (rechazaba un listado legítimo), desempate por `id` en consultas ordenadas (paginación estable con empates), la ruta de retorno ya no se hereda tras un cierre de sesión voluntario, `adminMe` exige `admin.access`, CORS por lista exacta de orígenes (`CORS_ALLOWED_ORIGINS`). Pendiente: Dockerfile del admin sin probar (sin daemon Docker). |
 | 2026-10-29 | Backend Fase 1: Laravel **13.39** (decisión del usuario; el plan decía 11+), migraciones identidad/RBAC/auditoría, módulos Identity/Audit/Shared, esquemas GraphQL público y admin, 22 tests verdes contra PostgreSQL 16. Cursores de `@paginate` de Lighthouse son offset codificado, no keyset (revisar en Fase 8). |
