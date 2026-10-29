@@ -1,0 +1,60 @@
+fragment MediaItem on Media {
+  id
+  name
+  fileName
+  mimeType
+  size
+  width
+  height
+  status
+  failureReason
+  collectionName
+  isImage
+  url
+  thumbUrl
+  createdAt
+  conversions {
+    name
+    url
+    width
+    height
+  }
+  translations {
+    locale
+    alt
+    title
+    caption
+  }
+}
+
+query MediaLibrary($first: Int!, $after: String, $search: String, $kind: MediaKind, $orderBy: [QueryMediaOrderByOrderByClause!]) {
+  media(first: $first, after: $after, search: $search, kind: $kind, orderBy: $orderBy) {
+    pageInfo {
+      hasNextPage
+      endCursor
+      total
+    }
+    edges {
+      cursor
+      node {
+        ...MediaItem
+      }
+    }
+  }
+}
+
+mutation UpdateMedia($id: ID!, $name: String, $translations: [MediaTranslationInput!]) {
+  updateMedia(id: $id, name: $name, translations: $translations) {
+    ...MediaItem
+  }
+}
+
+mutation DeleteMedia($id: ID!) {
+  deleteMedia(id: $id)
+}
+
+mutation UploadMedia($file: Upload!, $collection: String) {
+  uploadMedia(file: $file, collection: $collection) {
+    ...MediaItem
+  }
+}

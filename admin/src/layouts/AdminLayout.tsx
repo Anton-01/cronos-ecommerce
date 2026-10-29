@@ -1,5 +1,5 @@
-import { LayoutDashboard, LogOut, ShieldCheck, Users } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { Images, LayoutDashboard, LogOut, Settings, ShieldCheck, User, Users } from 'lucide-react'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -10,6 +10,8 @@ const NAV = [
   { to: '/', label: 'Resumen', icon: LayoutDashboard, permission: null, end: true },
   { to: '/users', label: 'Usuarios', icon: Users, permission: 'users.view', end: false },
   { to: '/roles', label: 'Roles', icon: ShieldCheck, permission: 'roles.view', end: false },
+  { to: '/media', label: 'Medios', icon: Images, permission: 'media.view', end: false },
+  { to: '/settings', label: 'Configuración', icon: Settings, permission: 'settings.view', end: false },
 ] as const
 
 export function AdminLayout() {
@@ -44,11 +46,17 @@ export function AdminLayout() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="max-w-64">
+                {user?.avatarUrl && <img src={user.avatarUrl} alt="" className="size-6 rounded-full object-cover" />}
                 <span className="truncate">{name}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>{user?.email}</DropdownMenuLabel>
+              <DropdownMenuItem asChild>
+                <Link to="/profile">
+                  <User className="size-4" /> Mi perfil
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => void signOut()}>
                 <LogOut className="size-4" /> Cerrar sesión
               </DropdownMenuItem>

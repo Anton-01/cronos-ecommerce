@@ -5,7 +5,7 @@ import { SetContextLink } from '@apollo/client/link/context'
 
 import { clearSession, getToken } from './session'
 
-const endpoint = import.meta.env.VITE_GRAPHQL_URL ?? 'http://localhost:8080/admin/graphql'
+export const GRAPHQL_URL: string = import.meta.env.VITE_GRAPHQL_URL ?? 'http://localhost:8080/admin/graphql'
 
 const authLink = new SetContextLink((prev) => {
   const token = getToken()
@@ -23,11 +23,13 @@ const errorLink = new ErrorLink(({ error, operation }) => {
   }
 })
 
-export function createApolloClient(uri: string = endpoint) {
+export function createApolloClient(uri: string = GRAPHQL_URL) {
   return new ApolloClient({
     link: ApolloLink.from([errorLink, authLink, new HttpLink({ uri })]),
     cache: new InMemoryCache({
       typePolicies: {
+        // Settings have no id: their natural key lets mutation results update the cached list in place.
+        AdminSetting: { keyFields: ['group', 'key'] },
         // Pages are cached per (search, order, size, cursor) so going "back" is instant.
         Query: { fields: { users: { keyArgs: ['search', 'orderBy', 'first', 'after'] } } },
       },

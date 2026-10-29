@@ -1,0 +1,42 @@
+query AdminSettings {
+  adminSettings {
+    group
+    key
+    type
+    label
+    public
+    translatable
+    value
+    translations {
+      locale
+      value
+    }
+  }
+  supportedLocales {
+    code
+    isDefault
+  }
+}
+
+mutation UpdateSettings($input: [SettingInput!]!) {
+  updateSettings(input: $input) {
+    group
+    key
+    type
+    label
+    public
+    translatable
+    value
+    translations {
+      locale
+      value
+    }
+  }
+}
+
+query SupportedLocales {
+  supportedLocales {
+    code
+    isDefault
+  }
+}

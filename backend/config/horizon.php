@@ -199,7 +199,8 @@ return [
     'defaults' => [
         'supervisor-1' => [
             'connection' => 'redis',
-            'queue' => ['default'],
+            // Priority order: payments (Phase 6) first, then user-facing mail, then media and audit work.
+            'queue' => ['payments', 'default', 'notifications', 'media', 'audit'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => 1,

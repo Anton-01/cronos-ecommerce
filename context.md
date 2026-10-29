@@ -517,11 +517,15 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho.
 - [ ] `context.md` actualizado
 
 ### FASE 2 — Medios, identidad y configuraciones
-- [ ] Media Library polimórfica (upload, metadata, renombrar, ALT i18n, orden)
-- [ ] Jobs de miniaturas/conversiones y metadata; presigned uploads
-- [ ] `settings` + identidad (contacto, logos, términos, i18n) permanentes en Redis + `settings:warm`
-- [ ] Queries públicas cacheadas con tags; Observers de invalidación
-- [ ] Admin: gestor de medios y pantalla de configuración
+- [x] Media Library polimórfica (módulo `Media`): subida por GraphQL multipart, tipo MIME real por `finfo` (no el del cliente; SVG excluido), tope de píxeles leído de la cabecera antes de decodificar, nombre de almacenamiento generado (`{ulid}/{ulid}.ext`), metadata EXIF con lista blanca (sin GPS), renombrar (la URL no cambia), ALT/título/leyenda por idioma, borrado lógico, orden, colección de un solo archivo (`avatar`)
+- [x] Miniaturas y conversiones por Job en cola `media` (GD → WebP: `thumb` 160 cover, `medium` 640, `large` 1600, sin ampliar), reintentos con backoff, estado `pending/processing/ready/failed` honesto y proceso idempotente. La mutación responde en ~200 ms para 3 archivos
+- [x] Avatar: `updateMyAvatar` (tienda y admin) + recortador circular en el Admin (`react-easy-crop`, salida 512×512 JPEG), pasa por la Media Library
+- [x] `settings` + identidad (módulo `Settings`): catálogo de claves **en código** (`SettingDefinitions`: tipo, etiqueta, traducible, público), valores validados por tipo (URLs solo http/https, teléfonos, correos, imágenes existentes), cambios atómicos, instantánea en Redis **sin TTL** con etiqueta `settings`, escritura inmediata (write-through), observer de respaldo, listener que refresca si cambia un medio usado como logo, `settings:warm`. Lecturas con caché caliente: 0 consultas a las tablas de configuración (probado y con prueba de mutación)
+- [x] GraphQL: `publicSettings(locale)` (sin autenticación, solo claves públicas, traducción con respaldo por clave), `supportedLocales`, `adminSettings`, `updateSettings`, `media`, `uploadMedia`, `updateMedia`, `deleteMedia`
+- [x] Admin: gestor de medios (grilla, búsqueda, filtro imagen/documento, arrastrar y soltar, sondeo mientras se procesan miniaturas, diálogo con ALT por idioma, selector reutilizable), pantalla de configuración generada desde el catálogo (pestañas por grupo, un campo por idioma, selector de logo), perfil con avatar. 25 tests Vitest + recorrido E2E en Chromium con *worker* de Redis real
+- [ ] **Pendiente:** *presigned uploads* a S3/MinIO (el disco `media` acepta `MEDIA_DISK_DRIVER=s3` pero falta `league/flysystem-aws-s3-v3`, no instalable aquí; hoy el archivo viaja por el API)
+- [ ] **Pendiente:** antivirus/ClamAV sobre subidas, y *job* de purga física de archivos de medios borrados lógicamente
+- [ ] **Pendiente:** responsive images (`responsive_images` existe en BD pero no se genera aún)
 
 ### FASE 3 — Catálogo avanzado y taxonomía (PIM)
 - [ ] Categorías jerárquicas (ltree) y tags (soft delete) con traducciones
@@ -597,6 +601,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho.
 
 | Fecha | Cambio |
 |---|---|
+| 2026-10-29 | **Fase 2** (backend 51 tests, admin 25 tests, E2E real). Desviaciones del plan: (1) `settings` no guarda `type`/`is_public` — el catálogo en código es la fuente de verdad, así un dato nunca puede volver público algo privado; (2) la tabla `locales` se sustituye por `config('app.supported_locales')`; (3) `media.model_type` guarda el nombre de clase (igual que roles/tokens/audits) en vez de un alias, porque un `morphMap` global habría roto las filas existentes de Spatie/Sanctum. Hallazgos del E2E corregidos: `@orderBy` con valor por defecto en el SDL **no** se aplica con `@paginate` (listados sin `ORDER BY`) → constructor de consulta "más recientes primero"; el desempate por `id` sigue la dirección del orden pedido; `jsonb` no conserva el orden de claves (conversiones). |
 | 2026-10-29 | Admin Fase 1 (ver checklist). Hallazgos del E2E corregidos: límite de complejidad GraphQL 500→3000 (rechazaba un listado legítimo), desempate por `id` en consultas ordenadas (paginación estable con empates), la ruta de retorno ya no se hereda tras un cierre de sesión voluntario, `adminMe` exige `admin.access`, CORS por lista exacta de orígenes (`CORS_ALLOWED_ORIGINS`). Pendiente: Dockerfile del admin sin probar (sin daemon Docker). |
 | 2026-10-29 | Backend Fase 1: Laravel **13.39** (decisión del usuario; el plan decía 11+), migraciones identidad/RBAC/auditoría, módulos Identity/Audit/Shared, esquemas GraphQL público y admin, 22 tests verdes contra PostgreSQL 16. Cursores de `@paginate` de Lighthouse son offset codificado, no keyset (revisar en Fase 8). |
 | 2026-10-29 | Fase 1 iniciada: infra Docker/compose/Redis/Postgres escrita. **Bloqueo:** el entorno no permite `repo.packagist.org`, no se puede instalar Laravel/Lighthouse hasta habilitar el host. |

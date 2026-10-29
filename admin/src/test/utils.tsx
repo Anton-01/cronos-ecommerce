@@ -4,6 +4,7 @@ import { MockLink } from '@apollo/client/testing'
 import { render } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import { MemoryRouter } from 'react-router-dom'
+import { Toaster } from 'sonner'
 
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { AdminMeDocument } from '@/graphql/generated'
@@ -44,6 +45,7 @@ export function renderApp(ui: ReactElement, opts: { mocks: Mock[]; route?: strin
       <ApolloProvider client={client}>
         <MemoryRouter initialEntries={[opts.route ?? '/']}>
           <AuthProvider>{ui}</AuthProvider>
+          <Toaster />
         </MemoryRouter>
       </ApolloProvider>,
     ),

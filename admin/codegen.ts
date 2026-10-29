@@ -10,7 +10,7 @@ const config: CodegenConfig = {
     './src/graphql/generated.ts': {
       plugins: ['typescript-operations', 'typed-document-node'],
       config: {
-        scalars: { DateTime: 'string' },
+        scalars: { DateTime: 'string', JSON: 'unknown', Upload: 'File' },
         avoidOptionals: { field: true, inputValue: false },
         nonOptionalTypename: true,
         skipTypeNameForRoot: true,

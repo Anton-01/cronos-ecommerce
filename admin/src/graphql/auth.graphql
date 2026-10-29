@@ -18,9 +18,17 @@ query AdminMe {
     email
     roles
     permissions
+    avatarUrl
     profile {
       firstName
       lastName
     }
+  }
+}
+
+mutation UpdateMyAvatar($file: Upload!) {
+  updateMyAvatar(file: $file) {
+    id
+    avatarUrl
   }
 }

@@ -1,4 +1,5 @@
 type Query {
+ supportedLocales: [SupportedLocale!]!
  adminMe: User
  user(id: ID!): User
  roles: [Role!]!

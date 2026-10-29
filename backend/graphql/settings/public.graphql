@@ -11,6 +11,4 @@ extend type Query {
   publicSettings(locale: String): [PublicSetting!]!
     @field(resolver: "Cronos\\Settings\\Interfaces\\GraphQL\\Queries\\PublicSettingsQuery")
 
-  supportedLocales: [SupportedLocale!]!
-    @field(resolver: "Cronos\\Settings\\Interfaces\\GraphQL\\Queries\\SupportedLocalesQuery")
 }
