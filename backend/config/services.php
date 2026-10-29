@@ -41,4 +41,11 @@ return [
         ],
     ],
 
+    'exchange_rates' => [
+        'url' => env('EXCHANGE_RATES_URL', 'https://open.er-api.com/v6/latest/{base}'),
+        'timeout' => (int) env('EXCHANGE_RATES_TIMEOUT', 10),
+        // A rate that moves more than this between two refreshes is treated as a provider glitch and not applied.
+        'max_change_percent' => (float) env('EXCHANGE_RATES_MAX_CHANGE', 25),
+    ],
+
 ];

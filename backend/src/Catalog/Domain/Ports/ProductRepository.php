@@ -6,7 +6,7 @@ namespace Cronos\Catalog\Domain\Ports;
 
 /**
  * @phpstan-type ProductRow array{
- *     id: string, parent_id: ?string, type: string, status: string, sku: ?string, barcode: ?string,
+ *     id: string, parent_id: ?string, type: string, status: string, sku: ?string, barcode: ?string, tax_class_id: ?int,
  *     price: ?string, weight: ?string, dimensions: ?array<string, mixed>, sales: array<string, mixed>,
  *     manage_stock: bool, allow_backorder: bool, low_stock_threshold: ?string, stock_quantity: string,
  *     is_customizable: bool, position: int, published_at: ?string,
@@ -35,6 +35,8 @@ interface ProductRepository
 
     /** Soft delete the product (and its variations); frees SKU and slugs. */
     public function delete(string $id): void;
+
+    public function taxClassExists(int $id): bool;
 
     public function skuTaken(string $sku, ?string $exceptId = null): bool;
 

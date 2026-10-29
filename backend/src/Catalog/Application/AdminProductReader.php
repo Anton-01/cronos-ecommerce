@@ -45,7 +45,7 @@ final class AdminProductReader
         }
 
         return [
-            'id' => $row['id'], 'parentId' => $row['parent_id'], 'type' => $row['type'], 'status' => $row['status'], 'sku' => $row['sku'], 'barcode' => $row['barcode'],
+            'id' => $row['id'], 'parentId' => $row['parent_id'], 'type' => $row['type'], 'status' => $row['status'], 'sku' => $row['sku'], 'barcode' => $row['barcode'], 'taxClassId' => $row['tax_class_id'],
             'price' => $row['price'], 'weight' => $row['weight'], 'dimensions' => $row['dimensions'],
             'sales' => [
                 'unit' => $row['sales']['sell_unit'], 'step' => $row['sales']['quantity_step'], 'min' => $row['sales']['min_quantity'], 'max' => $row['sales']['max_quantity'],

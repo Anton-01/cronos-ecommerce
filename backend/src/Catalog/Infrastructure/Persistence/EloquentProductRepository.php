@@ -85,6 +85,11 @@ final class EloquentProductRepository implements ProductRepository
         });
     }
 
+    public function taxClassExists(int $id): bool
+    {
+        return DB::table('tax_classes')->where('id', $id)->exists();
+    }
+
     public function skuTaken(string $sku, ?string $exceptId = null): bool
     {
         return ProductModel::query()->where('sku', $sku)->when($exceptId, fn ($q) => $q->whereKeyNot($exceptId))->exists();
@@ -206,7 +211,7 @@ final class EloquentProductRepository implements ProductRepository
         $primary = $m->categories->first(fn ($c) => (bool) $c->pivot->is_primary);
 
         return [
-            'id' => $m->id, 'parent_id' => $m->parent_id, 'type' => $m->type, 'status' => $m->status, 'sku' => $m->sku, 'barcode' => $m->barcode,
+            'id' => $m->id, 'parent_id' => $m->parent_id, 'type' => $m->type, 'status' => $m->status, 'sku' => $m->sku, 'barcode' => $m->barcode, 'tax_class_id' => $m->tax_class_id,
             'price' => $m->price, 'weight' => $m->weight, 'dimensions' => $m->dimensions,
             'sales' => array_intersect_key($m->getAttributes(), array_flip(self::SALES_COLUMNS)),
             'manage_stock' => (bool) $m->manage_stock, 'allow_backorder' => (bool) $m->allow_backorder, 'low_stock_threshold' => $m->low_stock_threshold,

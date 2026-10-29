@@ -138,6 +138,8 @@ type AdminProduct {
   status: ProductStatus!
   sku: String
   barcode: String
+  "Tax class; null means the default class."
+  taxClassId: ID
   price: String
   weight: String
   dimensions: JSON
@@ -217,6 +219,7 @@ input CreateProductInput {
   type: ProductType!
   sku: String
   barcode: String
+  taxClassId: ID
   price: String
   weight: String
   dimensions: DimensionsInput
@@ -235,6 +238,7 @@ input CreateProductInput {
 input UpdateProductInput {
   sku: String
   barcode: String
+  taxClassId: ID
   price: String
   weight: String
   dimensions: DimensionsInput

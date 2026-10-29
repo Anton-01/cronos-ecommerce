@@ -49,6 +49,7 @@ final class ProductManager
 
         $id = $this->products->create([
             'type' => $type, 'status' => 'draft', 'sku' => $sku, 'barcode' => $this->clean($input['barcode'] ?? null, 64),
+            'tax_class_id' => $this->taxClass($input['tax_class_id'] ?? null),
             'price' => $type === 'grouped' ? null : Input::money($input['price'] ?? null),
             'weight' => Input::weight($input['weight'] ?? null), 'dimensions' => Input::dimensions($input['dimensions'] ?? null),
             ...$sales->toColumns(), ...$this->stockColumns($input), 'is_customizable' => (bool) ($input['is_customizable'] ?? false),
@@ -72,6 +73,7 @@ final class ProductManager
             $columns['sku'] = $sku;
         }
         array_key_exists('barcode', $input) && $columns['barcode'] = $this->clean($input['barcode'], 64);
+        array_key_exists('tax_class_id', $input) && $columns['tax_class_id'] = $this->taxClass($input['tax_class_id']);
         array_key_exists('price', $input) && $columns['price'] = $row['type'] === 'grouped' ? null : Input::money($input['price']);
         array_key_exists('weight', $input) && $columns['weight'] = Input::weight($input['weight']);
         array_key_exists('dimensions', $input) && $columns['dimensions'] = Input::dimensions($input['dimensions']);
@@ -294,5 +296,15 @@ final class ProductManager
         }
 
         return $out;
+    }
+
+    private function taxClass(mixed $id): ?int
+    {
+        if ($id === null || $id === '') {
+            return null;
+        }
+        $this->products->taxClassExists((int) $id) || throw new InvalidProduct('That tax class does not exist.');
+
+        return (int) $id;
     }
 }
