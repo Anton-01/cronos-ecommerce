@@ -1,5 +1,11 @@
 <?php
 
+use Cronos\Audit\Infrastructure\Persistence\Audit;
+use OwenIt\Auditing\Resolvers\IpAddressResolver;
+use OwenIt\Auditing\Resolvers\UrlResolver;
+use OwenIt\Auditing\Resolvers\UserAgentResolver;
+use OwenIt\Auditing\Resolvers\UserResolver;
+
 return [
 
     'enabled' => env('AUDITING_ENABLED', true),
@@ -13,7 +19,7 @@ return [
     |
     */
 
-    'implementation' => OwenIt\Auditing\Models\Audit::class,
+    'implementation' => Audit::class,
 
     /*
     |--------------------------------------------------------------------------
@@ -29,8 +35,9 @@ return [
         'guards' => [
             'web',
             'api',
+            'sanctum',
         ],
-        'resolver' => OwenIt\Auditing\Resolvers\UserResolver::class,
+        'resolver' => UserResolver::class,
     ],
 
     /*
@@ -42,9 +49,9 @@ return [
     |
     */
     'resolvers' => [
-        'ip_address' => OwenIt\Auditing\Resolvers\IpAddressResolver::class,
-        'user_agent' => OwenIt\Auditing\Resolvers\UserAgentResolver::class,
-        'url' => OwenIt\Auditing\Resolvers\UrlResolver::class,
+        'ip_address' => IpAddressResolver::class,
+        'user_agent' => UserAgentResolver::class,
+        'url' => UrlResolver::class,
     ],
 
     /*
@@ -179,9 +186,9 @@ return [
     */
 
     'queue' => [
-        'enable' => false,
-        'connection' => 'sync',
-        'queue' => 'default',
+        'enable' => (bool) env('AUDIT_QUEUE', false),
+        'connection' => env('AUDIT_QUEUE_CONNECTION', 'redis'),
+        'queue' => 'audit',
         'delay' => 0,
     ],
 
@@ -194,5 +201,5 @@ return [
     |
     */
 
-    'console' => false,
+    'console' => true,
 ];

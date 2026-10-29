@@ -1,0 +1,74 @@
+input RegisterInput {
+  email: String! @rules(apply: ["email:rfc", "max:255"])
+  password: String! @rules(apply: ["min:12", "max:128"])
+  firstName: String @rules(apply: ["max:100"])
+  lastName: String @rules(apply: ["max:100"])
+  locale: String @rules(apply: ["in:es-MX,en-US"])
+}
+
+input LoginInput {
+  email: String! @rules(apply: ["email:rfc", "max:255"])
+  password: String! @rules(apply: ["max:128"])
+}
+
+input ResetPasswordInput {
+  email: String! @rules(apply: ["email:rfc", "max:255"])
+  token: String! @rules(apply: ["max:128"])
+  password: String! @rules(apply: ["min:12", "max:128"])
+}
+
+input VerifyEmailInput {
+  userId: ID!
+  expires: Int!
+  signature: String!
+}
+
+input UpdateProfileInput {
+  firstName: String @rules(apply: ["max:100"])
+  lastName: String @rules(apply: ["max:100"])
+  phone: String @rules(apply: ["max:32"])
+  locale: String @rules(apply: ["in:es-MX,en-US"])
+  countryCode: String @rules(apply: ["size:2"])
+  marketingOptIn: Boolean
+}
+
+extend type Query {
+  me: User @guard @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Queries\\Me")
+}
+
+extend type Mutation {
+  register(input: RegisterInput!): AuthPayload!
+    @throttle(maxAttempts: 5, decayMinutes: 1, prefix: "register")
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\RegisterMutation")
+
+  login(input: LoginInput!): AuthPayload!
+    @throttle(maxAttempts: 5, decayMinutes: 1, prefix: "login")
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\LoginMutation")
+
+  loginWithGoogle(accessToken: String!): AuthPayload!
+    @throttle(maxAttempts: 10, decayMinutes: 1, prefix: "login-google")
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\LoginWithGoogleMutation")
+
+  logout: Boolean! @guard @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\LogoutMutation")
+
+  forgotPassword(email: String! @rules(apply: ["email:rfc", "max:255"])): Boolean!
+    @throttle(maxAttempts: 3, decayMinutes: 60, prefix: "forgot")
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\ForgotPasswordMutation")
+
+  resetPassword(input: ResetPasswordInput!): Boolean!
+    @throttle(maxAttempts: 5, decayMinutes: 15, prefix: "reset")
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\ResetPasswordMutation")
+
+  verifyEmail(input: VerifyEmailInput!): Boolean!
+    @throttle(maxAttempts: 10, decayMinutes: 1, prefix: "verify")
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\VerifyEmailMutation")
+
+  resendVerificationEmail: Boolean!
+    @guard
+    @throttle(maxAttempts: 3, decayMinutes: 10, prefix: "resend-verify")
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\ResendVerificationEmailMutation")
+
+  updateMyProfile(input: UpdateProfileInput!): User!
+    @guard
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\UpdateMyProfileMutation")
+}

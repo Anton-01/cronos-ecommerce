@@ -32,6 +32,10 @@
         <env name="DB_DATABASE" value="cronos_test"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
+        <env name="AUDIT_QUEUE" value="false"/>
+        <env name="LIGHTHOUSE_SCHEMA_CACHE_ENABLE" value="false"/>
+        <env name="SANCTUM_EXPIRATION" value="60"/>
+        <env name="CACHE_LIMITER_STORE" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

@@ -503,17 +503,17 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho.
 ### FASE 1 — Infraestructura base, autenticación y auditoría
 - [x] Monorepo skeleton, `Makefile`, `.editorconfig`, `.gitignore` (hooks pre-commit pendientes)
 - [~] Docker: `app`, `nginx`, `postgres`, `redis-*` (3), `mailpit`, `minio`, Horizon, scheduler escritos con healthchecks (sin validar: no hay daemon Docker en el sandbox). Pendiente: `pgbouncer`, imágenes prod de admin/storefront
-- [ ] Laravel base con estructura modular hexagonal + Deptrac + Larastan + Pint + Pest
-- [ ] Lighthouse: esquemas `/graphql` y `/admin/graphql`, límites de profundidad/complejidad, errores estandarizados, correlation id
-- [ ] PostgreSQL (extensiones) · Redis (cache/queue/session) · Horizon
-- [ ] Auditoría global (`owen-it`) con `Audit` ULID/JSONB/inet, particionado, triggers de inmutabilidad, rol de BD de mínimo privilegio
-- [ ] Auth: register (+ verificación de email asíncrona), login, logout, refresh, forgot/reset por token, Sanctum con abilities
-- [ ] Socialite Google (flujo token/código desde SPA)
-- [ ] Rate limiting en Redis por operación
-- [ ] Usuarios, `user_profiles`, direcciones, avatar (cropper React en Admin/Storefront)
-- [ ] RBAC granular (Spatie) + `@can`/`@guard` + seeders de roles/permisos
-- [ ] Admin: shell (login, layout, gestión de usuarios/roles con TanStack Table + cursor)
-- [ ] CI inicial + pruebas de arquitectura
+- [~] Laravel 13 con estructura modular hexagonal (`backend/src/<Module>/{Domain,Application,Infrastructure,Interfaces}`) + Pint + PHPUnit hechos. **Pendiente:** Deptrac, Larastan, Pest (instalados en `composer.json`; sus archivos no se pudieron descargar por política de red)
+- [x] Lighthouse: esquemas `/graphql` y `/admin/graphql` separados (middleware `UseGraphQLSchema`), límites de profundidad (12)/complejidad (500), introspección off en prod, errores con `extensions.code`, `X-Correlation-Id`
+- [~] PostgreSQL (extensiones, rol mínimo privilegio) · Redis con 3 conexiones separadas (cache/queue/session) · Horizon instalado (cola `notifications`; falta afinar supervisores)
+- [~] Auditoría (`owen-it`): tabla `audits` ULID/JSONB/inet particionada con partición DEFAULT, triggers append-only (UPDATE/DELETE/TRUNCATE) y REVOKE al rol `cronos_app`; probado. **Pendiente:** comando `audit:partitions` (particiones mensuales)
+- [x] Auth: register (+ verificación de email asíncrona por cola), login, logout, forgot/reset por token de un solo uso, Sanctum con abilities `storefront`/`admin` y expiración. *(`refresh` no implementado: los tokens expiran a los 30 días y se reemite con login)*
+- [x] Socialite Google (flujo access-token desde SPA; rechaza email no verificado; vincula cuentas existentes). Probado con un adaptador falso, **no contra Google real**
+- [x] Rate limiting por operación con `@throttle` (store `ratelimit` sobre Redis de sesión)
+- [~] Usuarios, `user_profiles`, `updateMyProfile` hechos; tabla `user_addresses` creada sin API aún. **Avatar + cropper diferidos a Fase 2** (dependen de Media Library)
+- [x] RBAC (Spatie) con permisos `recurso.acción`, `@guard` + `@can` en el esquema admin, roles `customer/support/admin/super-admin`
+- [ ] Admin: shell (login, layout, gestión de usuarios/roles con TanStack Table + cursor) — **backend listo** (`adminLogin`, `users` con cursor, `roles`, `setUserActive`, `assignUserRoles`); falta el front
+- [~] CI inicial (`.github/workflows/backend.yml`: Pint, `composer audit`, tests con Postgres). Pruebas de arquitectura (Deptrac) pendientes
 - [ ] `context.md` actualizado
 
 ### FASE 2 — Medios, identidad y configuraciones
@@ -597,5 +597,6 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho.
 
 | Fecha | Cambio |
 |---|---|
+| 2026-10-29 | Backend Fase 1: Laravel **13.39** (decisión del usuario; el plan decía 11+), migraciones identidad/RBAC/auditoría, módulos Identity/Audit/Shared, esquemas GraphQL público y admin, 22 tests verdes contra PostgreSQL 16. Cursores de `@paginate` de Lighthouse son offset codificado, no keyset (revisar en Fase 8). |
 | 2026-10-29 | Fase 1 iniciada: infra Docker/compose/Redis/Postgres escrita. **Bloqueo:** el entorno no permite `repo.packagist.org`, no se puede instalar Laravel/Lighthouse hasta habilitar el host. |
 | 2026-10-28 | Creación del Master Plan (Fase 0): arquitectura, ER mejorado, cobertura de retrospectiva, checklist. |

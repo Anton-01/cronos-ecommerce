@@ -78,6 +78,13 @@ return [
             ],
         ],
 
+        // Rate limiting lives on the session/volatile Redis so cache eviction never resets throttles.
+        'ratelimit' => [
+            'driver' => 'redis',
+            'connection' => 'session',
+            'lock_connection' => 'session',
+        ],
+
         'redis' => [
             'driver' => 'redis',
             'connection' => env('REDIS_CACHE_CONNECTION', 'cache'),
@@ -117,6 +124,8 @@ return [
     | that reason, you may prefix every cache key to avoid collisions.
     |
     */
+
+    'limiter' => env('CACHE_LIMITER_STORE', 'ratelimit'),
 
     'prefix' => env('CACHE_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-cache-'),
 

@@ -1,0 +1,42 @@
+type Role @model(class: "Spatie\\Permission\\Models\\Role") {
+  id: ID!
+  name: String!
+  permissions: [String!]! @method(name: "getPermissionNames")
+}
+
+input AdminLoginInput {
+  email: String! @rules(apply: ["email:rfc", "max:255"])
+  password: String! @rules(apply: ["max:128"])
+}
+
+extend type Query {
+  adminMe: User @guard @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Queries\\Me")
+
+  users(
+    search: String @scope(name: "search")
+    orderBy: [OrderByClause!] @orderBy(columns: ["created_at", "email"])
+  ): [User!]!
+    @guard
+    @can(ability: "users.view")
+    @paginate(type: CONNECTION, model: "Cronos\\Identity\\Infrastructure\\Persistence\\Eloquent\\UserModel", defaultCount: 25, maxCount: 100)
+
+  user(id: ID! @eq): User @guard @can(ability: "users.view") @find(model: "Cronos\\Identity\\Infrastructure\\Persistence\\Eloquent\\UserModel")
+
+  roles: [Role!]! @guard @can(ability: "roles.view") @all(model: "Spatie\\Permission\\Models\\Role")
+}
+
+extend type Mutation {
+  adminLogin(input: AdminLoginInput!): AuthPayload!
+    @throttle(maxAttempts: 5, decayMinutes: 1, prefix: "admin-login")
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\AdminLoginMutation")
+
+  setUserActive(id: ID!, active: Boolean!): User!
+    @guard
+    @can(ability: "users.update")
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\SetUserActiveMutation")
+
+  assignUserRoles(id: ID!, roles: [String!]!): User!
+    @guard
+    @can(ability: "users.assign-roles")
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\AssignUserRolesMutation")
+}

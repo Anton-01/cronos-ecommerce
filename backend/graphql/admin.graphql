@@ -1,0 +1,9 @@
+"Back-office schema served at /admin/graphql. Every operation except adminLogin requires a token plus a permission."
+scalar DateTime @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\DateTime")
+
+type Query
+
+type Mutation
+
+#import identity/types.graphql
+#import admin/*.graphql

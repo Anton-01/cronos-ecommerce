@@ -78,6 +78,10 @@ return [
     |
     */
 
+    'storefront_url' => env('STOREFRONT_URL', 'http://localhost:3000'),
+
+    'locale_default' => 'es-MX',
+
     'locale' => env('APP_LOCALE', 'en'),
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),

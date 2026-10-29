@@ -1,0 +1,25 @@
+type User @model(class: "Cronos\\Identity\\Infrastructure\\Persistence\\Eloquent\\UserModel") {
+  id: ID!
+  email: String!
+  emailVerifiedAt: DateTime @rename(attribute: "email_verified_at")
+  isActive: Boolean! @rename(attribute: "is_active")
+  profile: UserProfile @hasOne(relation: "profile")
+  roles: [String!]! @method(name: "getRoleNames")
+  permissions: [String!]! @method(name: "getAllPermissionNames")
+  createdAt: DateTime! @rename(attribute: "created_at")
+}
+
+type UserProfile {
+  firstName: String @rename(attribute: "first_name")
+  lastName: String @rename(attribute: "last_name")
+  phone: String
+  locale: String!
+  countryCode: String @rename(attribute: "country_code")
+  marketingOptIn: Boolean! @rename(attribute: "marketing_opt_in")
+}
+
+type AuthPayload {
+  token: String!
+  expiresAt: DateTime
+  user: User!
+}
