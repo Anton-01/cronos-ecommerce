@@ -1,0 +1,83 @@
+type AdminCustomOrder {
+  id: ID!
+  number: String!
+  status: String!
+  email: String!
+  userId: ID!
+  marketCode: String!
+  title: String!
+  description: String!
+  specifications: JSON!
+  desiredDate: String
+  budget: String
+  assignedTo: ID
+  rejectionReason: String
+  orderId: ID
+  createdAt: DateTime!
+  "Everything, including internal staff notes."
+  messages: [AdminCustomOrderMessage!]!
+  "Every version, drafts included."
+  quotes: [CustomQuote!]!
+}
+
+type AdminCustomOrderMessage {
+  id: ID!
+  author: String!
+  authorId: ID
+  body: String!
+  internal: Boolean!
+  at: DateTime!
+}
+
+type AdminCustomOrderPage {
+  total: Int!
+  rows: [AdminCustomOrder!]!
+}
+
+input QuoteLineInput {
+  description: String!
+  unit: String!
+  quantity: String!
+  unitPrice: String!
+  "Percentage; defaults to the market's standard rate."
+  taxRate: String
+}
+
+input CreateQuoteInput {
+  requestId: ID!
+  lines: [QuoteLineInput!]!
+  shipping: String = "0"
+  "YYYY-MM-DD; defaults to 15 days from now."
+  validUntil: String
+  terms: String
+}
+
+extend type Query {
+  adminCustomOrders(status: String, search: String, assignedTo: ID, first: Int = 25, offset: Int = 0): AdminCustomOrderPage!
+    @guard @can(ability: "custom-orders.view", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\CustomOrders\\Interfaces\\GraphQL\\AdminCustomOrders@list")
+  adminCustomOrder(id: ID!): AdminCustomOrder
+    @guard @can(ability: "custom-orders.view", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\CustomOrders\\Interfaces\\GraphQL\\AdminCustomOrders@one")
+}
+
+extend type Mutation {
+  assignCustomOrder(id: ID!, staffId: ID): AdminCustomOrder!
+    @guard @can(ability: "custom-orders.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\CustomOrders\\Interfaces\\GraphQL\\AdminCustomOrders@assign")
+  "Moves a request to in_review, or rejects it (the reason is shown to the customer)."
+  setCustomOrderStatus(id: ID!, to: String!, reason: String): AdminCustomOrder!
+    @guard @can(ability: "custom-orders.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\CustomOrders\\Interfaces\\GraphQL\\AdminCustomOrders@status")
+  "Reply to the customer, or leave a note only staff can read when internal is true."
+  addCustomOrderStaffMessage(id: ID!, body: String!, internal: Boolean = false): AdminCustomOrder!
+    @guard @can(ability: "custom-orders.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\CustomOrders\\Interfaces\\GraphQL\\AdminCustomOrders@message")
+  createQuote(input: CreateQuoteInput!): CustomQuote!
+    @guard @can(ability: "custom-orders.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\CustomOrders\\Interfaces\\GraphQL\\AdminCustomOrders@createQuote")
+  "Sends a draft quote to the customer (replacing the one that was open) and e-mails them."
+  sendQuote(id: ID!): CustomQuote!
+    @guard @can(ability: "custom-orders.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\CustomOrders\\Interfaces\\GraphQL\\AdminCustomOrders@sendQuote")
+}

@@ -1,0 +1,39 @@
+input SubmitCustomOrderInput {
+  market: String!
+  title: String! @rules(apply: ["min:3", "max:160"])
+  description: String! @rules(apply: ["min:10", "max:5000"])
+  "Free-form details: measures, colors, quantities in metres or pieces..."
+  specifications: JSON
+  desiredDate: String
+  budget: String
+}
+
+extend type Query {
+  myCustomOrders(first: Int = 10, offset: Int = 0): CustomOrderPage!
+    @guard
+    @field(resolver: "Cronos\\CustomOrders\\Interfaces\\GraphQL\\StorefrontCustomOrders@mine")
+  myCustomOrder(number: String!): CustomOrder
+    @guard
+    @field(resolver: "Cronos\\CustomOrders\\Interfaces\\GraphQL\\StorefrontCustomOrders@one")
+}
+
+extend type Mutation {
+  submitCustomOrder(input: SubmitCustomOrderInput!): CustomOrder!
+    @guard
+    @throttle(maxAttempts: 5, decayMinutes: 10, prefix: "custom-submit")
+    @field(resolver: "Cronos\\CustomOrders\\Interfaces\\GraphQL\\StorefrontCustomOrders@submit")
+  addCustomOrderMessage(number: String!, body: String!): CustomOrder!
+    @guard
+    @throttle(maxAttempts: 30, decayMinutes: 1, prefix: "custom-message")
+    @field(resolver: "Cronos\\CustomOrders\\Interfaces\\GraphQL\\StorefrontCustomOrders@message")
+  "Accepting turns the quote into an order waiting for payment; pay it with payOrder."
+  acceptQuote(quoteId: ID!, shippingAddress: AddressInput!, billingAddress: AddressInput): Order!
+    @guard
+    @throttle(maxAttempts: 10, decayMinutes: 1, prefix: "quote-accept")
+    @field(resolver: "Cronos\\CustomOrders\\Interfaces\\GraphQL\\StorefrontCustomOrders@accept")
+  "Declining sends the request back to review with your reason."
+  declineQuote(quoteId: ID!, reason: String!): Boolean!
+    @guard
+    @throttle(maxAttempts: 10, decayMinutes: 1, prefix: "quote-decline")
+    @field(resolver: "Cronos\\CustomOrders\\Interfaces\\GraphQL\\StorefrontCustomOrders@decline")
+}

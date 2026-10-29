@@ -5,9 +5,12 @@ use App\Providers\HorizonServiceProvider;
 use Cronos\Audit\Infrastructure\AuditServiceProvider;
 use Cronos\Catalog\Infrastructure\CatalogServiceProvider;
 use Cronos\Checkout\Infrastructure\CheckoutServiceProvider;
+use Cronos\CustomOrders\Infrastructure\CustomOrdersServiceProvider;
 use Cronos\Fraud\Infrastructure\FraudServiceProvider;
+use Cronos\Notifications\Infrastructure\NotificationsServiceProvider;
 use Cronos\Orders\Infrastructure\OrdersServiceProvider;
 use Cronos\Shipping\Infrastructure\ShippingServiceProvider;
+use Cronos\Wishlist\Infrastructure\WishlistServiceProvider;
 use Cronos\Identity\Infrastructure\IdentityServiceProvider;
 use Cronos\Inventory\Infrastructure\InventoryServiceProvider;
 use Cronos\Media\Infrastructure\MediaServiceProvider;
@@ -34,4 +37,7 @@ return [
     CheckoutServiceProvider::class,
     OrdersServiceProvider::class,
     ShippingServiceProvider::class,
+    CustomOrdersServiceProvider::class,
+    NotificationsServiceProvider::class,
+    WishlistServiceProvider::class,
 ];

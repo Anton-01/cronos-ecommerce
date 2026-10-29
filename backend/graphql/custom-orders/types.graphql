@@ -1,0 +1,59 @@
+type CustomOrderMessage {
+  id: ID!
+  "customer, staff or system"
+  author: String!
+  body: String!
+  at: DateTime!
+}
+
+type QuoteLine {
+  description: String!
+  "piece, meter, roll or service"
+  unit: String!
+  quantity: String!
+  unitPrice: String!
+  taxRate: String!
+  tax: String!
+  total: String!
+}
+
+type CustomQuote {
+  id: ID!
+  version: Int!
+  "draft (staff only), sent, accepted, rejected, expired or superseded"
+  status: String!
+  currency: String!
+  taxIncluded: Boolean!
+  subtotal: String!
+  tax: String!
+  shipping: String!
+  total: String!
+  validUntil: String
+  terms: String
+  sentAt: DateTime
+  lines: [QuoteLine!]!
+}
+
+type CustomOrder {
+  id: ID!
+  number: String!
+  "submitted, in_review, quoted, rejected, converted or expired"
+  status: String!
+  marketCode: String!
+  title: String!
+  description: String!
+  specifications: JSON!
+  desiredDate: String
+  budget: String
+  rejectionReason: String
+  createdAt: DateTime!
+  messages: [CustomOrderMessage!]!
+  quotes: [CustomQuote!]!
+  "Number of the order created when a quote was accepted."
+  orderNumber: String
+}
+
+type CustomOrderPage {
+  total: Int!
+  rows: [CustomOrder!]!
+}

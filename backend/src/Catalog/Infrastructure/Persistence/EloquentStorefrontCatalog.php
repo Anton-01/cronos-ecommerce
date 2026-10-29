@@ -164,6 +164,13 @@ final class EloquentStorefrontCatalog implements StorefrontCatalog
         };
     }
 
+    public function summariesOf(string $locale, array $ids): array
+    {
+        $published = ProductModel::query()->whereKey($ids)->where('status', 'published')->pluck('id')->all();
+
+        return $this->summaries($locale, array_values(array_filter($ids, static fn (string $id) => in_array($id, $published, true))));
+    }
+
     /** @param list<string> $ids @return list<array<string, mixed>> in the order of $ids */
     private function summaries(string $locale, array $ids): array
     {

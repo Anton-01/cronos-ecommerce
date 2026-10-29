@@ -12,3 +12,23 @@ extend type Query {
     @throttle(maxAttempts: 20, decayMinutes: 1, prefix: "track-order")
     @field(resolver: "Cronos\\Orders\\Interfaces\\GraphQL\\StorefrontOrders@track")
 }
+
+extend type Query {
+  "Payment methods available for one of my orders that is waiting for payment (custom orders)."
+  orderPaymentOptions(number: String!): [PaymentOption!]!
+    @guard
+    @field(resolver: "Cronos\\Orders\\Interfaces\\GraphQL\\StorefrontOrders@paymentOptions")
+}
+
+extend type Mutation {
+  "Starts (or resumes) the payment of one of my orders that is waiting for it. Return URLs must belong to the store."
+  payOrder(number: String!, provider: String!, returnUrl: String!, cancelUrl: String!): PaymentStart!
+    @guard
+    @throttle(maxAttempts: 10, decayMinutes: 1, prefix: "order-pay")
+    @field(resolver: "Cronos\\Orders\\Interfaces\\GraphQL\\StorefrontOrders@pay")
+  "The shopper came back from the provider: completes and re-reads the payment. Safe to repeat."
+  confirmOrderPayment(number: String!): Order!
+    @guard
+    @throttle(maxAttempts: 30, decayMinutes: 1, prefix: "order-confirm")
+    @field(resolver: "Cronos\\Orders\\Interfaces\\GraphQL\\StorefrontOrders@confirm")
+}

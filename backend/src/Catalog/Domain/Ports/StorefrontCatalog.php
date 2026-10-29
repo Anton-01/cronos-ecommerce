@@ -27,4 +27,12 @@ interface StorefrontCatalog
      * @return array{items: list<array<string, mixed>>, total: int}
      */
     public function products(string $locale, array $filter, string $sort, int $limit, int $offset): array;
+
+    /**
+     * Summaries of specific products, in the order given; products that are not published (or no longer exist) are left out.
+     *
+     * @param  list<string>  $ids
+     * @return list<array<string, mixed>>
+     */
+    public function summariesOf(string $locale, array $ids): array;
 }

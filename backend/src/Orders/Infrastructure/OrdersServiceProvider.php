@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Cronos\Orders\Infrastructure;
 
 use Cronos\Checkout\Domain\Events\CheckoutPaid;
+use Cronos\Orders\Application\Listeners\MarkOrderPaidOnCapture;
 use Cronos\Orders\Application\Listeners\PlaceOrderOnCheckoutPaid;
 use Cronos\Orders\Application\Listeners\SyncOrderWithPayment;
 use Cronos\Orders\Domain\Ports\OrderRepository;
 use Cronos\Orders\Infrastructure\Persistence\DatabaseOrderRepository;
+use Cronos\Payments\Domain\Events\PaymentCaptured;
 use Cronos\Payments\Domain\Events\PaymentRefunded;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -21,6 +23,7 @@ final class OrdersServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Event::listen(CheckoutPaid::class, [PlaceOrderOnCheckoutPaid::class, 'handle']);
+        Event::listen(PaymentCaptured::class, [MarkOrderPaidOnCapture::class, 'handle']);
         Event::listen(PaymentRefunded::class, [SyncOrderWithPayment::class, 'handle']);
     }
 }

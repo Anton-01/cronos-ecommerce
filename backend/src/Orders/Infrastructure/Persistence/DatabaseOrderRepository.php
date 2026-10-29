@@ -36,6 +36,11 @@ final class DatabaseOrderRepository implements OrderRepository
         return $this->order(DB::table('orders')->where('checkout_id', $checkoutId)->first());
     }
 
+    public function findBySource(string $sourceId): ?array
+    {
+        return $this->order(DB::table('orders')->where('source_id', $sourceId)->first());
+    }
+
     public function nextNumber(): string
     {
         return 'CR-'.str_pad((string) DB::selectOne("SELECT nextval('order_number_seq') AS n")->n, 6, '0', STR_PAD_LEFT);

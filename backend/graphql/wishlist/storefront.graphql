@@ -1,0 +1,21 @@
+extend type Query {
+  "My saved products, newest first. Unpublished products are left out."
+  myWishlist(locale: String, first: Int = 24, offset: Int = 0): ProductConnection!
+    @guard
+    @field(resolver: "Cronos\\Wishlist\\Interfaces\\GraphQL\\WishlistResolver@mine")
+  "Which of these products I have saved (to paint the hearts on a listing)."
+  wishlistContains(productIds: [ID!]!): [ID!]!
+    @guard
+    @field(resolver: "Cronos\\Wishlist\\Interfaces\\GraphQL\\WishlistResolver@contains")
+}
+
+extend type Mutation {
+  addToWishlist(productId: ID!, locale: String): Boolean!
+    @guard
+    @throttle(maxAttempts: 60, decayMinutes: 1, prefix: "wishlist")
+    @field(resolver: "Cronos\\Wishlist\\Interfaces\\GraphQL\\WishlistResolver@add")
+  removeFromWishlist(productId: ID!): Boolean!
+    @guard
+    @throttle(maxAttempts: 60, decayMinutes: 1, prefix: "wishlist")
+    @field(resolver: "Cronos\\Wishlist\\Interfaces\\GraphQL\\WishlistResolver@remove")
+}

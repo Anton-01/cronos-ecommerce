@@ -20,6 +20,9 @@ interface OrderRepository
     /** @return array<string, mixed>|null */
     public function findByCheckout(string $checkoutId): ?array;
 
+    /** @return array<string, mixed>|null */
+    public function findBySource(string $sourceId): ?array;
+
     public function nextNumber(): string;
 
     /**
