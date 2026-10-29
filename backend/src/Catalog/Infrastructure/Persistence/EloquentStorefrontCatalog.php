@@ -245,7 +245,7 @@ final class EloquentStorefrontCatalog implements StorefrontCatalog
             'groupItems' => $this->groupItems($p, $locale),
             'seo' => ['title' => $this->field($p->translations, $locale, 'meta_title') ?? $t?->name, 'description' => $this->field($p->translations, $locale, 'meta_description') ?? $this->field($p->translations, $locale, 'short_description'), 'canonicalSlug' => $t?->slug,
                 'alternates' => $p->translations->map(fn ($x) => ['locale' => $x->locale, 'slug' => $x->slug])->values()->all()],
-            'publishedAt' => $p->published_at?->toIso8601String(),
+            'publishedAt' => $p->published_at?->toDateTimeString(),
         ];
     }
 

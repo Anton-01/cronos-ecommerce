@@ -1,4 +1,4 @@
-import { Images, LayoutDashboard, LogOut, Settings, ShieldCheck, User, Users } from 'lucide-react'
+import { Boxes, FolderTree, Images, LayoutDashboard, LogOut, Settings, ShieldCheck, SlidersHorizontal, Tags, User, Users } from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,10 @@ const NAV = [
   { to: '/', label: 'Resumen', icon: LayoutDashboard, permission: null, end: true },
   { to: '/users', label: 'Usuarios', icon: Users, permission: 'users.view', end: false },
   { to: '/roles', label: 'Roles', icon: ShieldCheck, permission: 'roles.view', end: false },
+  { to: '/catalog/products', label: 'Productos', icon: Boxes, permission: 'catalog.view', end: false },
+  { to: '/catalog/categories', label: 'Categorías', icon: FolderTree, permission: 'catalog.view', end: false },
+  { to: '/catalog/attributes', label: 'Atributos', icon: SlidersHorizontal, permission: 'catalog.view', end: false },
+  { to: '/catalog/tags', label: 'Etiquetas', icon: Tags, permission: 'catalog.view', end: false },
   { to: '/media', label: 'Medios', icon: Images, permission: 'media.view', end: false },
   { to: '/settings', label: 'Configuración', icon: Settings, permission: 'settings.view', end: false },
 ] as const

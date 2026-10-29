@@ -1,0 +1,329 @@
+fragment CategoryFields on AdminCategory {
+  id
+  parentId
+  path
+  depth
+  position
+  isActive
+  translations {
+    locale
+    name
+    slug
+    description
+    metaTitle
+    metaDescription
+  }
+}
+
+query AdminCategories {
+  adminCategories {
+    ...CategoryFields
+  }
+}
+
+mutation CreateCategory($parentId: ID, $isActive: Boolean, $translations: [CategoryTranslationInput!]!) {
+  createCategory(parentId: $parentId, isActive: $isActive, translations: $translations) {
+    ...CategoryFields
+  }
+}
+
+mutation UpdateCategory($id: ID!, $isActive: Boolean, $translations: [CategoryTranslationInput!]) {
+  updateCategory(id: $id, isActive: $isActive, translations: $translations) {
+    ...CategoryFields
+  }
+}
+
+mutation MoveCategory($id: ID!, $parentId: ID, $position: Int) {
+  moveCategory(id: $id, parentId: $parentId, position: $position) {
+    ...CategoryFields
+  }
+}
+
+mutation DeleteCategory($id: ID!) {
+  deleteCategory(id: $id)
+}
+
+fragment TagFields on AdminTag {
+  id
+  translations {
+    locale
+    name
+    slug
+  }
+}
+
+query AdminTags($search: String) {
+  adminTags(search: $search) {
+    ...TagFields
+  }
+}
+
+mutation CreateTag($translations: [TagTranslationInput!]!) {
+  createTag(translations: $translations) {
+    ...TagFields
+  }
+}
+
+mutation UpdateTag($id: ID!, $translations: [TagTranslationInput!]!) {
+  updateTag(id: $id, translations: $translations) {
+    ...TagFields
+  }
+}
+
+mutation DeleteTag($id: ID!) {
+  deleteTag(id: $id)
+}
+
+fragment AttributeFields on AdminAttribute {
+  id
+  code
+  type
+  isFilterable
+  position
+  inUse
+  names {
+    locale
+    value
+  }
+  values {
+    id
+    attributeId
+    code
+    meta
+    position
+    inUse
+    labels {
+      locale
+      value
+    }
+  }
+}
+
+query AdminAttributes {
+  adminAttributes {
+    ...AttributeFields
+  }
+}
+
+mutation CreateAttribute($code: String!, $type: String, $names: [LocaleTextInput!]!) {
+  createAttribute(code: $code, type: $type, names: $names) {
+    ...AttributeFields
+  }
+}
+
+mutation DeleteAttribute($id: ID!) {
+  deleteAttribute(id: $id)
+}
+
+mutation AddAttributeValue($attributeId: ID!, $code: String!, $meta: JSON, $labels: [LocaleTextInput!]!) {
+  addAttributeValue(attributeId: $attributeId, code: $code, meta: $meta, labels: $labels) {
+    ...AttributeFields
+  }
+}
+
+mutation DeleteAttributeValue($id: ID!) {
+  deleteAttributeValue(id: $id)
+}
+
+query AdminProducts($first: Int!, $after: String, $search: String, $status: ProductStatus, $type: ProductType, $categoryId: ID) {
+  adminProducts(first: $first, after: $after, search: $search, status: $status, type: $type, categoryId: $categoryId) {
+    pageInfo {
+      hasNextPage
+      endCursor
+      total
+    }
+    edges {
+      cursor
+      node {
+        id
+        type
+        status
+        sku
+        name
+        price
+        stockQuantity
+        variationsCount
+        imageUrl
+        updatedAt
+      }
+    }
+  }
+}
+
+fragment ProductFull on AdminProduct {
+  id
+  parentId
+  type
+  status
+  sku
+  barcode
+  price
+  weight
+  dimensions
+  sales {
+    unit
+    step
+    min
+    max
+    sellByCut
+    sellByRoll
+    rollLength
+    rollPrice
+  }
+  manageStock
+  allowBackorder
+  lowStockThreshold
+  stockQuantity
+  isCustomizable
+  publishedAt
+  translations {
+    locale
+    name
+    slug
+    shortDescription
+    description
+    metaTitle
+    metaDescription
+  }
+  categoryIds
+  primaryCategoryId
+  tagIds
+  attributes {
+    attributeId
+    isVariation
+    isVisible
+  }
+  offeredValueIds
+  groupItems {
+    productId
+    name
+    defaultQuantity
+  }
+  variations {
+    id
+    sku
+    status
+    barcode
+    position
+    price
+    effectivePrice
+    weight
+    effectiveWeight
+    dimensions
+    overridden
+    valueIds
+    stockQuantity
+    publishProblems
+  }
+  gallery {
+    id
+    name
+    url
+    thumbUrl
+    status
+    alt
+  }
+  publishProblems
+}
+
+query AdminProduct($id: ID!) {
+  adminProduct(id: $id) {
+    ...ProductFull
+  }
+}
+
+mutation CreateProduct($input: CreateProductInput!) {
+  createProduct(input: $input) {
+    ...ProductFull
+  }
+}
+
+mutation UpdateProduct($id: ID!, $input: UpdateProductInput!) {
+  updateProduct(id: $id, input: $input) {
+    ...ProductFull
+  }
+}
+
+mutation DeleteProduct($id: ID!) {
+  deleteProduct(id: $id)
+}
+
+mutation PublishProduct($id: ID!) {
+  publishProduct(id: $id) {
+    ...ProductFull
+  }
+}
+
+mutation UnpublishProduct($id: ID!, $status: ProductStatus) {
+  unpublishProduct(id: $id, status: $status) {
+    ...ProductFull
+  }
+}
+
+mutation SetProductAttributes($id: ID!, $attributes: [ProductAttributeInput!]!) {
+  setProductAttributes(id: $id, attributes: $attributes) {
+    ...ProductFull
+  }
+}
+
+mutation SetProductOfferedValues($id: ID!, $valueIds: [ID!]!) {
+  setProductOfferedValues(id: $id, valueIds: $valueIds) {
+    ...ProductFull
+  }
+}
+
+mutation SetProductGroupItems($id: ID!, $items: [GroupItemInput!]!) {
+  setProductGroupItems(id: $id, items: $items) {
+    ...ProductFull
+  }
+}
+
+mutation CreateVariation($parentId: ID!, $input: CreateVariationInput!) {
+  createVariation(parentId: $parentId, input: $input) {
+    ...ProductFull
+  }
+}
+
+mutation UpdateVariation($id: ID!, $input: UpdateVariationInput!) {
+  updateVariation(id: $id, input: $input) {
+    ...ProductFull
+  }
+}
+
+mutation DeleteVariation($id: ID!) {
+  deleteVariation(id: $id) {
+    ...ProductFull
+  }
+}
+
+mutation GenerateVariations($parentId: ID!) {
+  generateVariations(parentId: $parentId) {
+    ...ProductFull
+  }
+}
+
+mutation AttachProductMedia($id: ID!, $mediaId: ID!) {
+  attachProductMedia(id: $id, mediaId: $mediaId) {
+    ...ProductFull
+  }
+}
+
+mutation DetachProductMedia($id: ID!, $mediaId: ID!) {
+  detachProductMedia(id: $id, mediaId: $mediaId) {
+    ...ProductFull
+  }
+}
+
+mutation ReorderProductMedia($id: ID!, $mediaIds: [ID!]!) {
+  reorderProductMedia(id: $id, mediaIds: $mediaIds) {
+    ...ProductFull
+  }
+}
+
+mutation IssueProductPreview($id: ID!, $ttlMinutes: Int) {
+  issueProductPreview(id: $id, ttlMinutes: $ttlMinutes) {
+    token
+    expiresAt
+    path
+  }
+}

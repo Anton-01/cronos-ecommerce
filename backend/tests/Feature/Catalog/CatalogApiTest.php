@@ -52,10 +52,11 @@ class CatalogApiTest extends GraphQLTestCase
     public function test_the_storefront_serves_a_ribbon_with_its_two_ways_of_buying_and_money_as_strings(): void
     {
         $id = $this->create($this->ribbonInput());
-        $this->a('mutation($id: ID!) { publishProduct(id: $id) { status } }', ['id' => $id])->assertJsonPath('data.publishProduct.status', 'PUBLISHED');
+        $this->a('mutation($id: ID!) { publishProduct(id: $id) { status publishedAt } }', ['id' => $id])->assertJsonMissingPath('errors')->assertJsonPath('data.publishProduct.status', 'PUBLISHED');
 
-        $r = $this->gql('{ product(slug: "liston-de-saten") { id type name price sales { unit step min max sellByCut sellByRoll rollLength rollPrice } stockStatus } }')->assertJsonMissingPath('errors');
+        $r = $this->gql('{ product(slug: "liston-de-saten") { id type publishedAt name price sales { unit step min max sellByCut sellByRoll rollLength rollPrice } stockStatus } }')->assertJsonMissingPath('errors');
 
+        $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $r->json('data.product.publishedAt'));
         $r->assertJsonPath('data.product.type', 'SIMPLE')
             ->assertJsonPath('data.product.price', '18.00')
             ->assertJsonPath('data.product.sales', ['unit' => 'METER', 'step' => '0.500', 'min' => '1.000', 'max' => '50.000', 'sellByCut' => true, 'sellByRoll' => true, 'rollLength' => '25.000', 'rollPrice' => '400.00']);
@@ -116,6 +117,18 @@ class CatalogApiTest extends GraphQLTestCase
         $r = $this->a('mutation($id: ID!) { publishProduct(id: $id) { id } }', ['id' => $draft]);
         $this->assertSame('CANNOT_PUBLISH', $this->errorCode($r));
         $this->assertStringContainsString('SKU', $r->json('errors.0.message'));
+    }
+
+    public function test_the_admin_list_treats_explicit_null_filters_as_no_filter(): void
+    {
+        $id = $this->create($this->ribbonInput());
+        $q = 'query($s: String, $st: ProductStatus, $t: ProductType, $c: ID) { adminProducts(first: 25, search: $s, status: $st, type: $t, categoryId: $c) { pageInfo { total } } }';
+
+        $this->a($q, ['s' => null, 'st' => null, 't' => null, 'c' => null])->assertJsonMissingPath('errors')->assertJsonPath('data.adminProducts.pageInfo.total', 1);
+        $this->a($q, ['st' => 'DRAFT', 't' => 'SIMPLE'])->assertJsonPath('data.adminProducts.pageInfo.total', 1);
+        $this->a($q, ['st' => 'PUBLISHED'])->assertJsonPath('data.adminProducts.pageInfo.total', 0);
+        $this->a($q, ['t' => 'VARIABLE'])->assertJsonPath('data.adminProducts.pageInfo.total', 0);
+        $this->assertNotEmpty($id);
     }
 
     public function test_permissions_view_manage_and_publish_are_separate(): void

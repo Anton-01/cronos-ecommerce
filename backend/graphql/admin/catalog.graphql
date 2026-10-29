@@ -296,10 +296,10 @@ extend type Query {
     @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Queries\\AdminCatalogQuery@attributes")
 
   adminProducts(
-    search: String @scope(name: "search")
-    status: ProductStatus @eq
-    type: ProductType @eq
-    categoryId: ID @scope(name: "inCategory")
+    search: String
+    status: ProductStatus
+    type: ProductType
+    categoryId: ID
     orderBy: [OrderByClause!] @orderBy(columns: ["updated_at", "published_at", "sku", "price"])
   ): [AdminProductRow!]!
     @guard

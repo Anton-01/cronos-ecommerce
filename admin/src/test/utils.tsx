@@ -22,6 +22,7 @@ export function meMock(permissions: string[], overrides: Partial<{ id: string; e
           id: overrides.id ?? 'me',
           email: overrides.email ?? 'boss@cronos.test',
           roles: overrides.roles ?? ['admin'],
+          avatarUrl: null,
           permissions,
           profile: { __typename: 'UserProfile', firstName: 'Boss', lastName: null },
         },

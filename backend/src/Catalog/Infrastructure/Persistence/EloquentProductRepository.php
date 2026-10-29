@@ -211,7 +211,7 @@ final class EloquentProductRepository implements ProductRepository
             'sales' => array_intersect_key($m->getAttributes(), array_flip(self::SALES_COLUMNS)),
             'manage_stock' => (bool) $m->manage_stock, 'allow_backorder' => (bool) $m->allow_backorder, 'low_stock_threshold' => $m->low_stock_threshold,
             'stock_quantity' => (string) $m->stock_quantity, 'is_customizable' => (bool) $m->is_customizable, 'position' => (int) $m->position,
-            'published_at' => $m->published_at?->toIso8601String(),
+            'published_at' => $m->published_at?->toDateTimeString(),
             'translations' => $m->translations->mapWithKeys(fn ($t) => [$t->locale => [
                 'name' => $t->name, 'slug' => $t->slug, 'short_description' => $t->short_description, 'description' => $t->description,
                 'meta_title' => $t->meta_title, 'meta_description' => $t->meta_description,
