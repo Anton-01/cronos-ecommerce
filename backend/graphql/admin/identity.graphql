@@ -17,8 +17,8 @@ extend type Query {
     orderBy: [OrderByClause!] @orderBy(columns: ["created_at", "email"])
   ): [User!]!
     @guard
-    @can(ability: "users.view")
-    @paginate(type: CONNECTION, model: "Cronos\\Identity\\Infrastructure\\Persistence\\Eloquent\\UserModel", defaultCount: 25, maxCount: 100)
+    @can(ability: "users.view", model: "Cronos\\Identity\\Infrastructure\\Persistence\\Eloquent\\UserModel")
+    @paginate(type: CONNECTION, builder: "Cronos\\Identity\\Interfaces\\GraphQL\\Queries\\UserList", defaultCount: 25, maxCount: 100)
 
   user(id: ID! @eq): User @guard @can(ability: "users.view") @find(model: "Cronos\\Identity\\Infrastructure\\Persistence\\Eloquent\\UserModel")
 
@@ -41,4 +41,9 @@ extend type Mutation {
     @guard
     @can(ability: "users.assign-roles")
     @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\AssignUserRolesMutation")
+
+  updateMyAvatar(file: Upload!): User!
+    @guard
+    @throttle(maxAttempts: 10, decayMinutes: 10, prefix: "avatar")
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\UpdateMyAvatarMutation")
 }

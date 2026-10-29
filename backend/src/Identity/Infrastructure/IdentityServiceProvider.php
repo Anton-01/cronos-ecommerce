@@ -8,7 +8,7 @@ use Cronos\Identity\Application\Listeners\SendPasswordResetEmail;
 use Cronos\Identity\Application\Listeners\SendVerificationEmail;
 use Cronos\Identity\Domain\Events\PasswordResetRequested;
 use Cronos\Identity\Domain\Events\VerificationEmailRequested;
-use Cronos\Identity\Domain\Ports\DomainEventDispatcher;
+use Cronos\Identity\Domain\Ports\AvatarStore;
 use Cronos\Identity\Domain\Ports\EmailVerificationLinks;
 use Cronos\Identity\Domain\Ports\IdentityNotifier;
 use Cronos\Identity\Domain\Ports\PasswordHasher;
@@ -20,9 +20,9 @@ use Cronos\Identity\Domain\Ports\UserRepository;
 use Cronos\Identity\Infrastructure\Adapters\DatabasePasswordResetTokenStore;
 use Cronos\Identity\Infrastructure\Adapters\DatabaseSecurityEventRecorder;
 use Cronos\Identity\Infrastructure\Adapters\HmacEmailVerificationLinks;
-use Cronos\Identity\Infrastructure\Adapters\LaravelDomainEventDispatcher;
 use Cronos\Identity\Infrastructure\Adapters\LaravelPasswordHasher;
 use Cronos\Identity\Infrastructure\Adapters\MailIdentityNotifier;
+use Cronos\Identity\Infrastructure\Adapters\MediaLibraryAvatarStore;
 use Cronos\Identity\Infrastructure\Adapters\SanctumTokenIssuer;
 use Cronos\Identity\Infrastructure\Adapters\SocialiteGoogleProvider;
 use Cronos\Identity\Infrastructure\Persistence\EloquentUserRepository;
@@ -41,8 +41,8 @@ final class IdentityServiceProvider extends ServiceProvider
         EmailVerificationLinks::class => HmacEmailVerificationLinks::class,
         SocialIdentityProvider::class => SocialiteGoogleProvider::class,
         SecurityEventRecorder::class => DatabaseSecurityEventRecorder::class,
-        DomainEventDispatcher::class => LaravelDomainEventDispatcher::class,
         IdentityNotifier::class => MailIdentityNotifier::class,
+        AvatarStore::class => MediaLibraryAvatarStore::class,
     ];
 
     public function boot(): void

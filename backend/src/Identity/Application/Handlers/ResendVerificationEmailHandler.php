@@ -6,8 +6,8 @@ namespace Cronos\Identity\Application\Handlers;
 
 use Cronos\Identity\Application\Commands\ResendVerificationEmail;
 use Cronos\Identity\Domain\Events\VerificationEmailRequested;
-use Cronos\Identity\Domain\Ports\DomainEventDispatcher;
 use Cronos\Identity\Domain\Ports\UserRepository;
+use Cronos\Shared\Domain\DomainEventDispatcher;
 
 final class ResendVerificationEmailHandler
 {

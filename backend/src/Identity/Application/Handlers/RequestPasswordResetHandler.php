@@ -6,10 +6,10 @@ namespace Cronos\Identity\Application\Handlers;
 
 use Cronos\Identity\Application\Commands\RequestPasswordReset;
 use Cronos\Identity\Domain\Events\PasswordResetRequested;
-use Cronos\Identity\Domain\Ports\DomainEventDispatcher;
 use Cronos\Identity\Domain\Ports\PasswordResetTokenStore;
 use Cronos\Identity\Domain\Ports\SecurityEventRecorder;
 use Cronos\Identity\Domain\Ports\UserRepository;
+use Cronos\Shared\Domain\DomainEventDispatcher;
 
 final class RequestPasswordResetHandler
 {

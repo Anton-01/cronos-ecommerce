@@ -1,0 +1,55 @@
+scalar Upload @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\Upload")
+
+enum MediaStatus {
+  PENDING @enum(value: "pending")
+  PROCESSING @enum(value: "processing")
+  READY @enum(value: "ready")
+  FAILED @enum(value: "failed")
+}
+
+enum MediaKind {
+  IMAGE
+  DOCUMENT
+}
+
+type Media @model(class: "Cronos\\Media\\Infrastructure\\Persistence\\Eloquent\\MediaModel") {
+  id: ID!
+  name: String!
+  fileName: String! @rename(attribute: "file_name")
+  mimeType: String! @rename(attribute: "mime_type")
+  size: Int!
+  width: Int
+  height: Int
+  status: MediaStatus!
+  failureReason: String @rename(attribute: "failure_reason")
+  collectionName: String! @rename(attribute: "collection_name")
+  isImage: Boolean! @rename(attribute: "is_image")
+  "Public URL of the original file."
+  url: String!
+  "Small rendition for grids; the original while conversions are still pending."
+  thumbUrl: String @rename(attribute: "thumb_url")
+  conversions: [MediaConversion!]! @method(name: "conversionList")
+  translations: [MediaTranslation!]! @hasMany(relation: "translations")
+  createdAt: DateTime! @rename(attribute: "created_at")
+}
+
+type MediaConversion {
+  name: String!
+  url: String!
+  width: Int!
+  height: Int!
+}
+
+type MediaTranslation {
+  locale: String!
+  alt: String
+  title: String
+  caption: String
+}
+
+input MediaTranslationInput {
+  locale: String!
+  alt: String @rules(apply: ["max:255"])
+  title: String @rules(apply: ["max:255"])
+  caption: String @rules(apply: ["max:2000"])
+}

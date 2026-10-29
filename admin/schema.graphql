@@ -2,23 +2,88 @@ type Query {
  adminMe: User
  user(id: ID!): User
  roles: [Role!]!
+ mediaItem(id: ID!): Media
  users(
  search: String
- orderBy: [QueryUsersOrderByOrderByClause!]
+ orderBy: [QueryUsersOrderByOrderByClause!] = { }
  "Limits number of fetched items. Maximum allowed value: 100."
  first: Int! = 25
  "A cursor after which elements are returned."
  after: String
  ): UserConnection!
+ media(
+ search: String
+ collection: String
+ kind: MediaKind
+ status: MediaStatus
+ orderBy: [QueryMediaOrderByOrderByClause!] = { }
+ "Limits number of fetched items. Maximum allowed value: 100."
+ first: Int! = 24
+ "A cursor after which elements are returned."
+ after: String
+ ): MediaConnection!
 }
 type Mutation {
  adminLogin(input: AdminLoginInput!): AuthPayload!
  logout: Boolean!
  setUserActive(id: ID!, active: Boolean!): User!
  assignUserRoles(id: ID!, roles: [String!]!): User!
+ updateMyAvatar(file: Upload!): User!
+ uploadMedia(file: Upload!, collection: String = "library"): Media!
+ updateMedia(id: ID!, name: String, translations: [MediaTranslationInput!]): Media!
+ deleteMedia(id: ID!): Boolean!
 }
 "Back-office schema served at /admin/graphql. Every operation except adminLogin requires a token plus a permission."
 scalar DateTime
+scalar Upload
+enum MediaStatus {
+ PENDING
+ PROCESSING
+ READY
+ FAILED
+}
+enum MediaKind {
+ IMAGE
+ DOCUMENT
+}
+type Media {
+ id: ID!
+ name: String!
+ fileName: String!
+ mimeType: String!
+ size: Int!
+ width: Int
+ height: Int
+ status: MediaStatus!
+ failureReason: String
+ collectionName: String!
+ isImage: Boolean!
+ "Public URL of the original file."
+ url: String!
+ "Small rendition for grids; the original while conversions are still pending."
+ thumbUrl: String
+ conversions: [MediaConversion!]!
+ translations: [MediaTranslation!]!
+ createdAt: DateTime!
+}
+type MediaConversion {
+ name: String!
+ url: String!
+ width: Int!
+ height: Int!
+}
+type MediaTranslation {
+ locale: String!
+ alt: String
+ title: String
+ caption: String
+}
+input MediaTranslationInput {
+ locale: String!
+ alt: String
+ title: String
+ caption: String
+}
 type User {
  id: ID!
  email: String!
@@ -27,6 +92,7 @@ type User {
  profile: UserProfile
  roles: [String!]!
  permissions: [String!]!
+ avatarUrl: String
  createdAt: DateTime!
 }
 type UserProfile {
@@ -84,6 +150,20 @@ type UserEdge {
  "A unique cursor that can be used for pagination."
  cursor: String!
 }
+"A paginated list of Media edges."
+type MediaConnection {
+ "Pagination information about the list of edges."
+ pageInfo: PageInfo!
+ "A list of Media edges."
+ edges: [MediaEdge!]!
+}
+"An edge that contains a node of type Media and a cursor."
+type MediaEdge {
+ "The Media node."
+ node: Media!
+ "A unique cursor that can be used for pagination."
+ cursor: String!
+}
 "Allowed column names for Query.users.orderBy."
 enum QueryUsersOrderByColumn {
  CREATED_AT
@@ -93,6 +173,19 @@ enum QueryUsersOrderByColumn {
 input QueryUsersOrderByOrderByClause {
  "The column that is used for ordering."
  column: QueryUsersOrderByColumn!
+ "The direction that is used for ordering."
+ order: SortOrder!
+}
+"Allowed column names for Query.media.orderBy."
+enum QueryMediaOrderByColumn {
+ CREATED_AT
+ NAME
+ SIZE
+}
+"Order by clause for Query.media.orderBy."
+input QueryMediaOrderByOrderByClause {
+ "The column that is used for ordering."
+ column: QueryMediaOrderByColumn!
  "The direction that is used for ordering."
  order: SortOrder!
 }

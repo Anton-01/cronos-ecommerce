@@ -30,6 +30,24 @@ return [
 
     'disks' => [
 
+        // Media Library storage. Locally it lives under storage/app/public/media (symlinked by
+        // `storage:link`); in production point MEDIA_DISK_DRIVER=s3 at S3/MinIO (needs league/flysystem-aws-s3-v3).
+        'media' => [
+            'driver' => env('MEDIA_DISK_DRIVER', 'local'),
+            'root' => storage_path('app/public/media'),
+            'url' => env('MEDIA_URL', rtrim((string) env('APP_URL', 'http://localhost'), '/').'/storage/media'),
+            'visibility' => 'public',
+            'throw' => true,
+            'report' => true,
+            // S3 / MinIO options (used only when MEDIA_DISK_DRIVER=s3).
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+            'bucket' => env('AWS_BUCKET'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),

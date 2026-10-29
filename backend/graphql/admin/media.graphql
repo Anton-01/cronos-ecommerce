@@ -1,0 +1,32 @@
+extend type Query {
+  media(
+    search: String @scope(name: "search")
+    collection: String @scope(name: "inCollection")
+    kind: MediaKind @scope(name: "ofKind")
+    status: MediaStatus @eq
+    orderBy: [OrderByClause!] @orderBy(columns: ["created_at", "name", "size"])
+  ): [Media!]!
+    @guard
+    @can(ability: "media.view", model: "Cronos\\Media\\Infrastructure\\Persistence\\Eloquent\\MediaModel")
+    @paginate(type: CONNECTION, builder: "Cronos\\Media\\Interfaces\\GraphQL\\Queries\\MediaList", defaultCount: 24, maxCount: 100)
+
+  mediaItem(id: ID! @eq): Media @guard @can(ability: "media.view") @find(model: "Cronos\\Media\\Infrastructure\\Persistence\\Eloquent\\MediaModel")
+}
+
+extend type Mutation {
+  uploadMedia(file: Upload!, collection: String = "library" @rules(apply: ["nullable", "max:64", "regex:/^[a-z0-9_-]+$/"])): Media!
+    @guard
+    @can(ability: "media.upload")
+    @throttle(maxAttempts: 60, decayMinutes: 1, prefix: "media-upload")
+    @field(resolver: "Cronos\\Media\\Interfaces\\GraphQL\\Mutations\\UploadMediaMutation")
+
+  updateMedia(id: ID!, name: String @rules(apply: ["nullable", "max:150"]), translations: [MediaTranslationInput!]): Media!
+    @guard
+    @can(ability: "media.update")
+    @field(resolver: "Cronos\\Media\\Interfaces\\GraphQL\\Mutations\\UpdateMediaMutation")
+
+  deleteMedia(id: ID!): Boolean!
+    @guard
+    @can(ability: "media.delete", model: "Cronos\\Media\\Infrastructure\\Persistence\\Eloquent\\MediaModel")
+    @field(resolver: "Cronos\\Media\\Interfaces\\GraphQL\\Mutations\\DeleteMediaMutation")
+}

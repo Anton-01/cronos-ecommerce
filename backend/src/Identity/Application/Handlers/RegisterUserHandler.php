@@ -9,11 +9,11 @@ use Cronos\Identity\Application\Commands\RegisterUser;
 use Cronos\Identity\Domain\Events\UserRegistered;
 use Cronos\Identity\Domain\Events\VerificationEmailRequested;
 use Cronos\Identity\Domain\Exceptions\EmailAlreadyRegistered;
-use Cronos\Identity\Domain\Ports\DomainEventDispatcher;
 use Cronos\Identity\Domain\Ports\PasswordHasher;
 use Cronos\Identity\Domain\Ports\SecurityEventRecorder;
 use Cronos\Identity\Domain\Ports\TokenIssuer;
 use Cronos\Identity\Domain\Ports\UserRepository;
+use Cronos\Shared\Domain\DomainEventDispatcher;
 
 final class RegisterUserHandler
 {

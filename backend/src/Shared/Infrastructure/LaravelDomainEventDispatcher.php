@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Cronos\Identity\Infrastructure\Adapters;
+namespace Cronos\Shared\Infrastructure;
 
-use Cronos\Identity\Domain\Ports\DomainEventDispatcher;
+use Cronos\Shared\Domain\DomainEventDispatcher;
 use Illuminate\Contracts\Events\Dispatcher;
 
 final class LaravelDomainEventDispatcher implements DomainEventDispatcher

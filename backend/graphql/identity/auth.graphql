@@ -71,4 +71,9 @@ extend type Mutation {
   updateMyProfile(input: UpdateProfileInput!): User!
     @guard
     @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\UpdateMyProfileMutation")
+
+  updateMyAvatar(file: Upload!): User!
+    @guard
+    @throttle(maxAttempts: 10, decayMinutes: 10, prefix: "avatar")
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\UpdateMyAvatarMutation")
 }

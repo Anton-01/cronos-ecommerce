@@ -6,6 +6,7 @@ type User @model(class: "Cronos\\Identity\\Infrastructure\\Persistence\\Eloquent
   profile: UserProfile @hasOne(relation: "profile")
   roles: [String!]! @method(name: "getRoleNames")
   permissions: [String!]! @method(name: "getAllPermissionNames")
+  avatarUrl: String @method(name: "avatarUrl") @with(relation: "profile.avatar")
   createdAt: DateTime! @rename(attribute: "created_at")
 }
 

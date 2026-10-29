@@ -9,13 +9,6 @@ class AdminAccessTest extends GraphQLTestCase
 {
     private const ADMIN_LOGIN = 'mutation($i: AdminLoginInput!) { adminLogin(input: $i) { token } }';
 
-    private function adminToken(string $email, string $role): string
-    {
-        $this->makeUser($email, $role);
-
-        return $this->adminGql(self::ADMIN_LOGIN, ['i' => ['email' => $email, 'password' => self::PASSWORD]])->json('data.adminLogin.token');
-    }
-
     public function test_customers_cannot_obtain_an_admin_token(): void
     {
         $this->makeUser('ana@example.com', 'customer');
@@ -124,7 +117,7 @@ class AdminAccessTest extends GraphQLTestCase
         $selects = array_filter(array_column(DB::getQueryLog(), 'query'), fn ($q) => str_contains($q, 'from "users"') && str_contains($q, 'ilike') && str_contains($q, 'limit'));
         $this->assertNotEmpty($selects);
         foreach ($selects as $sql) {
-            $this->assertMatchesRegularExpression('/order by .*"users"\."id" asc/', $sql);
+            $this->assertMatchesRegularExpression('/order by .*"users"\."id" desc/', $sql);
         }
     }
 

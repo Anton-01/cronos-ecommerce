@@ -82,6 +82,9 @@ return [
 
     'locale_default' => 'es-MX',
 
+    // Locales offered by the platform (BCP 47). The first one is the fallback for missing translations.
+    'supported_locales' => ['es-MX', 'en-US'],
+
     'locale' => env('APP_LOCALE', 'en'),
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),

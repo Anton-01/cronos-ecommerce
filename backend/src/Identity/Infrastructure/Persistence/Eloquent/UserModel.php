@@ -52,6 +52,11 @@ class UserModel extends Authenticatable implements AuditableContract
         return $this->getAllPermissions()->pluck('name')->values()->all();
     }
 
+    public function avatarUrl(): ?string
+    {
+        return $this->profile?->avatar?->thumb_url;
+    }
+
     public function scopeSearch(Builder $query, ?string $term): Builder
     {
         return $term === null || $term === ''

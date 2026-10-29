@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Cronos\Identity\Domain\Ports;
+namespace Cronos\Shared\Domain;
 
 interface DomainEventDispatcher
 {
