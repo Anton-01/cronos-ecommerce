@@ -122,6 +122,32 @@ final class EloquentMediaRepository implements MediaRepository
         $this->events->dispatch(new MediaChanged($id));
     }
 
+    public function detach(string $id): void
+    {
+        $model = MediaModel::query()->findOrFail($id);
+        $model->fill(['model_type' => null, 'model_id' => null, 'collection_name' => 'library', 'order_column' => null])->save();
+        $this->events->dispatch(new MediaChanged($id));
+    }
+
+    public function reorder(string $ownerType, string $ownerId, string $collection, array $orderedIds): void
+    {
+        DB::transaction(function () use ($ownerType, $ownerId, $collection, $orderedIds): void {
+            foreach (array_values($orderedIds) as $position => $mediaId) {
+                MediaModel::withoutEvents(fn () => MediaModel::query()
+                    ->where(['id' => $mediaId, 'model_type' => $ownerType, 'model_id' => $ownerId, 'collection_name' => $collection])
+                    ->update(['order_column' => $position + 1]));
+            }
+        });
+        $this->events->dispatch(new MediaChanged($ownerId));
+    }
+
+    public function ownerOf(string $id): ?array
+    {
+        $m = MediaModel::query()->find($id);
+
+        return $m ? ['model_type' => $m->model_type, 'model_id' => $m->model_id, 'collection_name' => $m->collection_name] : null;
+    }
+
     public function delete(string $id): void
     {
         MediaModel::query()->findOrFail($id)->delete();

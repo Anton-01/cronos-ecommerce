@@ -17,6 +17,7 @@ class RolesAndPermissionsSeeder extends Seeder
         'audits.view',
         'media.view', 'media.upload', 'media.update', 'media.delete',
         'settings.view', 'settings.update',
+        'catalog.view', 'catalog.manage', 'catalog.publish',
     ];
 
     public function run(): void
@@ -28,7 +29,7 @@ class RolesAndPermissionsSeeder extends Seeder
         }
 
         Role::findOrCreate('customer', 'web');
-        Role::findOrCreate('support', 'web')->syncPermissions(['admin.access', 'users.view', 'media.view', 'settings.view']);
+        Role::findOrCreate('support', 'web')->syncPermissions(['admin.access', 'users.view', 'media.view', 'settings.view', 'catalog.view']);
         Role::findOrCreate('admin', 'web')->syncPermissions(
             array_diff(self::PERMISSIONS, ['roles.manage'])
         );

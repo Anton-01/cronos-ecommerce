@@ -28,6 +28,15 @@ interface MediaRepository
     /** Moves the file into an owner's collection; single-file collections drop the previous item. */
     public function attach(string $id, string $ownerType, string $ownerId, string $collection, bool $replaceExisting): void;
 
+    /** Returns the file to the library (no owner), keeping it available for reuse. */
+    public function detach(string $id): void;
+
+    /** @param list<string> $orderedIds position follows the list order */
+    public function reorder(string $ownerType, string $ownerId, string $collection, array $orderedIds): void;
+
+    /** @return array{model_type: ?string, model_id: ?string, collection_name: string}|null */
+    public function ownerOf(string $id): ?array;
+
     /** Soft delete. Files stay on disk until the purge job removes them. */
     public function delete(string $id): void;
 }

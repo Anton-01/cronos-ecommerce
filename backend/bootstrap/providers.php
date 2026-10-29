@@ -7,4 +7,5 @@ return [
     Cronos\Identity\Infrastructure\IdentityServiceProvider::class,
     Cronos\Media\Infrastructure\MediaServiceProvider::class,
     Cronos\Settings\Infrastructure\SettingsServiceProvider::class,
+    Cronos\Catalog\Infrastructure\CatalogServiceProvider::class,
 ];
