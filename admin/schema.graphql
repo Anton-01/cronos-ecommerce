@@ -1,0 +1,140 @@
+type Query {
+ adminMe: User
+ user(id: ID!): User
+ roles: [Role!]!
+ users(
+ search: String
+ orderBy: [QueryUsersOrderByOrderByClause!]
+ "Limits number of fetched items. Maximum allowed value: 100."
+ first: Int! = 25
+ "A cursor after which elements are returned."
+ after: String
+ ): UserConnection!
+}
+type Mutation {
+ adminLogin(input: AdminLoginInput!): AuthPayload!
+ logout: Boolean!
+ setUserActive(id: ID!, active: Boolean!): User!
+ assignUserRoles(id: ID!, roles: [String!]!): User!
+}
+"Back-office schema served at /admin/graphql. Every operation except adminLogin requires a token plus a permission."
+scalar DateTime
+type User {
+ id: ID!
+ email: String!
+ emailVerifiedAt: DateTime
+ isActive: Boolean!
+ profile: UserProfile
+ roles: [String!]!
+ permissions: [String!]!
+ createdAt: DateTime!
+}
+type UserProfile {
+ firstName: String
+ lastName: String
+ phone: String
+ locale: String!
+ countryCode: String
+ marketingOptIn: Boolean!
+}
+type AuthPayload {
+ token: String!
+ expiresAt: DateTime
+ user: User!
+}
+type Role {
+ id: ID!
+ name: String!
+ permissions: [String!]!
+}
+input AdminLoginInput {
+ email: String!
+ password: String!
+}
+"Information about pagination using a Relay style cursor connection."
+type PageInfo {
+ "When paginating forwards, are there more items?"
+ hasNextPage: Boolean!
+ "When paginating backwards, are there more items?"
+ hasPreviousPage: Boolean!
+ "The cursor to continue paginating backwards."
+ startCursor: String
+ "The cursor to continue paginating forwards."
+ endCursor: String
+ "Total number of nodes in the paginated connection."
+ total: Int!
+ "Number of nodes in the current page."
+ count: Int!
+ "Index of the current page."
+ currentPage: Int!
+ "Index of the last available page."
+ lastPage: Int!
+}
+"A paginated list of User edges."
+type UserConnection {
+ "Pagination information about the list of edges."
+ pageInfo: PageInfo!
+ "A list of User edges."
+ edges: [UserEdge!]!
+}
+"An edge that contains a node of type User and a cursor."
+type UserEdge {
+ "The User node."
+ node: User!
+ "A unique cursor that can be used for pagination."
+ cursor: String!
+}
+"Allowed column names for Query.users.orderBy."
+enum QueryUsersOrderByColumn {
+ CREATED_AT
+ EMAIL
+}
+"Order by clause for Query.users.orderBy."
+input QueryUsersOrderByOrderByClause {
+ "The column that is used for ordering."
+ column: QueryUsersOrderByColumn!
+ "The direction that is used for ordering."
+ order: SortOrder!
+}
+"Directions for ordering a list of records."
+enum SortOrder {
+ "Sort records in ascending order."
+ ASC
+ "Sort records in descending order."
+ DESC
+}
+"Aggregate functions when ordering by a relation without specifying a column."
+enum OrderByRelationAggregateFunction {
+ "Amount of items."
+ COUNT
+}
+"Aggregate functions when ordering by a relation that may specify a column."
+enum OrderByRelationWithColumnAggregateFunction {
+ "Average."
+ AVG
+ "Minimum."
+ MIN
+ "Maximum."
+ MAX
+ "Sum."
+ SUM
+ "Amount of items."
+ COUNT
+}
+"Allows ordering a list of records."
+input OrderByClause {
+ "The column that is used for ordering."
+ column: String!
+ "The direction that is used for ordering."
+ order: SortOrder!
+}
+"Specify if you want to include or exclude trashed results from a query."
+enum Trashed {
+ "Only return trashed results."
+ ONLY
+ "Return both trashed and non-trashed results."
+ WITH
+ "Only return non-trashed results."
+ WITHOUT
+}
+

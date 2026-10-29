@@ -10,7 +10,7 @@ input AdminLoginInput {
 }
 
 extend type Query {
-  adminMe: User @guard @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Queries\\Me")
+  adminMe: User @guard @can(ability: "admin.access") @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Queries\\Me")
 
   users(
     search: String @scope(name: "search")
@@ -29,6 +29,8 @@ extend type Mutation {
   adminLogin(input: AdminLoginInput!): AuthPayload!
     @throttle(maxAttempts: 5, decayMinutes: 1, prefix: "admin-login")
     @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\AdminLoginMutation")
+
+  logout: Boolean! @guard @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\Mutations\\LogoutMutation")
 
   setUserActive(id: ID!, active: Boolean!): User!
     @guard

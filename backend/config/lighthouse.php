@@ -249,7 +249,7 @@ return [
     */
 
     'security' => [
-        'max_query_complexity' => (int) env('LIGHTHOUSE_MAX_COMPLEXITY', 500),
+        'max_query_complexity' => (int) env('LIGHTHOUSE_MAX_COMPLEXITY', 3000),
         'max_query_depth' => (int) env('LIGHTHOUSE_MAX_DEPTH', 12),
         'disable_introspection' => (bool) env('LIGHTHOUSE_SECURITY_DISABLE_INTROSPECTION', env('APP_ENV') === 'production')
             ? DisableIntrospection::ENABLED

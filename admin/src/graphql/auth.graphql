@@ -1,0 +1,26 @@
+mutation AdminLogin($input: AdminLoginInput!) {
+  adminLogin(input: $input) {
+    token
+    expiresAt
+    user {
+      id
+    }
+  }
+}
+
+mutation AdminLogout {
+  logout
+}
+
+query AdminMe {
+  adminMe {
+    id
+    email
+    roles
+    permissions
+    profile {
+      firstName
+      lastName
+    }
+  }
+}

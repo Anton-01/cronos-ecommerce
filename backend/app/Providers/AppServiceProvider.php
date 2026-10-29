@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use Cronos\Identity\Interfaces\Console\CreateAdminCommand;
+use Cronos\Shared\Interfaces\Console\ExportGraphQLSchemaCommand;
 use Cronos\Shared\Interfaces\GraphQL\UseGraphQLSchema;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -22,6 +24,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if ($this->app->runningInConsole()) {
+            $this->commands([CreateAdminCommand::class, ExportGraphQLSchemaCommand::class]);
+        }
+
         $this->registerAdminGraphQLEndpoint();
     }
 

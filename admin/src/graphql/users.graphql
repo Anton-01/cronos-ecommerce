@@ -1,0 +1,43 @@
+fragment UserRow on User {
+  id
+  email
+  isActive
+  emailVerifiedAt
+  roles
+  createdAt
+  profile {
+    firstName
+    lastName
+    phone
+    locale
+    countryCode
+  }
+}
+
+query Users($first: Int!, $after: String, $search: String, $orderBy: [QueryUsersOrderByOrderByClause!]) {
+  users(first: $first, after: $after, search: $search, orderBy: $orderBy) {
+    pageInfo {
+      hasNextPage
+      endCursor
+      total
+    }
+    edges {
+      cursor
+      node {
+        ...UserRow
+      }
+    }
+  }
+}
+
+mutation SetUserActive($id: ID!, $active: Boolean!) {
+  setUserActive(id: $id, active: $active) {
+    ...UserRow
+  }
+}
+
+mutation AssignUserRoles($id: ID!, $roles: [String!]!) {
+  assignUserRoles(id: $id, roles: $roles) {
+    ...UserRow
+  }
+}

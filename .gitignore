@@ -10,3 +10,4 @@ vendor/
 /backend/storage/*.key
 /backend/bootstrap/cache/*
 .DS_Store
+dump.rdb

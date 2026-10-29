@@ -512,7 +512,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho.
 - [x] Rate limiting por operación con `@throttle` (store `ratelimit` sobre Redis de sesión)
 - [~] Usuarios, `user_profiles`, `updateMyProfile` hechos; tabla `user_addresses` creada sin API aún. **Avatar + cropper diferidos a Fase 2** (dependen de Media Library)
 - [x] RBAC (Spatie) con permisos `recurso.acción`, `@guard` + `@can` en el esquema admin, roles `customer/support/admin/super-admin`
-- [ ] Admin: shell (login, layout, gestión de usuarios/roles con TanStack Table + cursor) — **backend listo** (`adminLogin`, `users` con cursor, `roles`, `setUserActive`, `assignUserRoles`); falta el front
+- [x] Admin (`admin/`): Vite + React 19 + TS + Tailwind 4 + componentes estilo shadcn/Radix + Apollo Client 4 + TanStack Table **v8** (la v9 cambió por completo su API; se fijó la v8 estable) + codegen tipado desde `admin/schema.graphql` (`npm run schema && npm run codegen`). Login, layout con navegación por permiso, dashboard, usuarios (paginación por cursor, orden y búsqueda en servidor, diálogo con roles y deshabilitar) y roles. 12 tests (Vitest) + recorrido E2E en Chromium contra el backend real
 - [~] CI inicial (`.github/workflows/backend.yml`: Pint, `composer audit`, tests con Postgres). Pruebas de arquitectura (Deptrac) pendientes
 - [ ] `context.md` actualizado
 
@@ -597,6 +597,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho.
 
 | Fecha | Cambio |
 |---|---|
+| 2026-10-29 | Admin Fase 1 (ver checklist). Hallazgos del E2E corregidos: límite de complejidad GraphQL 500→3000 (rechazaba un listado legítimo), desempate por `id` en consultas ordenadas (paginación estable con empates), la ruta de retorno ya no se hereda tras un cierre de sesión voluntario, `adminMe` exige `admin.access`, CORS por lista exacta de orígenes (`CORS_ALLOWED_ORIGINS`). Pendiente: Dockerfile del admin sin probar (sin daemon Docker). |
 | 2026-10-29 | Backend Fase 1: Laravel **13.39** (decisión del usuario; el plan decía 11+), migraciones identidad/RBAC/auditoría, módulos Identity/Audit/Shared, esquemas GraphQL público y admin, 22 tests verdes contra PostgreSQL 16. Cursores de `@paginate` de Lighthouse son offset codificado, no keyset (revisar en Fase 8). |
 | 2026-10-29 | Fase 1 iniciada: infra Docker/compose/Redis/Postgres escrita. **Bloqueo:** el entorno no permite `repo.packagist.org`, no se puede instalar Laravel/Lighthouse hasta habilitar el host. |
 | 2026-10-28 | Creación del Master Plan (Fase 0): arquitectura, ER mejorado, cobertura de retrospectiva, checklist. |

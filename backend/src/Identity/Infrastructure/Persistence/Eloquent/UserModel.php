@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Cronos\Identity\Infrastructure\Persistence\Eloquent;
 
+use Cronos\Shared\Infrastructure\Persistence\StableOrderScope;
+use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,6 +17,7 @@ use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\Permission\Traits\HasRoles;
 
+#[ScopedBy([StableOrderScope::class])]
 class UserModel extends Authenticatable implements AuditableContract
 {
     use Auditable;
