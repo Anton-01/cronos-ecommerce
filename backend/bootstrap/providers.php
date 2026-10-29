@@ -8,6 +8,7 @@ use Cronos\Fraud\Infrastructure\FraudServiceProvider;
 use Cronos\Identity\Infrastructure\IdentityServiceProvider;
 use Cronos\Inventory\Infrastructure\InventoryServiceProvider;
 use Cronos\Media\Infrastructure\MediaServiceProvider;
+use Cronos\Payments\Infrastructure\PaymentsServiceProvider;
 use Cronos\Pricing\Infrastructure\PricingServiceProvider;
 use Cronos\Promotions\Infrastructure\PromotionsServiceProvider;
 use Cronos\Settings\Infrastructure\SettingsServiceProvider;
@@ -23,6 +24,7 @@ return [
     SettingsServiceProvider::class,
     CatalogServiceProvider::class,
     PricingServiceProvider::class,
+    PaymentsServiceProvider::class,
     InventoryServiceProvider::class,
     PromotionsServiceProvider::class,
     FraudServiceProvider::class,
