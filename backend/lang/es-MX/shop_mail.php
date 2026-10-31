@@ -42,4 +42,12 @@ return [
         'title' => 'Requiere revisión',
         'intro' => ':detail',
     ],
+    'export_ready' => [
+        'subject' => 'Tu exportación está lista',
+        'title' => 'Tu exportación de :type está lista',
+        'intro' => 'Generamos :rows filas. El enlace funciona por 48 horas; el archivo se conserva 7 días.',
+        'truncated' => 'Había más filas de las que caben en una hoja: el archivo trae las primeras.',
+        'button' => 'Descargar archivo',
+        'types' => ['orders' => 'Pedidos', 'order_items' => 'Partidas de pedidos', 'payments' => 'Pagos', 'stock' => 'Existencias', 'custom_orders' => 'Pedidos personalizados'],
+    ],
 ];

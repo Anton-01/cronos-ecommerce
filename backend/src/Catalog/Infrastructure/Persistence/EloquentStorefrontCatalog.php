@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cronos\Catalog\Infrastructure\Persistence;
 
+use Carbon\CarbonImmutable;
 use Cronos\Catalog\Domain\Ports\StorefrontCatalog;
 use Cronos\Catalog\Domain\Services\VariationInheritance;
 use Cronos\Catalog\Domain\ValueObjects\SalesUnit;
@@ -58,7 +59,7 @@ final class EloquentStorefrontCatalog implements StorefrontCatalog
             'description' => $t?->description,
             'breadcrumb' => $ancestors->map(fn (CategoryModel $a) => $this->categoryNode($a, $locale))->all(),
             'children' => $children->map(fn (CategoryModel $c) => $this->categoryNode($c, $locale))->all(),
-            'seo' => ['title' => $t?->meta_title ?? $t?->name, 'description' => $t?->meta_description],
+            'seo' => ['title' => $t?->meta_title ?? $t?->name, 'description' => $t?->meta_description, 'alternates' => $category->translations->map(fn ($x) => ['locale' => $x->locale, 'slug' => $x->slug])->values()->all()],
             'image' => $category->image_media_id ? $this->mediaPayload(MediaModel::query()->find($category->image_media_id), $locale) : null,
         ];
     }
@@ -164,6 +165,42 @@ final class EloquentStorefrontCatalog implements StorefrontCatalog
         };
     }
 
+    public function sitemapProducts(string $locale, int $limit, int $offset): array
+    {
+        $rows = DB::table('products as p')->join('product_translations as t', fn ($j) => $j->on('t.product_id', '=', 'p.id')->where('t.locale', $locale)->whereNull('t.deleted_at'))
+            ->whereNull('p.deleted_at')->where('p.status', 'published')->where('p.type', '<>', 'variation')->orderBy('p.id')->limit($limit)->offset($offset)
+            ->get(['p.id', 't.slug', 'p.updated_at']);
+
+        return $this->withAlternates('product_translations', 'product_id', $rows);
+    }
+
+    public function sitemapProductCount(string $locale): int
+    {
+        return DB::table('products as p')->join('product_translations as t', fn ($j) => $j->on('t.product_id', '=', 'p.id')->where('t.locale', $locale)->whereNull('t.deleted_at'))
+            ->whereNull('p.deleted_at')->where('p.status', 'published')->where('p.type', '<>', 'variation')->count();
+    }
+
+    public function sitemapCategories(string $locale): array
+    {
+        $rows = DB::table('categories as c')->join('category_translations as t', fn ($j) => $j->on('t.category_id', '=', 'c.id')->where('t.locale', $locale)->whereNull('t.deleted_at'))
+            ->whereNull('c.deleted_at')->where('c.is_active', true)
+            ->whereRaw('NOT EXISTS (SELECT 1 FROM categories a WHERE a.path @> c.path AND a.id <> c.id AND (NOT a.is_active OR a.deleted_at IS NOT NULL))')
+            ->orderBy('c.id')->get(['c.id', 't.slug', 'c.updated_at']);
+
+        return $this->withAlternates('category_translations', 'category_id', $rows);
+    }
+
+    /** @param \Illuminate\Support\Collection<int, object> $rows @return list<array<string, mixed>> */
+    private function withAlternates(string $table, string $key, $rows): array
+    {
+        $alts = DB::table($table)->whereIn($key, $rows->pluck('id'))->whereNull('deleted_at')->get([$key, 'locale', 'slug'])->groupBy($key);
+
+        return $rows->map(fn ($r) => [
+            'slug' => $r->slug, 'updated_at' => CarbonImmutable::parse($r->updated_at)->utc()->format('Y-m-d\TH:i:s\Z'),
+            'alternates' => ($alts[$r->id] ?? collect())->map(fn ($a) => ['locale' => $a->locale, 'slug' => $a->slug])->values()->all(),
+        ])->values()->all();
+    }
+
     public function summariesOf(string $locale, array $ids): array
     {
         $published = ProductModel::query()->whereKey($ids)->where('status', 'published')->pluck('id')->all();
@@ -230,6 +267,8 @@ final class EloquentStorefrontCatalog implements StorefrontCatalog
             ];
         })->values()->all();
 
+        // Search engines must not see another language's meta text: titles and descriptions come from this language's own row.
+        $own = $p->translations->firstWhere('locale', $locale);
         $usedValueIds = collect($variations)->pluck('valueIds')->flatten()->unique()->all();
         $prices = collect($variations)->pluck('price')->filter()->sort(SORT_NUMERIC)->values();
         $single = $p->type === 'variable' ? null : $p->price;
@@ -250,7 +289,7 @@ final class EloquentStorefrontCatalog implements StorefrontCatalog
             'attributes' => $this->attributesPayload($p, $locale, $usedValueIds),
             'variations' => $variations,
             'groupItems' => $this->groupItems($p, $locale),
-            'seo' => ['title' => $this->field($p->translations, $locale, 'meta_title') ?? $t?->name, 'description' => $this->field($p->translations, $locale, 'meta_description') ?? $this->field($p->translations, $locale, 'short_description'), 'canonicalSlug' => $t?->slug,
+            'seo' => ['title' => $own?->meta_title ?? $t?->name, 'description' => $own?->meta_description ?? $own?->short_description ?? $this->field($p->translations, $locale, 'short_description'), 'canonicalSlug' => $t?->slug,
                 'alternates' => $p->translations->map(fn ($x) => ['locale' => $x->locale, 'slug' => $x->slug])->values()->all()],
             'publishedAt' => $p->published_at?->toDateTimeString(),
         ];

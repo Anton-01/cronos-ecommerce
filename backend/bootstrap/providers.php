@@ -10,6 +10,7 @@ use Cronos\Fraud\Infrastructure\FraudServiceProvider;
 use Cronos\Notifications\Infrastructure\NotificationsServiceProvider;
 use Cronos\Markets\Infrastructure\MarketsServiceProvider;
 use Cronos\Orders\Infrastructure\OrdersServiceProvider;
+use Cronos\Reports\Infrastructure\ReportsServiceProvider;
 use Cronos\Shipping\Infrastructure\ShippingServiceProvider;
 use Cronos\Wishlist\Infrastructure\WishlistServiceProvider;
 use Cronos\Identity\Infrastructure\IdentityServiceProvider;
@@ -41,5 +42,6 @@ return [
     ShippingServiceProvider::class,
     CustomOrdersServiceProvider::class,
     NotificationsServiceProvider::class,
+    ReportsServiceProvider::class,
     WishlistServiceProvider::class,
 ];

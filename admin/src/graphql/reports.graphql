@@ -1,0 +1,110 @@
+query AdminDashboard($period: PeriodPreset, $from: String, $to: String, $market: String) {
+  adminDashboard(period: $period, from: $from, to: $to, market: $market) {
+    period {
+      from
+      to
+      timezone
+      label
+    }
+    newCustomers
+    kpis {
+      market
+      currency
+      orders
+      revenue
+      tax
+      shipping
+      discounts
+      refunded
+      netRevenue
+      netOfTax
+      averageOrder
+      previousOrders
+      previousNetRevenue
+      ordersChange
+      revenueChange
+    }
+    daily {
+      market
+      currency
+      day
+      orders
+      revenue
+    }
+    topProducts {
+      market
+      currency
+      productId
+      name
+      sku
+      unit
+      quantity
+      orders
+      netRevenue
+    }
+    funnel {
+      market
+      started
+      paid
+      expired
+      cancelled
+      needsReview
+      open
+      conversion
+    }
+    ordersByStatus {
+      status
+      orders
+    }
+    payments {
+      provider
+      mode
+      currency
+      created
+      captured
+      failed
+      cancelled
+      capturedAmount
+      successRate
+    }
+    attention {
+      key
+      count
+      severity
+    }
+  }
+}
+
+fragment ExportFields on AdminExport {
+  id
+  type
+  status
+  filters
+  rowCount
+  truncated
+  fileSize
+  error
+  downloadCount
+  createdAt
+  finishedAt
+  expiresAt
+}
+
+query AdminExports($first: Int) {
+  adminExports(first: $first) {
+    ...ExportFields
+  }
+}
+
+query AdminExportLink($first: Int) {
+  adminExports(first: $first) {
+    id
+    downloadUrl
+  }
+}
+
+mutation RequestExport($type: ExportType!, $filters: ExportFilters) {
+  requestExport(type: $type, filters: $filters) {
+    ...ExportFields
+  }
+}

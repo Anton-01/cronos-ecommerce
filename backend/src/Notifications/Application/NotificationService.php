@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Cronos\Notifications\Application;
 
+use Cronos\Notifications\Domain\Ports\NotificationDispatcher;
 use Cronos\Notifications\Domain\Ports\NotificationLog;
 use Cronos\Notifications\Domain\Ports\RecipientDirectory;
-use Cronos\Notifications\Infrastructure\Jobs\SendNotificationJob;
 use Illuminate\Support\Str;
 
 /**
@@ -15,9 +15,9 @@ use Illuminate\Support\Str;
  */
 final class NotificationService
 {
-    public const TEMPLATES = ['order_placed', 'order_status', 'shipment_created', 'quote_ready', 'custom_order_update', 'ops_alert'];
+    public const TEMPLATES = ['order_placed', 'order_status', 'shipment_created', 'quote_ready', 'custom_order_update', 'ops_alert', 'export_ready'];
 
-    public function __construct(private readonly NotificationLog $log, private readonly RecipientDirectory $directory) {}
+    public function __construct(private readonly NotificationLog $log, private readonly RecipientDirectory $directory, private readonly NotificationDispatcher $dispatcher) {}
 
     /**
      * @param  array<string, mixed>  $data  everything the template needs (already formatted: the job renders without touching the database)
@@ -37,7 +37,7 @@ final class NotificationService
         if ($id === null) {
             return false;
         }
-        SendNotificationJob::dispatch($id);
+        $this->dispatcher->dispatch($id);
 
         return true;
     }

@@ -14,6 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         then: function (): void {
             // Provider callbacks: no session, no CSRF, own rate limit. The controller only stores and queues.
+            Route::middleware('throttle:120,1')->group(function () {
+                Route::get('/robots.txt', [\Cronos\Seo\Interfaces\Http\SeoController::class, 'robots'])->name('seo.robots');
+                Route::get('/sitemap.xml', [\Cronos\Seo\Interfaces\Http\SeoController::class, 'index'])->name('seo.sitemap');
+                Route::get('/sitemaps/{name}.xml', [\Cronos\Seo\Interfaces\Http\SeoController::class, 'file'])->where('name', '[A-Za-z0-9-]{1,40}')->name('seo.sitemap.file');
+            });
+            Route::middleware(['signed', 'throttle:60,1'])->get('/exports/{export}/download', \Cronos\Reports\Interfaces\Http\ExportDownloadController::class)->name('exports.download');
             Route::middleware('throttle:webhooks')->post('/webhooks/shipping/{carrier}', \Cronos\Shipping\Interfaces\Http\ShippingWebhookController::class)->name('webhooks.shipping');
             Route::middleware('throttle:webhooks')->post('/webhooks/{provider}', WebhookController::class)->name('webhooks.receive');
         },

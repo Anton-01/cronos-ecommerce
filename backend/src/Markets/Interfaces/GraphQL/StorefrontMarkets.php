@@ -7,15 +7,17 @@ namespace Cronos\Markets\Interfaces\GraphQL;
 use Cronos\Markets\Application\MarketResolver;
 use Cronos\Markets\Domain\Ports\MarketProfileRepository;
 use Cronos\Pricing\Interfaces\GraphQL\PublicMarketsQuery;
-use Cronos\Shared\Infrastructure\Geo\CurrentClient;
+use Cronos\Shared\Interfaces\GraphQL\ResolvesClientContext;
+use Nuwave\Lighthouse\Support\Contracts\GraphQLContext;
 
 final class StorefrontMarkets
 {
+    use ResolvesClientContext;
+
     public function __construct(
         private readonly MarketProfileRepository $profiles,
         private readonly MarketResolver $resolver,
         private readonly PublicMarketsQuery $markets,
-        private readonly CurrentClient $client,
     ) {}
 
     /** @param array<string, mixed> $market */
@@ -31,9 +33,9 @@ final class StorefrontMarkets
     }
 
     /** @param array<string, mixed> $args */
-    public function context(mixed $root, array $args): array
+    public function context(mixed $root, array $args, GraphQLContext $context): array
     {
-        $country = $this->client->location()->country;
+        $country = $this->clientContext($context)->country;
         $all = collect(($this->markets)())->keyBy('code');
         $detectedCode = $this->resolver->forCountry($country);
         $selectedCode = isset($args['selected']) ? strtoupper($args['selected']) : $detectedCode;

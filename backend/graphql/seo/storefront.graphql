@@ -1,0 +1,67 @@
+enum SeoTarget {
+  HOME
+  PRODUCT
+  CATEGORY
+}
+
+type SeoAlternateLink {
+  "BCP 47 language-region (es-MX) or x-default."
+  hreflang: String!
+  href: String!
+}
+
+type SeoOpenGraph {
+  type: String!
+  title: String!
+  description: String!
+  url: String!
+  image: String
+  siteName: String!
+  "og:locale, e.g. es_MX."
+  locale: String
+  alternateLocales: [String!]!
+  priceAmount: String
+  priceCurrency: String
+  "instock, oos or backorder"
+  availability: String
+}
+
+type SeoTwitter {
+  card: String!
+  title: String!
+  description: String!
+  image: String
+}
+
+"Everything the <head> of a page needs."
+type SeoMeta {
+  title: String!
+  description: String!
+  "Absolute, without query string or fragment: the one URL that stands for this page."
+  canonical: String!
+  "Content of <meta name=robots>."
+  robots: String!
+  alternates: [SeoAlternateLink!]!
+  openGraph: SeoOpenGraph!
+  twitter: SeoTwitter!
+  "Ready-to-embed JSON-LD documents (Schema.org): one <script type=application/ld+json> each."
+  jsonLd: [String!]!
+}
+
+type SeoRoute {
+  locale: String!
+  prefix: String!
+  productSegment: String!
+  categorySegment: String!
+  ogLocale: String!
+}
+
+extend type Query {
+  "Page metadata. Null when the product or category does not exist (or is not published) in that language."
+  seo(target: SeoTarget!, locale: String!, slug: String, market: String): SeoMeta
+    @throttle(maxAttempts: 120, decayMinutes: 1, prefix: "seo")
+    @field(resolver: "Cronos\\Seo\\Interfaces\\GraphQL\\SeoQuery@meta")
+  "The URL scheme the canonicals and the sitemap follow: the storefront should route exactly like this."
+  seoRoutes: [SeoRoute!]!
+    @field(resolver: "Cronos\\Seo\\Interfaces\\GraphQL\\SeoQuery@routes")
+}

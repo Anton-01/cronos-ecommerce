@@ -35,4 +35,16 @@ interface StorefrontCatalog
      * @return list<array<string, mixed>>
      */
     public function summariesOf(string $locale, array $ids): array;
+
+    /**
+     * Published, sellable-by-URL products that have a page in this language, for the sitemap (variations are not pages of their own).
+     *
+     * @return list<array{slug: string, updated_at: string, alternates: list<array{locale: string, slug: string}>}>
+     */
+    public function sitemapProducts(string $locale, int $limit, int $offset): array;
+
+    public function sitemapProductCount(string $locale): int;
+
+    /** @return list<array{slug: string, updated_at: string, alternates: list<array{locale: string, slug: string}>}> active categories (whole branch active) with a page in this language */
+    public function sitemapCategories(string $locale): array;
 }

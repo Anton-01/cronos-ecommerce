@@ -42,4 +42,12 @@ return [
         'title' => 'Needs review',
         'intro' => ':detail',
     ],
+    'export_ready' => [
+        'subject' => 'Your export is ready',
+        'title' => 'Your :type export is ready',
+        'intro' => 'We generated :rows rows. The link works for 48 hours; the file is kept for 7 days.',
+        'truncated' => 'There were more rows than a sheet should hold: the file has the first ones.',
+        'button' => 'Download file',
+        'types' => ['orders' => 'Orders', 'order_items' => 'Order lines', 'payments' => 'Payments', 'stock' => 'Stock', 'custom_orders' => 'Custom orders'],
+    ],
 ];

@@ -66,7 +66,7 @@ final class HexagonalRulesTest extends TestCase
                 return ! preg_match('/^Cronos\\\\\w+\\\\Domain\\\\/', $use);
             }
 
-            return ! str_starts_with($use, 'Brick\\Math') && ! in_array($use, ['DateTimeImmutable', 'DateTimeInterface', 'DomainException', 'InvalidArgumentException'], true);
+            return ! str_starts_with($use, 'Brick\\Math') && ! in_array($use, ['DateTimeImmutable', 'DateTimeInterface', 'DateTimeZone', 'DomainException', 'InvalidArgumentException'], true);
         });
 
         $this->assertSame([], $violations);

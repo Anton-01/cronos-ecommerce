@@ -41,6 +41,10 @@ type Query {
  adminProductPrices(productId: ID!): [ProductPriceRow!]!
  adminCoupons(search: String): [AdminCoupon!]!
  adminPromotions: [AdminPromotion!]!
+ "Sales, checkout funnel, payments and what needs attention for a window counted in the viewer's own calendar. One store when `market` is given."
+ adminDashboard(period: PeriodPreset = LAST_7_DAYS, from: String, to: String, market: String): AdminDashboard!
+ "My exports, newest first."
+ adminExports(first: Int = 20): [AdminExport!]!
  adminSettings: [AdminSetting!]!
  adminProducts(
  search: String
@@ -178,6 +182,8 @@ type Mutation {
  createPromotion(input: PromotionInput!): AdminPromotion!
  updatePromotion(id: ID!, input: PromotionInput!): AdminPromotion!
  deletePromotion(id: ID!): Boolean!
+ "Builds an .xlsx in the background and e-mails a signed link when it is ready. Asking again for the same data while one is in progress returns that one."
+ requestExport(type: ExportType!, filters: ExportFilters): AdminExport!
  updateSettings(input: [SettingInput!]!): [AdminSetting!]!
  "Creates a shipment. When it covers the rest of the order, the order moves to shipped and the customer is told."
  createShipment(input: CreateShipmentInput!): OrderShipment!
@@ -1431,6 +1437,143 @@ input PromotionInput {
  endsAt: DateTime
  conditions: RestrictionsInput
  action: PromotionActionInput!
+}
+enum PeriodPreset {
+ TODAY
+ YESTERDAY
+ LAST_7_DAYS
+ LAST_30_DAYS
+ THIS_MONTH
+ LAST_MONTH
+ CUSTOM
+}
+type ReportPeriod {
+ from: DateTime!
+ "Exclusive end."
+ to: DateTime!
+ "The calendar the days are counted in: the viewer's own."
+ timezone: String!
+ label: String!
+}
+"Sales of one store in its own currency; stores are never added together."
+type SalesKpi {
+ market: String!
+ currency: String!
+ orders: Int!
+ "Everything customers paid (tax and shipping included)."
+ revenue: String!
+ tax: String!
+ shipping: String!
+ discounts: String!
+ refunded: String!
+ "revenue − refunds."
+ netRevenue: String!
+ "netRevenue − tax."
+ netOfTax: String!
+ averageOrder: String!
+ previousOrders: Int!
+ previousNetRevenue: String!
+ "Percent versus the window right before; null when there was nothing to compare."
+ ordersChange: Float
+ revenueChange: Float
+}
+type DailySales {
+ market: String!
+ currency: String!
+ day: String!
+ orders: Int!
+ revenue: String!
+}
+type TopProduct {
+ market: String!
+ currency: String!
+ productId: ID
+ name: String!
+ sku: String
+ unit: String!
+ quantity: String!
+ orders: Int!
+ "Revenue without tax."
+ netRevenue: String!
+}
+type CheckoutFunnel {
+ market: String!
+ started: Int!
+ paid: Int!
+ expired: Int!
+ cancelled: Int!
+ needsReview: Int!
+ open: Int!
+ "paid / started, percent."
+ conversion: Float!
+}
+type StatusCount {
+ status: String!
+ orders: Int!
+}
+type PaymentStats {
+ provider: String!
+ mode: PaymentMode!
+ currency: String!
+ created: Int!
+ captured: Int!
+ failed: Int!
+ cancelled: Int!
+ capturedAmount: String!
+ "captured / (captured + failed + cancelled), percent; null while nothing has finished."
+ successRate: Float
+}
+type AttentionItem {
+ "Stable key the screen words and links: checkouts_need_review, webhooks_stuck, low_stock_products.."
+ key: String!
+ count: Int!
+ "critical, warning or info"
+ severity: String!
+}
+type AdminDashboard {
+ period: ReportPeriod!
+ kpis: [SalesKpi!]!
+ daily: [DailySales!]!
+ topProducts: [TopProduct!]!
+ funnel: [CheckoutFunnel!]!
+ ordersByStatus: [StatusCount!]!
+ payments: [PaymentStats!]!
+ newCustomers: Int!
+ "What needs a person right now (only items with something to do)."
+ attention: [AttentionItem!]!
+}
+enum ExportType {
+ ORDERS
+ ORDER_ITEMS
+ PAYMENTS
+ STOCK
+ CUSTOM_ORDERS
+}
+input ExportFilters {
+ "YYYY-MM-DD in the viewer's calendar."
+ from: String
+ to: String
+ "One store only; empty = all."
+ market: String
+ status: String
+}
+type AdminExport {
+ id: ID!
+ type: ExportType!
+ "queued, running, ready, failed or expired"
+ status: String!
+ filters: JSON!
+ rowCount: Int
+ "More rows matched than a spreadsheet should hold: the file has the first ones."
+ truncated: Boolean!
+ fileSize: Int
+ error: String
+ downloadCount: Int!
+ createdAt: DateTime!
+ finishedAt: DateTime
+ expiresAt: DateTime
+ "A fresh signed link valid for 15 minutes; only while the file is ready."
+ downloadUrl: String
 }
 type AdminSetting {
  group: String!

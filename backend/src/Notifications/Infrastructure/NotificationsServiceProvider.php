@@ -8,6 +8,7 @@ use Cronos\CustomOrders\Domain\Events\CustomOrderSubmitted;
 use Cronos\CustomOrders\Domain\Events\CustomOrderUpdated;
 use Cronos\CustomOrders\Domain\Events\QuoteSent;
 use Cronos\Notifications\Application\Listeners\NotifyAboutOrders;
+use Cronos\Notifications\Domain\Ports\NotificationDispatcher;
 use Cronos\Notifications\Domain\Ports\NotificationLog;
 use Cronos\Notifications\Domain\Ports\RecipientDirectory;
 use Cronos\Notifications\Infrastructure\Console\SweepNotificationsCommand;
@@ -26,6 +27,7 @@ final class NotificationsServiceProvider extends ServiceProvider
     /** @var array<class-string, class-string> */
     public array $bindings = [
         NotificationLog::class => DatabaseNotificationLog::class,
+        NotificationDispatcher::class => QueueNotificationDispatcher::class,
         RecipientDirectory::class => DatabaseRecipientDirectory::class,
     ];
 
