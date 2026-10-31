@@ -6,6 +6,7 @@ namespace Cronos\Shared\Infrastructure\Geo;
 
 use Cronos\Shared\Domain\Geo\GeoLocation;
 use Cronos\Shared\Domain\Geo\GeoLocator;
+use Cronos\Shared\Domain\Geo\IpAddress;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -20,10 +21,12 @@ final class DatabaseGeoLocator implements GeoLocator
         $fallback = (string) config('geo.default_timezone');
         $hint = $this->country($countryHint);
 
-        if ($ip === null || filter_var($ip, FILTER_VALIDATE_IP) === false) {
-            return $this->fromCountry($ip, $hint, GeoLocation::SOURCE_HEADER, $fallback);
+        // IPv4, IPv6 and IPv4-mapped IPv6 (::ffff:1.2.3.4) all resolve through the same ranges table.
+        $ip = IpAddress::normalize($ip);
+        if ($ip === null) {
+            return $this->fromCountry(null, $hint, GeoLocation::SOURCE_HEADER, $fallback);
         }
-        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+        if (! IpAddress::isPublic($ip)) {
             return new GeoLocation($ip, null, $this->valid($fallback) ?? 'UTC', GeoLocation::SOURCE_FALLBACK);
         }
 

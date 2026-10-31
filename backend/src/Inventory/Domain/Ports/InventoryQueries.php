@@ -37,4 +37,13 @@ interface InventoryQueries
      * @return list<array{product_id: string, warehouse_id: int, quantity: string, returned: string}>
      */
     public function soldForOrder(string $orderId): array;
+
+    /**
+     * Stock a market can actually sell: the buyable products behind each id (a variable product is its published variations) with
+     * what its own warehouses have available.
+     *
+     * @param  list<string>  $productIds
+     * @return array<string, list<array{manage_stock: bool, allow_backorder: bool, min_quantity: string, available: string}>> by the id asked for
+     */
+    public function marketAvailability(array $productIds, ?string $marketCode): array;
 }

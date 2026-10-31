@@ -36,6 +36,8 @@ type Order {
   refunded: String!
   couponCode: String
   placedAt: DateTime
+  "Who sold, as of the sale (legal name, tax id, fiscal address, invoice series)."
+  issuer: JSON
   items: [OrderItem!]!
   shippingAddress: JSON
   timeline: [OrderTimelineEntry!]!

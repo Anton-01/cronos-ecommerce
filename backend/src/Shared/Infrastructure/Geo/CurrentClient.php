@@ -7,6 +7,7 @@ namespace Cronos\Shared\Infrastructure\Geo;
 use Cronos\Shared\Domain\ClientContext;
 use Cronos\Shared\Domain\Geo\GeoLocation;
 use Cronos\Shared\Domain\Geo\GeoLocator;
+use Cronos\Shared\Domain\Geo\IpAddress;
 use Illuminate\Http\Request;
 
 /**
@@ -52,7 +53,7 @@ final class CurrentClient
         $header = config('geo.country_header');
         $hint = $header && $request->isFromTrustedProxy() ? $request->headers->get((string) $header) : null;
 
-        return $this->locator->locate($request->ip(), $hint);
+        return $this->locator->locate(IpAddress::normalize($request->ip()), $hint);
     }
 
     private function request(): ?Request

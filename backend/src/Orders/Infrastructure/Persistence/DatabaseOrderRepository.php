@@ -48,6 +48,7 @@ final class DatabaseOrderRepository implements OrderRepository
 
     public function insert(array $order, array $items, array $addresses, array $discounts): void
     {
+        array_key_exists('issuer', $order) && $order['issuer'] = json_encode($order['issuer'], JSON_THROW_ON_ERROR);
         DB::table('orders')->insert($order + ['created_at' => now(), 'updated_at' => now()]);
         foreach ($items as $item) {
             DB::table('order_items')->insert(['order_id' => $order['id'], 'options' => json_encode($item['options'], JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()] + array_diff_key($item, ['options' => 1]));
@@ -137,6 +138,7 @@ final class DatabaseOrderRepository implements OrderRepository
         }
         $a['tax_included'] = (bool) $a['tax_included'];
         $a['country'] = $a['country_code'];
+        $a['issuer'] = isset($a['issuer']) ? (json_decode((string) $a['issuer'], true) ?: null) : null;
 
         return $a;
     }

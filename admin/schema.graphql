@@ -23,6 +23,8 @@ type Query {
  adminReservations(productId: ID): [ActiveReservation!]!
  "Checks the derived numbers against the Kardex and verifies its hash chains."
  adminInventoryHealth: InventoryHealth!
+ "Every store with its seller identity, shipping, contact and the things linked to it (warehouses, payment methods, tax rates)."
+ adminMarketProfiles: [AdminMarketProfile!]!
  mediaItem(id: ID!): Media
  adminOrders(status: String, paymentStatus: String, search: String, first: Int = 25, offset: Int = 0): AdminOrderPage!
  adminOrder(id: ID!): AdminOrder
@@ -127,6 +129,12 @@ type Mutation {
  transferStock(productId: ID!, fromWarehouseId: ID!, toWarehouseId: ID!, quantity: String!, note: String): TransferResult!
  "Undoes a movement with a new one that points back at it (a movement can be undone once). Returns the new id."
  compensateMovement(id: ID!, reason: String!): ID!
+ "Only the fields sent change. The tax id is checked by the rules of the market's country."
+ updateMarketProfile(code: String!, input: MarketProfileInput!): AdminMarketProfile!
+ "Which countries land on this store. A country belongs to one store only; the store's own country must stay."
+ setMarketCountries(code: String!, countries: [String!]!): AdminMarketProfile!
+ "The store shown to visitors from countries that have none."
+ setFallbackMarket(code: String!): AdminMarketProfile!
  uploadMedia(file: Upload!, collection: String = "library"): Media!
  updateMedia(id: ID!, name: String, translations: [MediaTranslationInput!]): Media!
  deleteMedia(id: ID!): Boolean!
@@ -304,6 +312,16 @@ enum PaymentMode {
  SANDBOX
  LIVE
 }
+type MarketAddress {
+ street: String
+ exteriorNo: String
+ interiorNo: String
+ neighborhood: String
+ city: String
+ state: String
+ zip: String
+ countryCode: String
+}
 type TrackingEvent {
  status: String!
  description: String
@@ -365,6 +383,8 @@ type Order {
  refunded: String!
  couponCode: String
  placedAt: DateTime
+ "Who sold, as of the sale (legal name, tax id, fiscal address, invoice series)."
+ issuer: JSON
  items: [OrderItem!]!
  shippingAddress: JSON
  timeline: [OrderTimelineEntry!]!
@@ -936,6 +956,72 @@ input RecordMovementInput {
  unitCost: String
  note: String
 }
+type MarketWarehouseLink {
+ id: ID!
+ code: String!
+ name: String!
+ isActive: Boolean!
+}
+type AdminMarketProfile {
+ marketId: ID!
+ code: String!
+ name: String!
+ countryCode: String!
+ currencyId: ID!
+ defaultLocale: String!
+ pricesIncludeTax: Boolean!
+ isActive: Boolean!
+ "Seller identity printed on invoices of this store."
+ legalName: String
+ tradeName: String
+ taxId: String
+ "RFC in Mexico, EIN in the US.."
+ taxIdLabel: String!
+ taxRegime: String
+ fiscalAddress: MarketAddress!
+ invoiceSeries: String
+ contactEmail: String
+ contactPhone: String
+ supportHours: String
+ "Where this store's operational alerts go (new custom orders..). Falls back to the global address."
+ opsEmail: String
+ "Flat shipping fee in the market currency; empty = free."
+ shippingFlat: String
+ "Shipping is free from this items total."
+ shippingFreeOver: String
+ "The store shown to visitors from countries without a store of their own."
+ isFallback: Boolean!
+ "Countries whose visitors land on this store."
+ countries: [String!]!
+ warehouses: [MarketWarehouseLink!]!
+ paymentProviders: [String!]!
+ taxRateCount: Int!
+}
+input MarketAddressInput {
+ street: String
+ exteriorNo: String
+ interiorNo: String
+ neighborhood: String
+ city: String
+ state: String
+ zip: String
+ countryCode: String
+}
+input MarketProfileInput {
+ legalName: String
+ tradeName: String
+ taxId: String
+ taxIdLabel: String
+ taxRegime: String
+ fiscalAddress: MarketAddressInput
+ invoiceSeries: String
+ contactEmail: String
+ contactPhone: String
+ supportHours: String
+ opsEmail: String
+ shippingFlat: String
+ shippingFreeOver: String
+}
 type AdminOrderHistory {
  id: ID!
  status: String!
@@ -967,6 +1053,7 @@ type AdminOrder {
  total: String!
  refunded: String!
  couponCode: String
+ issuer: JSON
  paymentId: ID
  checkoutId: ID
  fraudScore: Int!

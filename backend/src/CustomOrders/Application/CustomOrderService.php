@@ -60,7 +60,7 @@ final class CustomOrderService
             ]);
             $this->requests->addMessage($id, ['author_type' => 'customer', 'author_id' => $userId, 'body' => $description]);
         });
-        $this->events->dispatch(new CustomOrderSubmitted($id, $number, strtolower(trim($email)), $title));
+        $this->events->dispatch(new CustomOrderSubmitted($id, $number, strtolower(trim($email)), $title, strtoupper($marketCode)));
 
         return $this->requests->find($id);
     }

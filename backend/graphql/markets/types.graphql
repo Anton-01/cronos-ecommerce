@@ -1,0 +1,10 @@
+type MarketAddress {
+  street: String
+  exteriorNo: String
+  interiorNo: String
+  neighborhood: String
+  city: String
+  state: String
+  zip: String
+  countryCode: String
+}

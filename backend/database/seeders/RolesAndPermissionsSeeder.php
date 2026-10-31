@@ -23,6 +23,7 @@ class RolesAndPermissionsSeeder extends Seeder
         'fraud.view', 'fraud.manage',
         'inventory.view', 'inventory.manage',
         'orders.view', 'orders.manage', 'orders.cancel',
+        'markets.view', 'markets.manage',
         'custom-orders.view', 'custom-orders.manage',
         'payments.view', 'payments.manage', 'payments.refund', 'payments.go-live',
     ];

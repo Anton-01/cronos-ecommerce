@@ -1,0 +1,43 @@
+"What a store tells its customers about who sells and how to reach them."
+type PublicStoreProfile {
+  legalName: String
+  tradeName: String
+  taxIdLabel: String!
+  taxId: String
+  fiscalAddress: MarketAddress!
+  contactEmail: String
+  contactPhone: String
+  supportHours: String
+  countries: [String!]!
+}
+
+type MarketPrompt {
+  "Words in the language of the visitor's own store."
+  title: String!
+  body: String!
+  switchLabel: String!
+  stayLabel: String!
+}
+
+"Amazon-style: the store the visitor is browsing versus the store of the country they connect from."
+type MarketContext {
+  detectedCountry: String
+  "The store of the visitor's country (or the default store when there is none)."
+  detectedMarket: PublicMarket
+  selectedMarket: PublicMarket
+  "True when the visitor browses a store other than the one of their own country."
+  outside: Boolean!
+  "Present only when outside: the text of the notice to show."
+  prompt: MarketPrompt
+}
+
+extend type PublicMarket {
+  profile: PublicStoreProfile!
+    @field(resolver: "Cronos\\Markets\\Interfaces\\GraphQL\\StorefrontMarkets@profile")
+}
+
+extend type Query {
+  "Pass the store the visitor is browsing; decide from `outside` whether to show the notice. The country comes from the IP, never from a parameter."
+  marketContext(selected: String): MarketContext!
+    @field(resolver: "Cronos\\Markets\\Interfaces\\GraphQL\\StorefrontMarkets@context")
+}

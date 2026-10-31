@@ -104,4 +104,34 @@ final class DatabaseInventoryQueries implements InventoryQueries
 
         return $rows->map(static fn ($r) => ['product_id' => $r->product_id, 'warehouse_id' => (int) $r->warehouse_id, 'quantity' => (string) $r->sold, 'returned' => (string) $r->returned])->all();
     }
+
+    public function marketAvailability(array $productIds, ?string $marketCode): array
+    {
+        if ($productIds === []) {
+            return [];
+        }
+        $marketId = $marketCode === null ? null : DB::table('markets')->where('code', strtoupper($marketCode))->value('id');
+        $warehouses = DB::table('warehouses')->where('is_active', true)->whereNull('deleted_at')
+            ->when($marketId !== null && config('inventory.market_isolation', true), fn ($q) => $q->where(fn ($w) => $w->whereNull('market_id')->orWhere('market_id', $marketId)))
+            ->pluck('id')->all();
+
+        $rows = DB::table('products as p')
+            ->leftJoin('products as v', fn ($j) => $j->on('v.parent_id', '=', 'p.id')->where('v.status', 'published')->whereNull('v.deleted_at'))
+            ->whereIn('p.id', $productIds)
+            ->get(['p.id as asked', 'p.type', DB::raw('COALESCE(v.id, p.id) as buyable'), DB::raw('COALESCE(v.manage_stock, p.manage_stock) as manage_stock'),
+                DB::raw('COALESCE(v.allow_backorder, p.allow_backorder) as allow_backorder'), 'p.min_quantity']);
+
+        $buyable = $rows->pluck('buyable')->unique()->all();
+        $available = $warehouses === [] ? collect() : DB::table('stock_levels')->whereIn('product_id', $buyable)->whereIn('warehouse_id', $warehouses)->groupBy('product_id')->selectRaw('product_id, SUM(available) AS available')->pluck('available', 'product_id');
+
+        $out = [];
+        foreach ($rows as $r) {
+            if ($r->type === 'variable' && $r->buyable === $r->asked) {
+                continue; // a variable product with no published variation sells nothing
+            }
+            $out[$r->asked][] = ['manage_stock' => (bool) $r->manage_stock, 'allow_backorder' => (bool) $r->allow_backorder, 'min_quantity' => (string) $r->min_quantity, 'available' => (string) ($available[$r->buyable] ?? '0')];
+        }
+
+        return $out;
+    }
 }

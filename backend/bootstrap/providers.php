@@ -8,6 +8,7 @@ use Cronos\Checkout\Infrastructure\CheckoutServiceProvider;
 use Cronos\CustomOrders\Infrastructure\CustomOrdersServiceProvider;
 use Cronos\Fraud\Infrastructure\FraudServiceProvider;
 use Cronos\Notifications\Infrastructure\NotificationsServiceProvider;
+use Cronos\Markets\Infrastructure\MarketsServiceProvider;
 use Cronos\Orders\Infrastructure\OrdersServiceProvider;
 use Cronos\Shipping\Infrastructure\ShippingServiceProvider;
 use Cronos\Wishlist\Infrastructure\WishlistServiceProvider;
@@ -30,6 +31,7 @@ return [
     SettingsServiceProvider::class,
     CatalogServiceProvider::class,
     PricingServiceProvider::class,
+    MarketsServiceProvider::class,
     PaymentsServiceProvider::class,
     InventoryServiceProvider::class,
     PromotionsServiceProvider::class,

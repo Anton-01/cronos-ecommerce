@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 /** Creates the order behind an accepted quote: type "custom", waiting for payment (unpaid), with the quote's lines and totals frozen in. */
 final class CustomOrderPlacer
 {
-    public function __construct(private readonly OrderRepository $orders) {}
+    public function __construct(private readonly OrderRepository $orders, private readonly IssuerSnapshot $issuers) {}
 
     /**
      * @param  array<string, mixed>  $request
@@ -30,6 +30,7 @@ final class CustomOrderPlacer
             'market_code' => $request['market_code'], 'currency' => $quote['currency'], 'tax_included' => $quote['tax_included'], 'status' => 'pending', 'payment_status' => 'unpaid',
             'subtotal' => $quote['subtotal'], 'discount_total' => '0.00', 'shipping_total' => $quote['shipping_total'], 'tax_total' => $quote['tax_total'], 'grand_total' => $quote['grand_total'],
             'source_id' => $quote['id'], 'customer_note' => $request['title'], 'ip_address' => $client?->ip, 'country_code' => $client?->country, 'timezone' => $client?->timezone,
+            'issuer' => $this->issuers->forMarket($request['market_code']),
         ];
         $items = array_map(static fn (array $l) => [
             'product_id' => $l['product_id'], 'product_name' => $l['description'], 'sku' => null, 'unit' => $l['unit'] === 'service' ? 'piece' : $l['unit'], 'quantity' => $l['quantity'],

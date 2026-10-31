@@ -7,6 +7,7 @@ namespace Cronos\Notifications\Application\Listeners;
 use Cronos\CustomOrders\Domain\Events\CustomOrderSubmitted;
 use Cronos\CustomOrders\Domain\Events\CustomOrderUpdated;
 use Cronos\CustomOrders\Domain\Events\QuoteSent;
+use Cronos\Markets\Domain\Ports\MarketProfileRepository;
 use Cronos\Notifications\Application\NotificationService;
 use Cronos\Orders\Domain\Events\OrderPlaced;
 use Cronos\Orders\Domain\Events\OrderStatusChanged;
@@ -20,7 +21,7 @@ final class NotifyAboutOrders
     /** Statuses worth a message of their own. `shipped` is announced by the shipment (it has the tracking link). */
     private const STATUS_MESSAGES = ['delivered', 'cancelled', 'refunded'];
 
-    public function __construct(private readonly NotificationService $notifications, private readonly OrderRepository $orders) {}
+    public function __construct(private readonly NotificationService $notifications, private readonly OrderRepository $orders, private readonly MarketProfileRepository $profiles) {}
 
     public function placed(OrderPlaced $e): void
     {
@@ -53,18 +54,18 @@ final class NotifyAboutOrders
     public function quoteSent(QuoteSent $e): void
     {
         $this->notifications->send('quote_ready', 'quote:'.$e->quoteId, $e->email, $e->userId, $e->marketCode, [
-            'number' => $e->number, 'total' => $e->total, 'currency' => $e->currency, 'valid_until' => $e->validUntil ?? '-', 'url' => $this->customUrl($e->number),
+            'reply_to' => $this->profiles->profile($e->marketCode)['contact_email'] ?? null, 'number' => $e->number, 'total' => $e->total, 'currency' => $e->currency, 'valid_until' => $e->validUntil ?? '-', 'url' => $this->customUrl($e->number),
         ], 'custom_order', $e->requestId);
     }
 
     public function customUpdated(CustomOrderUpdated $e): void
     {
-        $this->notifications->send('custom_order_update', $e->dedupeKey, $e->email, $e->userId, $e->marketCode, ['number' => $e->number, 'message' => $e->message, 'url' => $this->customUrl($e->number)], 'custom_order', $e->requestId);
+        $this->notifications->send('custom_order_update', $e->dedupeKey, $e->email, $e->userId, $e->marketCode, ['reply_to' => $this->profiles->profile($e->marketCode)['contact_email'] ?? null, 'number' => $e->number, 'message' => $e->message, 'url' => $this->customUrl($e->number)], 'custom_order', $e->requestId);
     }
 
     public function customSubmitted(CustomOrderSubmitted $e): void
     {
-        $ops = (string) config('notifications.ops_email', '');
+        $ops = (string) (($this->profiles->profile($e->marketCode)['ops_email'] ?? null) ?: config('notifications.ops_email', ''));
         $ops === '' || $this->notifications->send('ops_alert', 'custom:'.$e->requestId, $ops, null, null, ['subject_line' => "New custom order {$e->number}", 'detail' => "{$e->title} — {$e->email}"], 'custom_order', $e->requestId);
     }
 
@@ -85,6 +86,7 @@ final class NotifyAboutOrders
     private function orderData(array $o): array
     {
         return [
+            'reply_to' => $this->profiles->profile($o['market_code'])['contact_email'] ?? null,
             'number' => $o['order_number'], 'total' => $o['grand_total'], 'currency' => $o['currency'], 'status' => $o['status'],
             'track_url' => rtrim((string) config('app.storefront_url'), '/').'/orders/track?number='.rawurlencode($o['order_number']),
         ];

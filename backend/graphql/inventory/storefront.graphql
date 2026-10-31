@@ -1,0 +1,10 @@
+extend type ProductSummary {
+  "Availability in one store: only that market's own warehouses count (a US-only stock is out of stock for Mexico)."
+  stockStatusIn(market: String!): StockStatus!
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\MarketStockStatusField")
+}
+
+extend type ProductPage {
+  stockStatusIn(market: String!): StockStatus!
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\MarketStockStatusField")
+}

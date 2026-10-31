@@ -1,0 +1,91 @@
+type MarketWarehouseLink {
+  id: ID!
+  code: String!
+  name: String!
+  isActive: Boolean!
+}
+
+type AdminMarketProfile {
+  marketId: ID!
+  code: String!
+  name: String!
+  countryCode: String!
+  currencyId: ID!
+  defaultLocale: String!
+  pricesIncludeTax: Boolean!
+  isActive: Boolean!
+  "Seller identity printed on invoices of this store."
+  legalName: String
+  tradeName: String
+  taxId: String
+  "RFC in Mexico, EIN in the US..."
+  taxIdLabel: String!
+  taxRegime: String
+  fiscalAddress: MarketAddress!
+  invoiceSeries: String
+  contactEmail: String
+  contactPhone: String
+  supportHours: String
+  "Where this store's operational alerts go (new custom orders...). Falls back to the global address."
+  opsEmail: String
+  "Flat shipping fee in the market currency; empty = free."
+  shippingFlat: String
+  "Shipping is free from this items total."
+  shippingFreeOver: String
+  "The store shown to visitors from countries without a store of their own."
+  isFallback: Boolean!
+  "Countries whose visitors land on this store."
+  countries: [String!]!
+  warehouses: [MarketWarehouseLink!]!
+  paymentProviders: [String!]!
+  taxRateCount: Int!
+}
+
+input MarketAddressInput {
+  street: String
+  exteriorNo: String
+  interiorNo: String
+  neighborhood: String
+  city: String
+  state: String
+  zip: String
+  countryCode: String
+}
+
+input MarketProfileInput {
+  legalName: String
+  tradeName: String
+  taxId: String
+  taxIdLabel: String
+  taxRegime: String
+  fiscalAddress: MarketAddressInput
+  invoiceSeries: String
+  contactEmail: String
+  contactPhone: String
+  supportHours: String
+  opsEmail: String
+  shippingFlat: String
+  shippingFreeOver: String
+}
+
+extend type Query {
+  "Every store with its seller identity, shipping, contact and the things linked to it (warehouses, payment methods, tax rates)."
+  adminMarketProfiles: [AdminMarketProfile!]!
+    @guard @can(ability: "markets.view", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Markets\\Interfaces\\GraphQL\\AdminMarketProfiles@list")
+}
+
+extend type Mutation {
+  "Only the fields sent change. The tax id is checked by the rules of the market's country."
+  updateMarketProfile(code: String!, input: MarketProfileInput!): AdminMarketProfile!
+    @guard @can(ability: "markets.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Markets\\Interfaces\\GraphQL\\AdminMarketProfiles@update")
+  "Which countries land on this store. A country belongs to one store only; the store's own country must stay."
+  setMarketCountries(code: String!, countries: [String!]!): AdminMarketProfile!
+    @guard @can(ability: "markets.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Markets\\Interfaces\\GraphQL\\AdminMarketProfiles@countries")
+  "The store shown to visitors from countries that have none."
+  setFallbackMarket(code: String!): AdminMarketProfile!
+    @guard @can(ability: "markets.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Markets\\Interfaces\\GraphQL\\AdminMarketProfiles@fallback")
+}

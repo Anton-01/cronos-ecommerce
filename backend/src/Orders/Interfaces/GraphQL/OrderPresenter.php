@@ -53,7 +53,7 @@ final class OrderPresenter
         return [
             'id' => $o['id'], 'number' => $o['order_number'], 'status' => $o['status'], 'paymentStatus' => $o['payment_status'], 'fulfillmentStatus' => $o['fulfillment_status'],
             'currency' => $o['currency'], 'taxIncluded' => $o['tax_included'], 'subtotal' => $o['subtotal'], 'discount' => $o['discount_total'], 'shipping' => $o['shipping_total'],
-            'tax' => $o['tax_total'], 'total' => $o['grand_total'], 'refunded' => $o['refunded_total'], 'couponCode' => $o['coupon_code'], 'placedAt' => $o['placed_at'],
+            'issuer' => $o['issuer'], 'tax' => $o['tax_total'], 'total' => $o['grand_total'], 'refunded' => $o['refunded_total'], 'couponCode' => $o['coupon_code'], 'placedAt' => $o['placed_at'],
             'items' => array_map(static fn (array $i) => [
                 'productId' => $i['product_id'], 'name' => $i['product_name'], 'sku' => $i['sku'], 'unit' => $i['unit'], 'quantity' => $i['quantity'], 'unitPrice' => $i['unit_price'],
                 'discount' => $i['discount_amount'], 'taxRate' => $i['tax_rate'], 'tax' => $i['tax_amount'], 'subtotal' => $i['subtotal'], 'total' => $i['total'],

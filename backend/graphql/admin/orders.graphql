@@ -30,6 +30,7 @@ type AdminOrder {
   total: String!
   refunded: String!
   couponCode: String
+  issuer: JSON
   paymentId: ID
   checkoutId: ID
   fraudScore: Int!

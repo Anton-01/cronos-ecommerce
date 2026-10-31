@@ -12,6 +12,7 @@ type Mutation
 #import media/types.graphql
 #import identity/types.graphql
 #import payments/types.graphql
+#import markets/types.graphql
 #import shipping/types.graphql
 #import orders/types.graphql
 #import custom-orders/types.graphql

@@ -22,6 +22,7 @@ final class OrderPlacer
         private readonly OrderRepository $orders,
         private readonly CheckoutRepository $checkouts,
         private readonly DomainEventDispatcher $events,
+        private readonly IssuerSnapshot $issuers,
     ) {}
 
     /** @return array<string, mixed> the order */
@@ -49,7 +50,7 @@ final class OrderPlacer
                 'shipping_total' => $checkout['shipping'],
                 'tax_total' => $checkout['tax'], 'grand_total' => $checkout['total'], 'coupon_id' => $checkout['coupon_id'], 'coupon_code' => $checkout['coupon_code'],
                 'checkout_id' => $checkout['id'], 'payment_id' => $checkout['payment_id'], 'fraud_score' => $checkout['fraud_score'], 'fraud_decision' => $checkout['fraud_decision'],
-                'ip_address' => $checkout['ip_address'], 'country_code' => $checkout['country_code'], 'timezone' => $checkout['timezone'], 'placed_at' => $checkout['paid_at'],
+                'ip_address' => $checkout['ip_address'], 'country_code' => $checkout['country_code'], 'timezone' => $checkout['timezone'], 'placed_at' => $checkout['paid_at'], 'issuer' => $this->issuers->forMarket($checkout['market_code']),
             ];
             $items = array_map(static fn (array $l) => [
                 'product_id' => $l['product_id'], 'product_name' => $l['name'], 'sku' => $l['sku'], 'unit' => $l['unit'] ?? ($l['by_roll'] ? 'roll' : 'piece'),

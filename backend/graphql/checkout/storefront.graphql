@@ -57,6 +57,9 @@ input AddressInput {
   countryCode: String! @rules(apply: ["size:2"])
   zip: String! @rules(apply: ["max:12"])
   references: String @rules(apply: ["max:300"])
+  "Billing only: the customer's tax id (RFC in Mexico) and the name it is issued to, when they want an invoice."
+  taxId: String @rules(apply: ["max:30"])
+  businessName: String @rules(apply: ["max:160"])
 }
 
 input StartCheckoutInput {

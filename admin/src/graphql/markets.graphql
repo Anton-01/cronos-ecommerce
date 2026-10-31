@@ -1,0 +1,65 @@
+fragment MarketProfileFields on AdminMarketProfile {
+  marketId
+  code
+  name
+  countryCode
+  defaultLocale
+  pricesIncludeTax
+  isActive
+  legalName
+  tradeName
+  taxId
+  taxIdLabel
+  taxRegime
+  invoiceSeries
+  contactEmail
+  contactPhone
+  supportHours
+  opsEmail
+  shippingFlat
+  shippingFreeOver
+  isFallback
+  countries
+  taxRateCount
+  paymentProviders
+  fiscalAddress {
+    street
+    exteriorNo
+    interiorNo
+    neighborhood
+    city
+    state
+    zip
+    countryCode
+  }
+  warehouses {
+    id
+    code
+    name
+    isActive
+  }
+}
+
+query AdminMarketProfiles {
+  adminMarketProfiles {
+    ...MarketProfileFields
+  }
+}
+
+mutation UpdateMarketProfile($code: String!, $input: MarketProfileInput!) {
+  updateMarketProfile(code: $code, input: $input) {
+    ...MarketProfileFields
+  }
+}
+
+mutation SetMarketCountries($code: String!, $countries: [String!]!) {
+  setMarketCountries(code: $code, countries: $countries) {
+    ...MarketProfileFields
+  }
+}
+
+mutation SetFallbackMarket($code: String!) {
+  setFallbackMarket(code: $code) {
+    ...MarketProfileFields
+  }
+}

@@ -13,6 +13,8 @@ use Cronos\Fraud\Application\FraudService;
 use Cronos\Fraud\Domain\ValueObjects\FraudContext;
 use Cronos\Fraud\Domain\ValueObjects\FraudDecision;
 use Cronos\Inventory\Application\ReservationService;
+use Cronos\Markets\Domain\Exceptions\MarketError;
+use Cronos\Markets\Domain\Services\TaxIdRules;
 use Cronos\Payments\Application\PaymentService;
 use Cronos\Payments\Application\ProviderCatalog;
 use Cronos\Payments\Domain\Ports\PaymentRepository;
@@ -66,6 +68,7 @@ final class CheckoutService
         $billing ??= $shipping;
         $this->assertAddress($shipping);
         $this->assertAddress($billing);
+        $billing = $this->withValidTaxId($billing);
         $country = $this->products->marketCountry($cart['market_code']);
         strtoupper((string) $shipping['country_code']) === $country || throw new CheckoutError("This store only ships to {$country} for the {$cart['market_code']} market.", 'SHIPPING_COUNTRY_MISMATCH');
 
@@ -217,6 +220,29 @@ final class CheckoutService
             'product_id' => $i['product_id'],
             'quantity' => $i['by_roll'] ? (string) $known[$i['product_id']]['sales']->metersForRolls((int) $i['quantity']) : $i['quantity'],
         ], $items);
+    }
+
+    /**
+     * A customer who wants an invoice gives their tax id: it is checked by the rules of the billing country (RFC, EIN) and stored clean.
+     *
+     * @param  array<string, mixed>  $billing
+     * @return array<string, mixed>
+     */
+    private function withValidTaxId(array $billing): array
+    {
+        $id = isset($billing['tax_id']) ? trim((string) $billing['tax_id']) : '';
+        if ($id === '') {
+            unset($billing['tax_id']);
+
+            return $billing;
+        }
+        try {
+            $billing['tax_id'] = TaxIdRules::normalize((string) $billing['country_code'], $id);
+        } catch (MarketError $e) {
+            throw new CheckoutError($e->getMessage(), 'INVALID_TAX_ID');
+        }
+
+        return $billing;
     }
 
     /** @param array<string, mixed> $address */

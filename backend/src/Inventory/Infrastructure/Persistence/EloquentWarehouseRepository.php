@@ -26,7 +26,10 @@ final class EloquentWarehouseRepository implements WarehouseRepository
     {
         $marketId = $marketCode === null ? null : DB::table('markets')->where('code', strtoupper($marketCode))->value('id');
 
+        $isolated = $marketId !== null && config('inventory.market_isolation', true);
+
         return WarehouseModel::query()->where('is_active', true)->get()
+            ->when($isolated, fn ($all) => $all->filter(fn ($m) => $m->market_id === null || $m->market_id === $marketId))
             ->sortBy(fn ($m) => [$marketId !== null && $m->market_id === $marketId ? 0 : ($m->is_default ? 1 : 2), $m->id])
             ->map(fn ($m) => $this->row($m))->values()->all();
     }

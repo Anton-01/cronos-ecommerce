@@ -28,6 +28,7 @@ const AuditPage = lazy(() => import('@/features/audit/AuditPage').then((m) => ({
 const PaymentsPage = lazy(() => import('@/features/payments/PaymentsPage').then((m) => ({ default: m.PaymentsPage })))
 const OrdersPage = lazy(() => import('@/features/orders/OrdersPage').then((m) => ({ default: m.OrdersPage })))
 const CustomOrdersPage = lazy(() => import('@/features/orders/CustomOrdersPage').then((m) => ({ default: m.CustomOrdersPage })))
+const MarketsPage = lazy(() => import('@/features/markets/MarketsPage').then((m) => ({ default: m.MarketsPage })))
 const InventoryPage = lazy(() => import('@/features/inventory/InventoryPage').then((m) => ({ default: m.InventoryPage })))
 const RolesPage = lazy(() => import('@/features/roles/RolesPage').then((m) => ({ default: m.RolesPage })))
 
@@ -59,6 +60,9 @@ export function App() {
           </Route>
           <Route element={<RequireAuth permission="inventory.view" />}>
             <Route path="inventory" element={page(<InventoryPage />)} />
+          </Route>
+          <Route element={<RequireAuth permission="markets.view" />}>
+            <Route path="markets" element={page(<MarketsPage />)} />
           </Route>
           <Route element={<RequireAuth permission="orders.view" />}>
             <Route path="orders" element={page(<OrdersPage />)} />

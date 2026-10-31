@@ -116,6 +116,7 @@ final class CheckoutResolver
             'recipient_name' => $a['recipientName'], 'phone' => $a['phone'] ?? null, 'street' => $a['street'], 'exterior_no' => $a['exteriorNo'] ?? null,
             'interior_no' => $a['interiorNo'] ?? null, 'neighborhood' => $a['neighborhood'] ?? null, 'city' => $a['city'], 'state' => $a['state'],
             'country_code' => strtoupper($a['countryCode']), 'zip' => $a['zip'], 'references' => $a['references'] ?? null,
+            'tax_id' => $a['taxId'] ?? null, 'business_name' => $a['businessName'] ?? null,
         ];
     }
 

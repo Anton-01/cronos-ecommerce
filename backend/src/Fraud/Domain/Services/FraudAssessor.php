@@ -8,6 +8,7 @@ use Cronos\Fraud\Domain\Ports\FraudSignals;
 use Cronos\Fraud\Domain\ValueObjects\FraudContext;
 use Cronos\Fraud\Domain\ValueObjects\FraudDecision;
 use Cronos\Fraud\Domain\ValueObjects\FraudRule;
+use Cronos\Shared\Domain\Geo\IpAddress;
 
 /** Adds up the score of every rule that fires; the total decides allow / review (a human looks) / block. */
 final class FraudAssessor
@@ -38,9 +39,9 @@ final class FraudAssessor
         $p = $rule->params;
 
         return match ($rule->type) {
-            'velocity_ip' => $this->velocity('attempt_ip', $ctx->ip, $p, 'attempts from this IP'),
+            'velocity_ip' => $this->velocity('attempt_ip', IpAddress::counterKey($ctx->ip), $p, 'attempts from this IP'),
             'velocity_email' => $this->velocity('attempt_email', $ctx->email === null ? null : strtolower($ctx->email), $p, 'attempts with this email'),
-            'failed_payments' => $this->velocity('failed_payment', $ctx->email === null ? $ctx->ip : strtolower($ctx->email), $p, 'failed payments'),
+            'failed_payments' => $this->velocity('failed_payment', $ctx->email === null ? IpAddress::counterKey($ctx->ip) : strtolower($ctx->email), $p, 'failed payments'),
             'amount_over' => isset($p['amounts'][$ctx->total->currency]) && $ctx->total->amount->isGreaterThan($p['amounts'][$ctx->total->currency])
                 ? "total {$ctx->total->value()} {$ctx->total->currency} is over {$p['amounts'][$ctx->total->currency]}" : null,
             'country_mismatch' => $ctx->billingCountry !== null && $ctx->shippingCountry !== null && strtoupper($ctx->billingCountry) !== strtoupper($ctx->shippingCountry)

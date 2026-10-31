@@ -10,6 +10,7 @@ use Cronos\Fraud\Domain\Services\FraudAssessor;
 use Cronos\Fraud\Domain\ValueObjects\FraudContext;
 use Cronos\Fraud\Domain\ValueObjects\FraudDecision;
 use Cronos\Fraud\Domain\ValueObjects\FraudRule;
+use Cronos\Shared\Domain\Geo\IpAddress;
 
 /** Scores a checkout attempt, logs the verdict immutably and feeds the behavioural counters. */
 final class FraudService
@@ -24,7 +25,7 @@ final class FraudService
         $decision = $assessor->assess($ctx, $rules);
         $this->repository->recordCheck($orderId, $ctx, $decision);
 
-        $ctx->ip === null || $this->signals->record('attempt_ip', $ctx->ip);
+        $ctx->ip === null || $this->signals->record('attempt_ip', IpAddress::counterKey($ctx->ip) ?? $ctx->ip);
         $ctx->email === null || $this->signals->record('attempt_email', strtolower($ctx->email));
 
         return $decision;
@@ -32,7 +33,7 @@ final class FraudService
 
     public function recordFailedPayment(?string $email, ?string $ip): void
     {
-        $key = $email === null ? $ip : strtolower($email);
+        $key = $email === null ? IpAddress::counterKey($ip) : strtolower($email);
         $key === null || $this->signals->record('failed_payment', $key);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cronos\Shared\Infrastructure\Console;
 
+use Cronos\Shared\Domain\Geo\IpAddress;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -36,8 +37,20 @@ final class ImportGeoRangesCommand extends Command
             $this->option('append') || DB::table('geo_ip_ranges')->delete();
 
             while (($row = fgetcsv($handle)) !== false) {
-                [$from, $to, $country] = array_pad($row, 3, null);
-                $valid = filter_var($from, FILTER_VALIDATE_IP) && filter_var($to, FILTER_VALIDATE_IP) && preg_match('/^[A-Za-z]{2}$/', (string) $country) === 1;
+                // "from,to,country[,timezone[,region]]" or "cidr,country[,timezone[,region]]"; IPv4 and IPv6 alike.
+                $isCidr = isset($row[0]) && str_contains((string) $row[0], '/');
+                if ($isCidr) {
+                    $range = IpAddress::cidrRange((string) $row[0]);
+                    [$from, $to] = $range ?? [null, null];
+                    $country = $row[1] ?? null;
+                    $row = [$from, $to, $country, $row[2] ?? '', $row[3] ?? ''];
+                } else {
+                    $from = IpAddress::normalize($row[0] ?? null);
+                    $to = IpAddress::normalize($row[1] ?? null);
+                    $country = $row[2] ?? null;
+                }
+                // Both ends in the same family and in order: a reversed or mixed range would make the whole import fail on the CHECK.
+                $valid = $from !== null && $to !== null && IpAddress::family($from) === IpAddress::family($to) && inet_pton($from) <= inet_pton($to) && preg_match('/^[A-Za-z]{2}$/', (string) $country) === 1;
                 if (! $valid) {
                     $skipped++;
 

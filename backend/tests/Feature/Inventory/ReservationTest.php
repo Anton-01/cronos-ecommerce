@@ -137,8 +137,27 @@ final class ReservationTest extends InventoryTestCase
         $ledger->record($bow, $this->mx, MovementType::SALE, 3, $this->actor()); // only 2 are free
     }
 
-    public function test_stock_is_taken_from_the_first_warehouse_that_has_it_preferring_the_markets_own(): void
+    public function test_a_market_only_sells_from_its_own_warehouses_so_us_orders_never_consume_mexican_stock(): void
     {
+        $bow = $this->piece();
+        $this->stock($bow, 2, $this->mx);
+        $this->stock($bow, 50, $this->us);
+
+        $this->reservations()->reserve('cart', 'us-shopper', [['product_id' => $bow, 'quantity' => 5]], marketCode: 'US');
+        $this->assertSame($this->us, (int) DB::table('inventory_reservations')->where('holder_id', 'us-shopper')->value('warehouse_id'));
+
+        try {
+            $this->reservations()->reserve('cart', 'mx-shopper', [['product_id' => $bow, 'quantity' => 5]], marketCode: 'MX'); // 50 in the US, but not for Mexico
+            $this->fail('Mexico must not sell the US stock');
+        } catch (InsufficientStock $e) {
+            $this->assertStringContainsString('2.000 available', $e->getMessage());
+        }
+        $this->assertSame('0.000', (string) DB::table('stock_levels')->where(['product_id' => $bow, 'warehouse_id' => $this->mx])->value('reserved'));
+    }
+
+    public function test_with_isolation_off_stock_is_taken_from_the_first_warehouse_that_has_it_preferring_the_markets_own(): void
+    {
+        config(['inventory.market_isolation' => false]);
         $bow = $this->piece();
         $this->stock($bow, 2, $this->mx);
         $this->stock($bow, 50, $this->us);

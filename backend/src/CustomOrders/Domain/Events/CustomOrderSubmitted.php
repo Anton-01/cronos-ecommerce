@@ -6,5 +6,5 @@ namespace Cronos\CustomOrders\Domain\Events;
 
 final readonly class CustomOrderSubmitted
 {
-    public function __construct(public string $requestId, public string $number, public string $email, public string $title) {}
+    public function __construct(public string $requestId, public string $number, public string $email, public string $title, public string $marketCode = '') {}
 }
