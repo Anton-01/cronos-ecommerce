@@ -623,7 +623,8 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho.
 - [ ] **Pendiente**: cursores/TanStack en listados grandes; revisión `EXPLAIN`; tablas de resumen diarias si el volumen lo pide; ajustes de SEO editables por tienda (hoy: config + perfil de la tienda); programación de exportaciones recurrentes
 
 ### FASE 9 — Storefront (cliente)
-- [ ] 🔒 **GATE:** verificar acceso a `https://woodmart.xtemos.com/furniture2/`. **Si no hay acceso, DETENER todo código del storefront** hasta que el usuario comparta evidencia visual (capturas/grabación). *Solo se escribe código de Fase 9 con evidencia en mano.*
+- [x] 🔒 **GATE superado (2026-11-02):** el usuario habilitó el dominio; el navegador del entorno renderiza el demo (HTTP 200). Evidencia visual capturada (escritorio 1440 y móvil 390: inicio, categoría, producto, carrito, cuenta, buscador, menú y filtros móviles). Las capturas no se versionan (material de terceros).
+- [x] **Paso 1 — análisis de la referencia:** tokens medidos (Urbanist + Work Sans, acento `#F59A57`, fondo `#F3F2EE`, radios 10/30 px, contenedor 1400 px), estructura de cabecera/pie/barra inferior móvil, anatomía de cada página y tarjeta de producto, y tabla de equivalencias con nuestro sistema → **`docs/storefront-design.md`**. Pendiente: 4 decisiones del usuario (marca/logotipo, fotos de portada, secciones sin datos como marcas/valoraciones/comparar/blog, SPA vs SSR)
 - [ ] Sistema de diseño (tokens extraídos de la referencia) y layouts
 - [ ] Home, listados con filtros, detalle (variaciones, selector de metros/piezas), carrito, checkout, cuenta, rastreo, pedido personalizado, wishlist
 - [ ] Apollo `InMemoryCache`: `typePolicies`, `keyArgs`, `fetchPolicy` y *optimistic UI* para evitar re-fetch
