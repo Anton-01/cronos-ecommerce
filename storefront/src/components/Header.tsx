@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import { href, type Locale } from '@/lib/config'
+import { href, LOCALES, type Locale } from '@/lib/config'
 import { messages } from '@/lib/i18n'
 import { money } from '@/lib/format'
 import type { Cart, CategoryNode, Market, Theme } from '@/lib/types'
@@ -25,7 +25,13 @@ export function Logo({ theme, locale, dark = false }: { theme: Theme; locale: Lo
 }
 
 /** Internal links stored in the theme ("/ruta") get the language prefix; absolute URLs are left alone. */
-export const link = (locale: Locale, url: string) => (url.startsWith('/') ? href.page(locale, url) : url)
+export const link = (locale: Locale, url: string) => {
+  if (!url.startsWith('/')) return url
+  // Links to the catalogue are stored once for every language: the segment (/categorias, /categories…) is swapped for the visitor's own.
+  const own = LOCALES[locale]
+  const path = url.replace(/^\/(categorias|categories)\//, `/${own.category}/`).replace(/^\/(productos|products)\//, `/${own.product}/`)
+  return href.page(locale, path)
+}
 
 export function Header({ theme, locale, categories, markets, market, cart, ribbon, userName }: { theme: Theme; locale: Locale; categories: CategoryNode[]; markets: Market[]; market: Market; cart: Cart | null; ribbon: boolean; userName: string | null }) {
   const t = messages(locale)

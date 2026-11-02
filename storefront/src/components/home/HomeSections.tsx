@@ -57,8 +57,9 @@ function CategoriesBlock({ title, nodes, locale, shape }: { title: string; nodes
         {nodes.map((c) => (
           <li key={c.id}>
             <Link href={href.category(locale, c.slug ?? '')} className="group flex flex-col items-center gap-3">
-              <span className="relative grid aspect-square w-full place-items-center overflow-hidden bg-surface-alt" style={{ borderRadius: shape === 'square' ? 0 : shape === 'rounded' ? '24px' : '50%' }}>
-                <span className="px-3 text-center text-sm font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--c-heading)' }}>{c.name}</span>
+              <span className="relative block aspect-square w-full overflow-hidden bg-surface-alt" style={{ borderRadius: shape === 'square' ? 0 : shape === 'rounded' ? '24px' : '50%' }}>
+                <Picture image={c.image ?? null} alt="" sizes="(min-width: 1024px) 18vw, 45vw" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                <span className="absolute inset-x-0 bottom-[14%] mx-auto w-fit max-w-[80%] truncate rounded-full bg-white px-4 py-1 text-center text-sm font-semibold shadow-sm" style={{ fontFamily: 'var(--font-heading)', color: 'var(--c-heading)' }}>{c.name}</span>
               </span>
             </Link>
           </li>

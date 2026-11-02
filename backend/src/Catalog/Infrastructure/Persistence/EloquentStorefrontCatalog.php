@@ -28,11 +28,13 @@ final class EloquentStorefrontCatalog implements StorefrontCatalog
 
         $byParent = $rows->groupBy(fn (CategoryModel $c) => $c->parent_id ?? '');
         $visible = $rows->keyBy('id');
-        $build = function (string $parentKey) use (&$build, $byParent, $visible, $locale): array {
+        // One query for every category picture (the home page paints them as round tiles).
+        $pictures = MediaModel::query()->whereIn('id', $rows->pluck('image_media_id')->filter()->unique()->all())->get()->keyBy('id');
+        $build = function (string $parentKey) use (&$build, $byParent, $visible, $locale, $pictures): array {
             return $byParent->get($parentKey, collect())
                 // A category is shown only if every ancestor is active too (inactive parents hide their subtree).
                 ->filter(fn (CategoryModel $c) => $c->parent_id === null || $visible->has($c->parent_id))
-                ->map(fn (CategoryModel $c) => $this->categoryNode($c, $locale) + ['children' => $build($c->id)])
+                ->map(fn (CategoryModel $c) => $this->categoryNode($c, $locale) + ['image' => $c->image_media_id && $pictures->has($c->image_media_id) ? $this->mediaPayload($pictures->get($c->image_media_id), $locale) : null, 'children' => $build($c->id)])
                 ->values()->all();
         };
 

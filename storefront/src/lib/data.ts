@@ -31,7 +31,7 @@ export const getTheme = cache(async (locale: Locale, market: string | null, prev
 
 export const getCategoryTree = cache(async (locale: Locale): Promise<CategoryNode[]> => {
   const data = await gql<{ categoryTree: CategoryNode[] }>(
-    `query($locale: String) { categoryTree(locale: $locale) { id slug name depth children { id slug name depth children { id slug name depth children { id slug name depth } } } } }`,
+    `query($locale: String) { categoryTree(locale: $locale) { id slug name depth image { ${IMAGE} } children { id slug name depth image { ${IMAGE} } children { id slug name depth image { ${IMAGE} } children { id slug name depth } } } } }`,
     { locale },
     { revalidate: 120, tags: ['categories'] },
   )

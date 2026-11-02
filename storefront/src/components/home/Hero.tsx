@@ -27,6 +27,8 @@ export function Hero({ slides, autoplay, labels }: { slides: Slide[]; autoplay: 
       <div className="relative overflow-hidden" style={{ borderRadius: 'var(--radius-card)' }}>
         {slides.map((s, i) => {
           const hidden = i !== index
+          // White text only where the picture is darkened enough to read it (overlay of 35 % or more); otherwise the theme's own dark text.
+          const light = s.image !== null && s.overlay >= 35
           const align = s.align === 'center' ? 'items-center text-center' : s.align === 'right' ? 'items-end text-right' : 'items-start text-left'
           return (
             <div key={i} role="group" aria-roledescription="slide" aria-label={`${i + 1} / ${count}`} aria-hidden={hidden} hidden={hidden && i !== 0 ? true : undefined} className={hidden ? 'hidden' : 'relative block'}>
@@ -41,10 +43,10 @@ export function Hero({ slides, autoplay, labels }: { slides: Slide[]; autoplay: 
               </picture>
               {s.image && s.overlay > 0 && <div aria-hidden className="absolute inset-0" style={{ background: `rgba(0,0,0,${s.overlay / 100})` }} />}
               <div className={`absolute inset-0 flex flex-col justify-center gap-3 px-6 md:px-16 ${align}`}>
-                {s.kicker && <p className="text-sm font-semibold uppercase" style={{ color: s.image ? '#fff' : 'var(--c-primary)' }}>{s.kicker}</p>}
-                {s.title && <h2 className="max-w-xl text-3xl md:text-5xl" style={{ color: s.image ? '#fff' : undefined }}>{s.title}</h2>}
-                {s.subtitle && <p className="max-w-lg text-base md:text-lg" style={{ color: s.image ? '#fff' : undefined }}>{s.subtitle}</p>}
-                {s.priceText && <p className="text-xl font-semibold" style={{ color: s.image ? '#fff' : 'var(--c-primary)' }}>{s.priceText}</p>}
+                {s.kicker && <p className="text-sm font-semibold uppercase" style={{ color: light ? '#fff' : 'var(--c-primary-hover)' }}>{s.kicker}</p>}
+                {s.title && <h2 className="max-w-xl text-3xl md:text-5xl" style={{ color: light ? '#fff' : undefined }}>{s.title}</h2>}
+                {s.subtitle && <p className="max-w-lg text-base md:text-lg" style={{ color: light ? '#fff' : undefined }}>{s.subtitle}</p>}
+                {s.priceText && <p className="text-xl font-semibold" style={{ color: light ? '#fff' : 'var(--c-primary-hover)' }}>{s.priceText}</p>}
                 {s.ctaLabel && s.ctaUrl && <Link href={s.ctaUrl} className="btn btn-primary mt-2">{s.ctaLabel}</Link>}
               </div>
             </div>

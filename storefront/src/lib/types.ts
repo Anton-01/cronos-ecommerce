@@ -36,7 +36,7 @@ export interface ProductSummary {
   stockStatusIn: Stock
   pricing: Pricing | null
 }
-export interface CategoryNode { id: string; slug: string | null; name: string | null; depth: number; children: CategoryNode[] }
+export interface CategoryNode { id: string; slug: string | null; name: string | null; depth: number; image?: Image | null; children: CategoryNode[] }
 export interface CartLine { productId: string; sku: string | null; name: string; byRoll: boolean; quantity: string; unitPrice: string; lineTotal: string; discount: string; tax: string; total: string }
 export interface Totals { currency: string; taxIncluded: boolean; subtotal: string; itemsDiscount: string; shipping: string; shippingDiscount: string; tax: string; total: string }
 export interface Cart { id: string; market: string; region: string | null; couponCode: string | null; couponError: string | null; lines: CartLine[]; totals: Totals | null; warning: string | null }

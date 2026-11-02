@@ -44,6 +44,8 @@ type CategoryNode {
   slug: String
   name: String
   depth: Int!
+  "Picture of the category (round tile on the home page); null when none was uploaded."
+  image: GalleryImage
   children: [CategoryNode!]!
 }
 
