@@ -38,6 +38,11 @@ final class SeoUrls
         return $this->home($locale).'/'.config("seo.locales.{$locale}.category").'/'.rawurlencode($slug);
     }
 
+    public function page(string $locale, string $slug): string
+    {
+        return $this->home($locale).'/'.config("seo.locales.{$locale}.page").'/'.rawurlencode($slug);
+    }
+
     public function defaultLocale(): string
     {
         return (string) config('seo.default_locale');
@@ -50,7 +55,11 @@ final class SeoUrls
         $slugs = array_column($translations, 'slug', 'locale');
         foreach ($this->locales() as $locale) { // in the order of config/seo.php, whatever order the database returned
             if (isset($slugs[$locale])) {
-                $links[$locale] = ['hreflang' => $locale, 'href' => $kind === 'product' ? $this->product($locale, $slugs[$locale]) : $this->category($locale, $slugs[$locale])];
+                $links[$locale] = ['hreflang' => $locale, 'href' => match ($kind) {
+                    'product' => $this->product($locale, $slugs[$locale]),
+                    'page' => $this->page($locale, $slugs[$locale]),
+                    default => $this->category($locale, $slugs[$locale]),
+                }];
             }
         }
         if ($links === []) {

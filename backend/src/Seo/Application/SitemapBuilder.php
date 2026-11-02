@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cronos\Seo\Application;
 
 use Cronos\Catalog\Domain\Ports\StorefrontCatalog;
+use Cronos\Content\Domain\Ports\PageRepository;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Cache;
  */
 final class SitemapBuilder
 {
-    public function __construct(private readonly StorefrontCatalog $catalog, private readonly SeoUrls $urls) {}
+    public function __construct(private readonly StorefrontCatalog $catalog, private readonly SeoUrls $urls, private readonly PageRepository $pages) {}
 
     public function index(): string
     {
@@ -44,6 +45,11 @@ final class SitemapBuilder
                 $urls = $this->entry($this->urls->home($locale), null, array_map(fn (string $l) => ['hreflang' => $l, 'href' => $this->urls->home($l)], $this->urls->locales()), 'daily', '1.0');
                 foreach ($this->catalog->sitemapCategories($locale) as $c) {
                     $urls .= $this->entry($this->urls->category($locale, $c['slug']), $c['updated_at'], $this->urls->alternates('category', $c['alternates']), 'weekly', '0.7');
+                }
+
+                // Static pages for every store (a page limited to some stores is left out: the sitemap cannot say which store a crawler is on).
+                foreach ($this->pages->published($locale) as $p) {
+                    $p['markets'] === [] && $urls .= $this->entry($this->urls->page($locale, $p['slug']), null, $this->urls->alternates('page', $this->pages->alternates($p['id'])), 'monthly', '0.4');
                 }
 
                 return $this->urlset($urls);

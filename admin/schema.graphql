@@ -8,6 +8,8 @@ type Query {
  adminTags(search: String): [AdminTag!]!
  adminAttributes: [AdminAttribute!]!
  adminProduct(id: ID!): AdminProduct
+ adminPages(status: String, search: String): [AdminPage!]!
+ adminPage(id: ID!): AdminPage
  adminCustomOrders(status: String, search: String, assignedTo: ID, first: Int = 25, offset: Int = 0): AdminCustomOrderPage!
  adminCustomOrder(id: ID!): AdminCustomOrder
  adminFraudRules: [AdminFraudRule!]!
@@ -127,6 +129,11 @@ type Mutation {
  updateVariation(id: ID!, input: UpdateVariationInput!): AdminProduct!
  deleteVariation(id: ID!): AdminProduct!
  generateVariations(parentId: ID!): AdminProduct!
+ createPage(key: String!, markets: [String!], position: Int, translations: [PageTranslationInput!]!): AdminPage!
+ updatePage(id: ID!, markets: [String!], position: Int, translations: [PageTranslationInput!]): AdminPage!
+ publishPage(id: ID!): AdminPage!
+ unpublishPage(id: ID!): AdminPage!
+ deletePage(id: ID!): Boolean!
  assignCustomOrder(id: ID!, staffId: ID): AdminCustomOrder!
  "Moves a request to in_review, or rejects it (the reason is shown to the customer)."
  setCustomOrderStatus(id: ID!, to: String!, reason: String): AdminCustomOrder!
@@ -867,6 +874,37 @@ input UpdateVariationInput {
  dimensions: DimensionsInput
  barcode: String
  position: Int
+}
+input PageTranslationInput {
+ locale: String!
+ "Empty = made from the title."
+ slug: String
+ title: String!
+ "Markdown. Raw HTML is dropped."
+ bodyMd: String!
+ seoTitle: String
+ seoDescription: String
+}
+type AdminPageTranslation {
+ locale: String!
+ slug: String!
+ title: String!
+ bodyMd: String!
+ seoTitle: String
+ seoDescription: String
+ updatedAt: DateTime
+}
+type AdminPage {
+ id: ID!
+ key: String!
+ "draft or published"
+ status: String!
+ "Store codes the page shows in; empty = all stores."
+ markets: [String!]!
+ position: Int!
+ publishedAt: DateTime
+ updatedAt: DateTime
+ translations: [AdminPageTranslation!]!
 }
 type AdminCustomOrder {
  id: ID!

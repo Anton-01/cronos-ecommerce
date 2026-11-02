@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 
 import { CART_FIELDS, ensureCart } from '@/lib/cart'
 import { GraphQLFailure, gql } from '@/lib/gql'
-import { readCart, readMarket, writeCart, writeMarket } from '@/lib/session'
+import { readCart, readMarket, writeCart, writeMarket, writeMarketAnswered } from '@/lib/session'
 import type { Cart } from '@/lib/types'
 
 export interface ActionResult { ok: boolean; message?: string; code?: string | null; cart?: Cart; replaced?: boolean }
@@ -79,6 +79,7 @@ export async function applyCoupon(code: string | null): Promise<ActionResult> {
 /** The visitor chose a store (the "you are outside your country" notice or the selector). Their cart follows when it still can. */
 export async function chooseMarket(code: string): Promise<ActionResult> {
   await writeMarket(code)
+  await writeMarketAnswered()
   const ref = await readCart()
   if (ref && ref.market !== code) {
     try {

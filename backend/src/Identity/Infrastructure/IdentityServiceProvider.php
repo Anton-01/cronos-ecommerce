@@ -8,6 +8,7 @@ use Cronos\Identity\Application\Listeners\SendPasswordResetEmail;
 use Cronos\Identity\Application\Listeners\SendVerificationEmail;
 use Cronos\Identity\Domain\Events\PasswordResetRequested;
 use Cronos\Identity\Domain\Events\VerificationEmailRequested;
+use Cronos\Identity\Domain\Ports\AddressBookRepository;
 use Cronos\Identity\Domain\Ports\AvatarStore;
 use Cronos\Identity\Domain\Ports\EmailVerificationLinks;
 use Cronos\Identity\Domain\Ports\IdentityNotifier;
@@ -25,6 +26,7 @@ use Cronos\Identity\Infrastructure\Adapters\MailIdentityNotifier;
 use Cronos\Identity\Infrastructure\Adapters\MediaLibraryAvatarStore;
 use Cronos\Identity\Infrastructure\Adapters\SanctumTokenIssuer;
 use Cronos\Identity\Infrastructure\Adapters\SocialiteGoogleProvider;
+use Cronos\Identity\Infrastructure\Persistence\DatabaseAddressBookRepository;
 use Cronos\Identity\Infrastructure\Persistence\EloquentUserRepository;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -43,6 +45,7 @@ final class IdentityServiceProvider extends ServiceProvider
         SecurityEventRecorder::class => DatabaseSecurityEventRecorder::class,
         IdentityNotifier::class => MailIdentityNotifier::class,
         AvatarStore::class => MediaLibraryAvatarStore::class,
+        AddressBookRepository::class => DatabaseAddressBookRepository::class,
     ];
 
     public function boot(): void

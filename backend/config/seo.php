@@ -11,10 +11,10 @@ return [
     'default_locale' => 'es-MX',
 
     // The URL scheme of the storefront, one source of truth: the shop reads it (seoRoutes) and the API builds canonicals, hreflang and the
-    // sitemap from it. /{prefix}  /{prefix}/{product}/{slug}  /{prefix}/{category}/{slug}
+    // sitemap from it. /{prefix}  /{prefix}/{product}/{slug}  /{prefix}/{category}/{slug}  /{prefix}/{page}/{slug}
     'locales' => [
-        'es-MX' => ['prefix' => 'es-mx', 'product' => 'productos', 'category' => 'categorias', 'og' => 'es_MX'],
-        'en-US' => ['prefix' => 'en-us', 'product' => 'products', 'category' => 'categories', 'og' => 'en_US'],
+        'es-MX' => ['prefix' => 'es-mx', 'product' => 'productos', 'category' => 'categorias', 'page' => 'informacion', 'og' => 'es_MX'],
+        'en-US' => ['prefix' => 'en-us', 'product' => 'products', 'category' => 'categories', 'page' => 'info', 'og' => 'en_US'],
     ],
 
     // Pages that must never appear in a search engine (private, transactional or personal). Under each locale prefix.

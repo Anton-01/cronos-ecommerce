@@ -4,9 +4,12 @@ import type { Locale } from '@/lib/config'
 import { messages } from '@/lib/i18n'
 import type { Market, Theme } from '@/lib/types'
 
+import { href } from '@/lib/config'
+import type { PageLinkItem } from '@/lib/data'
+
 import { Logo, link } from './Header'
 
-export function Footer({ theme, locale, market }: { theme: Theme; locale: Locale; market: Market }) {
+export function Footer({ theme, locale, market, pages }: { theme: Theme; locale: Locale; market: Market; pages: PageLinkItem[] }) {
   const t = messages(locale)
   const nav = theme.navigation
   const social = Object.entries(nav.social).filter(([, url]) => url)
@@ -29,6 +32,14 @@ export function Footer({ theme, locale, market }: { theme: Theme; locale: Locale
             </address>
           )}
         </div>
+        {pages.length > 0 && (
+          <nav aria-label={t.information}>
+            <h2 className="mb-3 text-base" style={{ color: 'var(--c-footer-heading)' }}>{t.information}</h2>
+            <ul className="space-y-1.5 text-sm">
+              {pages.map((p) => <li key={p.key}><Link href={href.info(locale, p.slug)} className="hover:underline">{p.title}</Link></li>)}
+            </ul>
+          </nav>
+        )}
         {nav.footerColumns.map((col) => (
           <nav key={col.title} aria-label={col.title}>
             <h2 className="mb-3 text-base" style={{ color: 'var(--c-footer-heading)' }}>{col.title}</h2>

@@ -1,0 +1,35 @@
+type PageAlternate {
+  locale: String!
+  slug: String!
+}
+
+"A static page (about us, privacy, shipping…). The text is already safe HTML, rendered once when the page was saved."
+type StaticPage {
+  key: String!
+  slug: String!
+  title: String!
+  bodyHtml: String!
+  seoTitle: String!
+  seoDescription: String
+  publishedAt: DateTime
+  updatedAt: DateTime
+  "The same page in the other languages it exists in (hreflang)."
+  alternates: [PageAlternate!]!
+}
+
+type PageLink {
+  key: String!
+  slug: String!
+  title: String!
+}
+
+extend type Query {
+  "A published page by its address in one language; null when it does not exist or is not shown in that store. Cached until someone edits a page."
+  page(locale: String, slug: String!, market: String): StaticPage
+    @throttle(maxAttempts: 240, decayMinutes: 1, prefix: "pages")
+    @field(resolver: "Cronos\\Content\\Interfaces\\GraphQL\\StorefrontPages@page")
+  "Published pages in one language, in the back office's order (for the footer, the sitemap and the account menu)."
+  pages(locale: String, market: String): [PageLink!]!
+    @throttle(maxAttempts: 240, decayMinutes: 1, prefix: "pages")
+    @field(resolver: "Cronos\\Content\\Interfaces\\GraphQL\\StorefrontPages@list")
+}

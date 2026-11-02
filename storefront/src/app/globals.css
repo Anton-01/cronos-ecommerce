@@ -83,3 +83,14 @@ a { color: inherit; }
 .product-grid { display: grid; gap: 12px; grid-template-columns: repeat(var(--grid-cols-mobile), minmax(0, 1fr)); }
 @media (min-width: 768px) { .product-grid { gap: 16px; } }
 @media (min-width: 1024px) { .product-grid { grid-template-columns: repeat(var(--grid-cols-desktop), minmax(0, 1fr)); } .product-grid.with-sidebar { grid-template-columns: repeat(max(2, calc(var(--grid-cols-desktop) - 1)), minmax(0, 1fr)); } }
+
+/* Text of static pages (rendered Markdown from the API). */
+.page-body { color: var(--c-text); font-size: 1rem; line-height: 1.75; }
+.page-body > :first-child { margin-top: 0; } .page-body > :last-child { margin-bottom: 0; }
+.page-body h2 { font-size: 1.6rem; margin: 2rem 0 .75rem; } .page-body h3 { font-size: 1.25rem; margin: 1.5rem 0 .5rem; }
+.page-body p, .page-body ul, .page-body ol, .page-body table, .page-body blockquote { margin: 0 0 1rem; }
+.page-body ul { list-style: disc; padding-left: 1.4rem; } .page-body ol { list-style: decimal; padding-left: 1.4rem; }
+.page-body a { color: var(--c-primary-hover); text-decoration: underline; text-underline-offset: 3px; }
+.page-body blockquote { border-left: 4px solid var(--c-primary); background: var(--c-primary-soft); padding: .75rem 1rem; border-radius: 0 var(--radius-card) var(--radius-card) 0; }
+.page-body table { width: 100%; border-collapse: collapse; font-size: .9rem; } .page-body th, .page-body td { border: 1px solid var(--c-border); padding: .5rem .75rem; text-align: left; }
+.page-body img { max-width: 100%; height: auto; border-radius: var(--radius-card); }

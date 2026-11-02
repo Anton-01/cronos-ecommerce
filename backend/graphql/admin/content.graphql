@@ -1,0 +1,60 @@
+input PageTranslationInput {
+  locale: String!
+  "Empty = made from the title."
+  slug: String
+  title: String!
+  "Markdown. Raw HTML is dropped."
+  bodyMd: String!
+  seoTitle: String
+  seoDescription: String
+}
+
+type AdminPageTranslation {
+  locale: String!
+  slug: String!
+  title: String!
+  bodyMd: String!
+  seoTitle: String
+  seoDescription: String
+  updatedAt: DateTime
+}
+
+type AdminPage {
+  id: ID!
+  key: String!
+  "draft or published"
+  status: String!
+  "Store codes the page shows in; empty = all stores."
+  markets: [String!]!
+  position: Int!
+  publishedAt: DateTime
+  updatedAt: DateTime
+  translations: [AdminPageTranslation!]!
+}
+
+extend type Query {
+  adminPages(status: String, search: String): [AdminPage!]!
+    @guard @can(ability: "content.view", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Content\\Interfaces\\GraphQL\\AdminPages@list")
+  adminPage(id: ID!): AdminPage
+    @guard @can(ability: "content.view", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Content\\Interfaces\\GraphQL\\AdminPages@show")
+}
+
+extend type Mutation {
+  createPage(key: String!, markets: [String!], position: Int, translations: [PageTranslationInput!]!): AdminPage!
+    @guard @can(ability: "content.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Content\\Interfaces\\GraphQL\\AdminPages@create")
+  updatePage(id: ID!, markets: [String!], position: Int, translations: [PageTranslationInput!]): AdminPage!
+    @guard @can(ability: "content.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Content\\Interfaces\\GraphQL\\AdminPages@update")
+  publishPage(id: ID!): AdminPage!
+    @guard @can(ability: "content.publish", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Content\\Interfaces\\GraphQL\\AdminPages@publish")
+  unpublishPage(id: ID!): AdminPage!
+    @guard @can(ability: "content.publish", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Content\\Interfaces\\GraphQL\\AdminPages@unpublish")
+  deletePage(id: ID!): Boolean!
+    @guard @can(ability: "content.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Content\\Interfaces\\GraphQL\\AdminPages@delete")
+}

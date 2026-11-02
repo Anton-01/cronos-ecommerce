@@ -24,6 +24,7 @@ type Mutation
 #import custom-orders/types.graphql
 #import custom-orders/storefront.graphql
 #import wishlist/storefront.graphql
+#import content/storefront.graphql
 #import media/types.graphql
 #import payments/types.graphql
 #import identity/*.graphql

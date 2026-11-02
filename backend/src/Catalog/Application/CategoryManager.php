@@ -10,6 +10,7 @@ use Cronos\Catalog\Domain\Exceptions\CategoryTooDeep;
 use Cronos\Catalog\Domain\Exceptions\NotFound;
 use Cronos\Catalog\Domain\Exceptions\SlugTaken;
 use Cronos\Catalog\Domain\Ports\CategoryRepository;
+use Cronos\Shared\Domain\StorefrontCache;
 
 final class CategoryManager
 {
@@ -17,7 +18,7 @@ final class CategoryManager
 
     private const TEXT = ['description', 'meta_title', 'meta_description'];
 
-    public function __construct(private readonly CategoryRepository $categories) {}
+    public function __construct(private readonly CategoryRepository $categories, private readonly StorefrontCache $storefront) {}
 
     /** @param array{parent_id?: ?string, position?: int, is_active?: bool, image_media_id?: ?string, translations: array<string, array<string, mixed>>} $input */
     public function create(array $input): string
@@ -32,6 +33,8 @@ final class CategoryManager
         $taxClassId = $this->taxClass($input['default_tax_class_id'] ?? null);
         $id = $this->categories->create($parentId, (int) ($input['position'] ?? 0), (bool) ($input['is_active'] ?? true), $input['image_media_id'] ?? null, $translations);
         $taxClassId === null || $this->categories->update($id, ['default_tax_class_id' => $taxClassId], null);
+
+        $this->storefront->invalidate('categories');
 
         return $id;
     }
@@ -48,6 +51,7 @@ final class CategoryManager
         array_key_exists('default_tax_class_id', $attributes) && $attributes['default_tax_class_id'] = $this->taxClass($attributes['default_tax_class_id']);
 
         $this->categories->update($id, $attributes, $translations);
+        $this->storefront->invalidate('categories');
     }
 
     public function move(string $id, ?string $newParentId, int $position = 0): void
@@ -67,6 +71,7 @@ final class CategoryManager
         ($parent['depth'] ?? 0) + 1 + $subtreeHeight <= self::MAX_DEPTH || throw new CategoryTooDeep(self::MAX_DEPTH);
 
         $this->categories->move($id, $newParentId, $position);
+        $this->storefront->invalidate('categories');
     }
 
     public function delete(string $id): void
@@ -75,6 +80,7 @@ final class CategoryManager
         ! $this->categories->hasChildren($id) || throw new CategoryNotEmpty;
 
         $this->categories->delete($id);
+        $this->storefront->invalidate('categories');
     }
 
     /** @param array<string, array<string, ?string>> $translations */

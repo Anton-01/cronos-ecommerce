@@ -26,6 +26,7 @@ class RolesAndPermissionsSeeder extends Seeder
         'markets.view', 'markets.manage',
         'reports.view', 'reports.export',
         'appearance.view', 'appearance.manage', 'appearance.publish',
+        'content.view', 'content.manage', 'content.publish',
         'custom-orders.view', 'custom-orders.manage',
         'payments.view', 'payments.manage', 'payments.refund', 'payments.go-live',
     ];

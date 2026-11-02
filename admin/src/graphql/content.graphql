@@ -1,0 +1,51 @@
+fragment AdminPageFields on AdminPage {
+  id
+  key
+  status
+  markets
+  position
+  publishedAt
+  updatedAt
+  translations {
+    locale
+    slug
+    title
+    bodyMd
+    seoTitle
+    seoDescription
+  }
+}
+
+query AdminPages($status: String, $search: String) {
+  adminPages(status: $status, search: $search) {
+    ...AdminPageFields
+  }
+}
+
+mutation CreatePage($key: String!, $markets: [String!], $position: Int, $translations: [PageTranslationInput!]!) {
+  createPage(key: $key, markets: $markets, position: $position, translations: $translations) {
+    ...AdminPageFields
+  }
+}
+
+mutation UpdatePage($id: ID!, $markets: [String!], $position: Int, $translations: [PageTranslationInput!]) {
+  updatePage(id: $id, markets: $markets, position: $position, translations: $translations) {
+    ...AdminPageFields
+  }
+}
+
+mutation PublishPage($id: ID!) {
+  publishPage(id: $id) {
+    ...AdminPageFields
+  }
+}
+
+mutation UnpublishPage($id: ID!) {
+  unpublishPage(id: $id) {
+    ...AdminPageFields
+  }
+}
+
+mutation DeletePage($id: ID!) {
+  deletePage(id: $id)
+}

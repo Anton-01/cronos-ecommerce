@@ -28,6 +28,6 @@ final class SeoQuery
     /** @return list<array<string, string>> */
     public function routes(): array
     {
-        return array_map(static fn (string $l, array $r) => ['locale' => $l, 'prefix' => $r['prefix'], 'productSegment' => $r['product'], 'categorySegment' => $r['category'], 'ogLocale' => $r['og']], array_keys(config('seo.locales')), array_values(config('seo.locales')));
+        return array_map(static fn (string $l, array $r) => ['locale' => $l, 'prefix' => $r['prefix'], 'productSegment' => $r['product'], 'categorySegment' => $r['category'], 'pageSegment' => $r['page'], 'ogLocale' => $r['og']], array_keys(config('seo.locales')), array_values(config('seo.locales')));
     }
 }

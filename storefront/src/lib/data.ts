@@ -6,6 +6,13 @@ import type { Locale } from './config'
 import { gql } from './gql'
 import type { CategoryNode, Market, ProductSummary, Theme } from './types'
 
+/**
+ * How long things that change only when an editor saves are kept before asking the API again (6 h). They are refreshed sooner, the moment
+ * they change, by the API's notice to /api/revalidate (tag in `tags`); the time limit is only the safety net if a notice is lost.
+ * Products stay at 60 s because stock and prices move without an editor saving anything.
+ */
+export const LONG = 6 * 60 * 60
+
 const IMAGE = `id url thumbUrl srcset alt width height`
 const SUMMARY = (m: string) => `
   id type slug name shortDescription
@@ -24,7 +31,7 @@ export const getTheme = cache(async (locale: Locale, market: string | null, prev
     `query($locale: String, $market: String, $preview: String) { storefrontTheme(locale: $locale, market: $market, preview: $preview) {
        version siteName tagline themeColor tokens cssVariables fontsHref assets navigation home features manifestUrl } }`,
     { locale, market, preview },
-    preview ? {} : { revalidate: 60, tags: ['theme'] },
+    preview ? {} : { revalidate: LONG, tags: ['theme'] },
   )
   return data.storefrontTheme
 })
@@ -33,13 +40,13 @@ export const getCategoryTree = cache(async (locale: Locale): Promise<CategoryNod
   const data = await gql<{ categoryTree: CategoryNode[] }>(
     `query($locale: String) { categoryTree(locale: $locale) { id slug name depth image { ${IMAGE} } children { id slug name depth image { ${IMAGE} } children { id slug name depth image { ${IMAGE} } children { id slug name depth } } } } }`,
     { locale },
-    { revalidate: 120, tags: ['categories'] },
+    { revalidate: LONG, tags: ['categories'] },
   )
   return data.categoryTree
 })
 
 export const getMarkets = cache(async (): Promise<Market[]> => {
-  const data = await gql<{ markets: Market[] }>(`query { markets { ${MARKET} } }`, {}, { revalidate: 120, tags: ['markets'] })
+  const data = await gql<{ markets: Market[] }>(`query { markets { ${MARKET} } }`, {}, { revalidate: LONG, tags: ['markets'] })
   return data.markets
 })
 
@@ -87,3 +94,22 @@ export async function getProducts(a: ListingArgs): Promise<Listing> {
   )
   return data.products
 }
+
+export interface StaticPage { key: string; slug: string; title: string; bodyHtml: string; seoTitle: string; seoDescription: string | null; updatedAt: string | null; alternates: { locale: string; slug: string }[] }
+
+/** A static page by its address. Cached for a day and refreshed on the 'content' tag: after the first visit nobody reaches the API for it. */
+export async function getPage(locale: Locale, slug: string, market: string): Promise<StaticPage | null> {
+  const data = await gql<{ page: StaticPage | null }>(
+    `query($locale: String, $slug: String!, $market: String) { page(locale: $locale, slug: $slug, market: $market) { key slug title bodyHtml seoTitle seoDescription updatedAt alternates { locale slug } } }`,
+    { locale, slug, market },
+    { revalidate: 24 * 60 * 60, tags: ['content'] },
+  )
+  return data.page
+}
+
+export interface PageLinkItem { key: string; slug: string; title: string }
+
+export const getPageLinks = cache(async (locale: Locale, market: string): Promise<PageLinkItem[]> => {
+  const data = await gql<{ pages: PageLinkItem[] }>(`query($locale: String, $market: String) { pages(locale: $locale, market: $market) { key slug title } }`, { locale, market }, { revalidate: 24 * 60 * 60, tags: ['content'] })
+  return data.pages
+})

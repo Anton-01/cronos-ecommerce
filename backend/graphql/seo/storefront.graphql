@@ -53,6 +53,7 @@ type SeoRoute {
   prefix: String!
   productSegment: String!
   categorySegment: String!
+  pageSegment: String!
   ogLocale: String!
 }
 

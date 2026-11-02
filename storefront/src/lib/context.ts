@@ -5,20 +5,24 @@ import { notFound } from 'next/navigation'
 import { cache } from 'react'
 
 import { localeFromPrefix, type Locale } from './config'
-import { getMarketContext, getMarkets } from './data'
+import { getMarketContext, getMarkets, type MarketContext } from './data'
+import { pickMarket } from './market'
 import type { Market } from './types'
 
 export function resolveLocale(prefix: string): Locale {
   return localeFromPrefix(prefix) ?? notFound()
 }
 
-/** The store the visitor browses: the one they chose, else the one of their country (from the IP), else the first active one. */
-export const getMarket = cache(async (): Promise<{ market: Market; markets: Market[]; context: Awaited<ReturnType<typeof getMarketContext>> }> => {
-  const selected = (await cookies()).get('market')?.value ?? null
-  const [markets, context] = await Promise.all([getMarkets(), getMarketContext(selected)])
-  const market = context.selectedMarket ?? context.detectedMarket ?? markets[0]
-  if (!market) throw new Error('The shop has no active market yet.')
-  return { market, markets, context }
+/**
+ * The store the visitor browses, decided from cookies and the cached list of stores: no call to the API per page. The API is asked only in
+ * the rare case that the notice "you are browsing another store" must be shown (for its text).
+ */
+export const getMarket = cache(async (): Promise<{ market: Market; markets: Market[]; context: MarketContext }> => {
+  const jar = await cookies()
+  const markets = await getMarkets()
+  const { market, detected, outside } = pickMarket(markets, jar.get('market')?.value ?? null, jar.get('geo')?.value ?? null, jar.get('market_ok')?.value ?? null)
+  if (!outside || !detected) return { market, markets, context: { detectedCountry: jar.get('geo')?.value ?? null, detectedMarket: detected, selectedMarket: market, outside: false, prompt: null } }
+  return { market, markets, context: await getMarketContext(market.code) }
 })
 
 export async function previewToken(): Promise<string | null> {

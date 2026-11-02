@@ -12,6 +12,7 @@ use Cronos\Appearance\Domain\Services\HomeSchema;
 use Cronos\Appearance\Domain\Services\NavigationSchema;
 use Cronos\Appearance\Domain\Services\ThemePresets;
 use Cronos\Appearance\Domain\Services\ThemeSchema;
+use Cronos\Shared\Domain\StorefrontCache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 
@@ -23,7 +24,7 @@ final class ThemeService
 {
     public const PREVIEW_MINUTES = 60;
 
-    public function __construct(private readonly ThemeRepository $themes, private readonly ThemeMedia $media) {}
+    public function __construct(private readonly ThemeRepository $themes, private readonly ThemeMedia $media, private readonly StorefrontCache $storefront) {}
 
     /** @return list<string> */
     public function locales(): array
@@ -149,6 +150,7 @@ final class ThemeService
         $this->assertMedia($draft['home']);
         $this->themes->publish($draft['id'], $userId, $notes === null || trim($notes) === '' ? null : mb_substr(trim($notes), 0, 500));
         Log::info('Theme published', ['version' => $draft['number'], 'by' => $userId]);
+        $this->storefront->invalidate('theme');
 
         return $this->live();
     }

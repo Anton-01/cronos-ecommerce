@@ -7,6 +7,8 @@ describe('routes', () => {
     expect(href.product('es-MX', 'liston-rojo')).toBe('/es-mx/productos/liston-rojo')
     expect(href.category('en-US', 'ribbons')).toBe('/en-us/categories/ribbons')
     expect(href.page('en-US', '/cart')).toBe('/en-us/cart')
+    expect(href.info('es-MX', 'envios')).toBe('/es-mx/informacion/envios')
+    expect(href.info('en-US', 'shipping')).toBe('/en-us/info/shipping')
   })
   it('maps prefixes back to locales', () => {
     for (const l of Object.keys(LOCALES) as (keyof typeof LOCALES)[]) expect(localeFromPrefix(LOCALES[l].prefix)).toBe(l)

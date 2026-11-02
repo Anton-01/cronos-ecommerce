@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react'
 
+import { saveAddress } from '@/app/actions/addresses'
 import { payCheckout, startCheckout, type Address, type ClientAction, type PaymentOption } from '@/app/actions/checkout'
 import { LOCALES, type Locale } from '@/lib/config'
 import { money } from '@/lib/format'
 import { messages } from '@/lib/i18n'
+import type { SavedAddress } from '@/lib/addresses'
 import type { Cart } from '@/lib/types'
 
 import { StripeForm } from './StripeForm'
@@ -13,10 +15,15 @@ import { StripeForm } from './StripeForm'
 const emptyAddress: Address = { recipientName: '', phone: '', street: '', exteriorNo: '', interiorNo: '', neighborhood: '', city: '', state: '', countryCode: '', zip: '', references: '' }
 
 /** Details → payment method → provider. Steps are one page so the shopper never loses what they typed; the server re-checks everything. */
-export function CheckoutFlow({ cart, locale, countries, defaultEmail }: { cart: Cart; locale: Locale; countries: string[]; defaultEmail: string }) {
+export function CheckoutFlow({ cart, locale, countries, defaultEmail, saved }: { cart: Cart; locale: Locale; countries: string[]; defaultEmail: string; saved: SavedAddress[] | null }) {
   const t = messages(locale)
   const [email, setEmail] = useState(defaultEmail)
-  const [address, setAddress] = useState<Address>({ ...emptyAddress, countryCode: countries[0] ?? '' })
+  const toAddress = (a: SavedAddress): Address => ({ recipientName: a.recipientName, phone: a.phone ?? '', street: a.street, exteriorNo: a.exteriorNo ?? '', interiorNo: a.interiorNo ?? '', neighborhood: a.neighborhood ?? '', city: a.city, state: a.state, countryCode: a.countryCode, zip: a.zip, references: a.references ?? '' })
+  const options = (saved ?? []).filter((a) => a.type === 'SHIPPING' && countries.includes(a.countryCode))
+  const initial = options.find((a) => a.isDefault) ?? options[0] ?? null
+  const [pickedId, setPickedId] = useState<string>(initial?.id ?? 'new')
+  const [address, setAddress] = useState<Address>(initial ? toAddress(initial) : { ...emptyAddress, countryCode: countries[0] ?? '' })
+  const [remember, setRemember] = useState(false)
   const key = useRef<string | null>(null)
   const [checkout, setCheckout] = useState<{ id: string; options: PaymentOption[] } | null>(null)
   const [action, setAction] = useState<{ client: ClientAction; publicKey: string | null; returnUrl: string } | null>(null)
@@ -33,8 +40,11 @@ export function CheckoutFlow({ cart, locale, countries, defaultEmail }: { cart: 
     setError(null)
     start(async () => {
       const r = await startCheckout({ email, shippingAddress: clean(address), idempotencyKey: key.current ?? crypto.randomUUID() })
-      if (r.ok && r.data) setCheckout(r.data)
-      else {
+      if (r.ok && r.data) {
+        setCheckout(r.data)
+        // A new address the shopper asked to keep: saved now (the order is already frozen, so a failure here must never block the payment).
+        if (remember && pickedId === 'new' && saved !== null) void saveAddress({ ...clean(address), type: 'SHIPPING' }).catch(() => undefined)
+      } else {
         setFields(r.fields ?? {})
         setError(r.code === 'INSUFFICIENT_STOCK' ? (locale === 'es-MX' ? 'Ya no hay existencias suficientes de algún artículo. Revisa tu carrito.' : 'Some items are no longer in stock. Please review your cart.') : r.message === 'unexpected' ? t.error : (r.message ?? t.error))
         key.current = crypto.randomUUID() // a refused attempt must not be replayed with the same key
@@ -63,6 +73,14 @@ export function CheckoutFlow({ cart, locale, countries, defaultEmail }: { cart: 
       <div className="space-y-6">
         <form onSubmit={submitDetails} className="card space-y-4 p-5" aria-labelledby="ship-h">
           <h2 id="ship-h" className="text-xl">{t.shippingAddress}</h2>
+          {options.length > 0 && (
+            <label className="block text-sm">{t.useSaved}
+              <select className="field mt-1" disabled={checkout !== null} value={pickedId} onChange={(e) => { setPickedId(e.target.value); const a = options.find((o) => o.id === e.target.value); setAddress(a ? toAddress(a) : { ...emptyAddress, countryCode: countries[0] ?? '' }) }}>
+                {options.map((a) => <option key={a.id} value={a.id}>{a.label || a.recipientName} — {a.street}, {a.city}</option>)}
+                <option value="new">{t.newAddress}</option>
+              </select>
+            </label>
+          )}
           <fieldset disabled={checkout !== null || pending} className="grid gap-3 sm:grid-cols-2">
             <label className="text-sm sm:col-span-2">{t.email}<input type="email" required autoComplete="email" className="field mt-1" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
             <label className="text-sm sm:col-span-2">{t.recipient}<input required autoComplete="name" className="field mt-1" value={address.recipientName} onChange={set('recipientName')} /></label>
@@ -78,6 +96,9 @@ export function CheckoutFlow({ cart, locale, countries, defaultEmail }: { cart: 
             </label>
             <label className="text-sm">{t.phone}<input type="tel" autoComplete="tel" className="field mt-1" value={address.phone} onChange={set('phone')} /></label>
           </fieldset>
+          {saved !== null && pickedId === 'new' && !checkout && (
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> {t.saveForLater}</label>
+          )}
           {!checkout && <button className="btn btn-primary" disabled={pending}>{t.continueToPayment}</button>}
         </form>
 

@@ -27,7 +27,10 @@ export default async function AccountPage({ params }: { params: Promise<{ locale
           <h1 className="text-3xl md:text-4xl">{t.hello}{name ? `, ${name}` : ''}</h1>
           <p className="text-sm">{me.email}</p>
         </div>
-        <form action={logout.bind(null, rawLocale)}><button className="btn btn-ghost">{t.signOut}</button></form>
+        <div className="flex gap-2">
+          <Link href={href.page(locale, 'account/addresses')} className="btn btn-ghost">{t.addresses}</Link>
+          <form action={logout.bind(null, rawLocale)}><button className="btn btn-ghost">{t.signOut}</button></form>
+        </div>
       </header>
       <section className="card p-5" aria-labelledby="orders">
         <h2 id="orders" className="mb-3 text-xl">{t.myOrders}</h2>

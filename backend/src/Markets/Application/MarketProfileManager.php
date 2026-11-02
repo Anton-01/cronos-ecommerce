@@ -7,10 +7,11 @@ namespace Cronos\Markets\Application;
 use Cronos\Markets\Domain\Exceptions\MarketError;
 use Cronos\Markets\Domain\Ports\MarketProfileRepository;
 use Cronos\Markets\Domain\Services\TaxIdRules;
+use Cronos\Shared\Domain\StorefrontCache;
 
 final class MarketProfileManager
 {
-    public function __construct(private readonly MarketProfileRepository $profiles) {}
+    public function __construct(private readonly MarketProfileRepository $profiles, private readonly StorefrontCache $storefront) {}
 
     /**
      * @param  array<string, mixed>  $in  legal_name, trade_name, tax_id, tax_id_label, tax_regime, fiscal_address, invoice_series, contact_email,
@@ -64,6 +65,7 @@ final class MarketProfileManager
         }
 
         $changes === [] || $this->profiles->save((int) $current['market_id'], $changes);
+        $this->storefront->invalidate('markets', 'theme');
 
         return $this->profiles->profile($marketCode);
     }
@@ -84,6 +86,7 @@ final class MarketProfileManager
         }
         in_array($market['country_code'], $countries, true) || throw new MarketError("The market's own country ({$market['country_code']}) must stay on its store.", 'OWN_COUNTRY_REQUIRED');
         $this->profiles->setCountries((int) $market['market_id'], $countries);
+        $this->storefront->invalidate('markets');
 
         return $this->profiles->profile($marketCode);
     }
@@ -93,6 +96,7 @@ final class MarketProfileManager
         $market = $this->profiles->profile($marketCode) ?? throw new MarketError('That market does not exist.', 'MARKET_NOT_FOUND');
         $market['is_active'] || throw new MarketError('An inactive market cannot be the default store.', 'MARKET_INACTIVE');
         $this->profiles->setFallback((int) $market['market_id']);
+        $this->storefront->invalidate('markets');
 
         return $this->profiles->profile($marketCode);
     }

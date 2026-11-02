@@ -3,8 +3,8 @@
  * Mirrored here because routing is decided before any request can be made; `routes.test.ts` guards the shape.
  */
 export const LOCALES = {
-  'es-MX': { prefix: 'es-mx', product: 'productos', category: 'categorias', og: 'es_MX', label: 'Español' },
-  'en-US': { prefix: 'en-us', product: 'products', category: 'categories', og: 'en_US', label: 'English' },
+  'es-MX': { prefix: 'es-mx', product: 'productos', category: 'categorias', page: 'informacion', og: 'es_MX', label: 'Español' },
+  'en-US': { prefix: 'en-us', product: 'products', category: 'categories', page: 'info', og: 'en_US', label: 'English' },
 } as const
 
 export type Locale = keyof typeof LOCALES
@@ -21,6 +21,7 @@ export const href = {
   home: (l: Locale) => `/${LOCALES[l].prefix}`,
   product: (l: Locale, slug: string) => `/${LOCALES[l].prefix}/${LOCALES[l].product}/${slug}`,
   category: (l: Locale, slug: string) => `/${LOCALES[l].prefix}/${LOCALES[l].category}/${slug}`,
+  info: (l: Locale, slug: string) => `/${LOCALES[l].prefix}/${LOCALES[l].page}/${slug}`,
   page: (l: Locale, path: string) => `/${LOCALES[l].prefix}/${path.replace(/^\//, '')}`,
 }
 

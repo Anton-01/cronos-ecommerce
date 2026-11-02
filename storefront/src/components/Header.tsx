@@ -29,7 +29,7 @@ export const link = (locale: Locale, url: string) => {
   if (!url.startsWith('/')) return url
   // Links to the catalogue are stored once for every language: the segment (/categorias, /categories…) is swapped for the visitor's own.
   const own = LOCALES[locale]
-  const path = url.replace(/^\/(categorias|categories)\//, `/${own.category}/`).replace(/^\/(productos|products)\//, `/${own.product}/`)
+  const path = url.replace(/^\/(categorias|categories)\//, `/${own.category}/`).replace(/^\/(productos|products)\//, `/${own.product}/`).replace(/^\/(informacion|info)\//, `/${own.page}/`)
   return href.page(locale, path)
 }
 

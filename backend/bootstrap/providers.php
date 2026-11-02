@@ -6,6 +6,7 @@ use Cronos\Appearance\Infrastructure\AppearanceServiceProvider;
 use Cronos\Audit\Infrastructure\AuditServiceProvider;
 use Cronos\Catalog\Infrastructure\CatalogServiceProvider;
 use Cronos\Checkout\Infrastructure\CheckoutServiceProvider;
+use Cronos\Content\Infrastructure\ContentServiceProvider;
 use Cronos\CustomOrders\Infrastructure\CustomOrdersServiceProvider;
 use Cronos\Fraud\Infrastructure\FraudServiceProvider;
 use Cronos\Identity\Infrastructure\IdentityServiceProvider;
@@ -46,4 +47,5 @@ return [
     NotificationsServiceProvider::class,
     ReportsServiceProvider::class,
     WishlistServiceProvider::class,
+    ContentServiceProvider::class,
 ];

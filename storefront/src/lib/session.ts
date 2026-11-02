@@ -39,6 +39,13 @@ export async function writeMarket(code: string): Promise<void> {
   ;(await cookies()).set('market', code, { path: '/', sameSite: 'lax', maxAge: YEAR })
 }
 
+/** The visitor answered the "you are in another store" notice for the country they are in: do not ask again until that country changes. */
+export async function writeMarketAnswered(): Promise<void> {
+  const jar = await cookies()
+  const geo = jar.get('geo')?.value
+  if (geo) jar.set('market_ok', geo, { path: '/', sameSite: 'lax', maxAge: YEAR })
+}
+
 export async function readToken(): Promise<string | null> {
   return (await cookies()).get('session')?.value ?? null
 }

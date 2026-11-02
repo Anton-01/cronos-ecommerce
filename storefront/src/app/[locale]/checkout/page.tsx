@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
 import { CheckoutFlow } from '@/components/CheckoutFlow'
+import { getAddresses } from '@/lib/addresses'
 import { getCart } from '@/lib/cart'
 import { href } from '@/lib/config'
 import { getMarket, resolveLocale } from '@/lib/context'
@@ -15,6 +16,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ local
   const cart = await getCart()
   if (!cart || cart.lines.length === 0) redirect(href.page(locale, 'cart'))
   const [{ market }, me] = await Promise.all([getMarket(), getMe()])
+  const saved = me ? await getAddresses() : null // guests have no address book
   const t = messages(locale)
   const steps = [t.stepCart, t.stepCheckout, t.stepDone]
   return (
@@ -25,7 +27,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ local
         </ol>
         <h1 className="sr-only">{t.checkout}</h1>
       </div>
-      <CheckoutFlow cart={cart} locale={locale} countries={market.profile.countries.length > 0 ? market.profile.countries : [market.countryCode]} defaultEmail={me?.email ?? ''} />
+      <CheckoutFlow cart={cart} locale={locale} countries={market.profile.countries.length > 0 ? market.profile.countries : [market.countryCode]} defaultEmail={me?.email ?? ''} saved={saved} />
     </>
   )
 }

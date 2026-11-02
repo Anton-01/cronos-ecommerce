@@ -20,6 +20,7 @@ const CategoriesPage = lazy(() => import('@/features/catalog/categories/Categori
 const TagsPage = lazy(() => import('@/features/catalog/tags/TagsPage').then((m) => ({ default: m.TagsPage })))
 const AttributesPage = lazy(() => import('@/features/catalog/attributes/AttributesPage').then((m) => ({ default: m.AttributesPage })))
 const CurrenciesPage = lazy(() => import('@/features/pricing/CurrenciesPage').then((m) => ({ default: m.CurrenciesPage })))
+const PagesPage = lazy(() => import('@/features/content/PagesPage').then((m) => ({ default: m.PagesPage })))
 const AppearancePage = lazy(() => import('@/features/appearance/AppearancePage').then((m) => ({ default: m.AppearancePage })))
 const TaxesPage = lazy(() => import('@/features/pricing/TaxesPage').then((m) => ({ default: m.TaxesPage })))
 const CouponsPage = lazy(() => import('@/features/promotions/CouponsPage').then((m) => ({ default: m.CouponsPage })))
@@ -73,6 +74,9 @@ export function App() {
           </Route>
           <Route element={<RequireAuth permission="payments.view" />}>
             <Route path="payments" element={page(<PaymentsPage />)} />
+          </Route>
+          <Route element={<RequireAuth permission="content.view" />}>
+            <Route path="content" element={page(<PagesPage />)} />
           </Route>
           <Route element={<RequireAuth permission="appearance.view" />}>
             <Route path="appearance" element={page(<AppearancePage />)} />

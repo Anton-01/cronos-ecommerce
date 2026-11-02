@@ -1,0 +1,73 @@
+enum AddressKind {
+  SHIPPING @enum(value: "shipping")
+  BILLING @enum(value: "billing")
+}
+
+"One of my saved addresses."
+type SavedAddress {
+  id: ID!
+  type: AddressKind!
+  label: String
+  recipientName: String!
+  phone: String
+  street: String!
+  exteriorNo: String
+  interiorNo: String
+  neighborhood: String
+  city: String!
+  state: String!
+  countryCode: String!
+  zip: String!
+  references: String
+  "Billing only: the tax id (RFC in Mexico) and the name invoices are issued to."
+  taxId: String
+  businessName: String
+  "The one used first at checkout, per kind."
+  isDefault: Boolean!
+}
+
+input SavedAddressInput {
+  type: AddressKind
+  label: String
+  recipientName: String!
+  phone: String
+  street: String!
+  exteriorNo: String
+  interiorNo: String
+  neighborhood: String
+  city: String!
+  state: String!
+  countryCode: String!
+  zip: String!
+  references: String
+  taxId: String
+  businessName: String
+}
+
+extend type Query {
+  "My address book, defaults first. Read from cache; the cache is dropped only when I change an address."
+  myAddresses(type: AddressKind): [SavedAddress!]!
+    @guard
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\AddressBookResolver@mine")
+}
+
+extend type Mutation {
+  "The first address of a kind becomes its default. Up to 20 addresses per person."
+  addAddress(input: SavedAddressInput!): SavedAddress!
+    @guard
+    @throttle(maxAttempts: 30, decayMinutes: 1, prefix: "address")
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\AddressBookResolver@add")
+  "Only the fields sent change; the kind never does."
+  updateAddress(id: ID!, input: SavedAddressInput!): SavedAddress!
+    @guard
+    @throttle(maxAttempts: 30, decayMinutes: 1, prefix: "address")
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\AddressBookResolver@update")
+  deleteAddress(id: ID!): Boolean!
+    @guard
+    @throttle(maxAttempts: 30, decayMinutes: 1, prefix: "address")
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\AddressBookResolver@delete")
+  setDefaultAddress(id: ID!): SavedAddress!
+    @guard
+    @throttle(maxAttempts: 30, decayMinutes: 1, prefix: "address")
+    @field(resolver: "Cronos\\Identity\\Interfaces\\GraphQL\\AddressBookResolver@makeDefault")
+}
