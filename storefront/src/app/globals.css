@@ -1,0 +1,85 @@
+@import 'tailwindcss';
+
+/* The server derives every value below from the theme the back office publishes (see ThemeCss in the API) and injects them on :root. */
+@theme inline {
+  --color-primary: var(--c-primary);
+  --color-primary-hover: var(--c-primary-hover);
+  --color-primary-soft: var(--c-primary-soft);
+  --color-on-primary: var(--c-on-primary);
+  --color-secondary: var(--c-secondary);
+  --color-secondary-hover: var(--c-secondary-hover);
+  --color-on-secondary: var(--c-on-secondary);
+  --color-bg: var(--c-bg);
+  --color-surface: var(--c-surface);
+  --color-surface-alt: var(--c-surface-alt);
+  --color-ink: var(--c-text);
+  --color-heading: var(--c-heading);
+  --color-link: var(--c-link);
+  --color-line: var(--c-border);
+  --color-success: var(--c-success);
+  --color-danger: var(--c-danger);
+  --color-sale: var(--c-sale);
+  --color-header: var(--c-header-bg);
+  --color-header-ink: var(--c-header-text);
+  --color-topbar: var(--c-topbar-bg);
+  --color-topbar-ink: var(--c-topbar-text);
+  --color-ribbon: var(--c-ribbon-bg);
+  --color-ribbon-ink: var(--c-ribbon-text);
+  --color-footer: var(--c-footer-bg);
+  --color-footer-ink: var(--c-footer-text);
+  --color-footer-heading: var(--c-footer-heading);
+}
+
+:root {
+  /* Fallbacks so the page is readable even if the theme cannot be fetched. */
+  --c-primary: #f59a57; --c-primary-hover: #d9824a; --c-primary-soft: #fdeee1; --c-on-primary: #ffffff;
+  --c-secondary: #242424; --c-secondary-hover: #3a3a3a; --c-on-secondary: #ffffff;
+  --c-bg: #f3f2ee; --c-surface: #ffffff; --c-surface-alt: #f7f6f2; --c-text: #5f5f5f; --c-heading: #242424; --c-link: #333333; --c-border: #e3e1da;
+  --c-success: #438e44; --c-danger: #d6453d; --c-sale: #f59a57;
+  --c-header-bg: #fbfaf7; --c-header-text: #242424; --c-topbar-bg: #ebeae6; --c-topbar-text: #242424; --c-ribbon-bg: #e0eaf0; --c-ribbon-text: #242424;
+  --c-footer-bg: #000000; --c-footer-text: #d0d0d0; --c-footer-heading: #ffffff;
+  --font-heading: ui-sans-serif, system-ui, sans-serif; --font-body: ui-sans-serif, system-ui, sans-serif;
+  --fw-heading: 700; --fw-body: 400; --fs-base: 16px; --lh-base: 1.6; --heading-transform: none; --letter-spacing: 0px;
+  --radius-card: 10px; --radius-button: 30px; --radius-input: 30px; --radius-badge: 12px; --radius-category: 50%;
+  --card-border: 0; --card-shadow: none; --container: 1400px; --space: 20px; --space-lg: 56px;
+  --grid-cols-desktop: 4; --grid-cols-mobile: 2; --bg-texture: none;
+}
+
+html { font-size: var(--fs-base); }
+body {
+  background-color: var(--c-bg);
+  background-image: var(--bg-texture);
+  color: var(--c-text);
+  font-family: var(--font-body);
+  font-weight: var(--fw-body);
+  line-height: var(--lh-base);
+  letter-spacing: var(--letter-spacing);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4 {
+  font-family: var(--font-heading);
+  font-weight: var(--fw-heading);
+  color: var(--c-heading);
+  text-transform: var(--heading-transform);
+  line-height: 1.2;
+}
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
+
+.container-x { max-width: var(--container); margin-inline: auto; padding-inline: 15px; }
+.card { background: var(--c-surface); border-radius: var(--radius-card); border: var(--card-border); box-shadow: var(--card-shadow); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 42px; padding: 0 1.4rem; border-radius: var(--radius-button); font-family: var(--font-heading); font-weight: 600; font-size: .8125rem; text-transform: uppercase; letter-spacing: .02em; cursor: pointer; transition: background-color .15s, opacity .15s; border: 1px solid transparent; }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.btn-primary { background: var(--c-primary); color: var(--c-on-primary); }
+.btn-primary:hover:not(:disabled) { background: var(--c-primary-hover); }
+.btn-dark { background: var(--c-secondary); color: var(--c-on-secondary); }
+.btn-dark:hover:not(:disabled) { background: var(--c-secondary-hover); }
+.btn-ghost { background: var(--c-surface-alt); color: var(--c-heading); }
+.field { min-height: 42px; width: 100%; padding: 0 1rem; border: 1px solid var(--c-border); border-radius: var(--radius-input); background: var(--c-surface); font-size: .875rem; color: var(--c-heading); }
+.sr-only-focusable:not(:focus):not(:focus-within) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+@media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+
+/* Product grids follow the columns chosen in the back office (mobile and desktop). */
+.product-grid { display: grid; gap: 12px; grid-template-columns: repeat(var(--grid-cols-mobile), minmax(0, 1fr)); }
+@media (min-width: 768px) { .product-grid { gap: 16px; } }
+@media (min-width: 1024px) { .product-grid { grid-template-columns: repeat(var(--grid-cols-desktop), minmax(0, 1fr)); } .product-grid.with-sidebar { grid-template-columns: repeat(max(2, calc(var(--grid-cols-desktop) - 1)), minmax(0, 1fr)); } }
