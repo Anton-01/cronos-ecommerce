@@ -99,20 +99,57 @@ class MediaModel extends Model implements AuditableContract
             ->all();
     }
 
-    /** `url 320w, url 640w, ...` for <img srcset>; the original is the widest candidate. Null for documents and while pending. */
+    /**
+     * `url 320w, url 640w, ...` for <img srcset> (WebP renditions). The uploaded original is NOT a candidate: it is the heavy master copy;
+     * a capped, optimised twin of the same width is. Null for documents and while pending.
+     */
     public function getSrcsetAttribute(): ?string
+    {
+        return $this->srcsetFor(false);
+    }
+
+    /** Same widths in AVIF, for <source type="image/avif">; null when the server could not encode AVIF. */
+    public function getSrcsetAvifAttribute(): ?string
+    {
+        return $this->srcsetFor(true);
+    }
+
+    private function srcsetFor(bool $avif): ?string
     {
         $responsive = (array) ($this->responsive_images ?? []);
         if (! $this->is_image || $responsive === []) {
             return null;
         }
-
         $disk = Storage::disk($this->disk);
-        uasort($responsive, fn (array $a, array $b) => $a['width'] <=> $b['width']);
-        $candidates = array_map(fn (array $r) => $disk->url($r['path']).' '.$r['width'].'w', array_values($responsive));
-        $this->width === null || $candidates[] = $this->url.' '.$this->width.'w';
+        $wanted = array_filter($responsive, fn (array $r, string $k) => str_contains($k, '@avif') === $avif, ARRAY_FILTER_USE_BOTH);
+        if ($wanted === []) {
+            return null;
+        }
+        uasort($wanted, fn (array $a, array $b) => $a['width'] <=> $b['width']);
 
-        return implode(', ', $candidates);
+        return implode(', ', array_map(fn (array $r) => $disk->url($r['path']).' '.$r['width'].'w', array_values($wanted)));
+    }
+
+    /** @return list<string> */
+    public function getWarningsAttribute(): array
+    {
+        return array_values((array) ($this->custom_properties['warnings'] ?? []));
+    }
+
+    /** @return array{x: float, y: float}|null */
+    public function getFocalAttribute(): ?array
+    {
+        $f = $this->custom_properties['focal'] ?? null;
+
+        return is_array($f) ? ['x' => (float) ($f['x'] ?? 0.5), 'y' => (float) ($f['y'] ?? 0.5)] : null;
+    }
+
+    /** @return array{originalBytes: int, servedBytes: int, savedPercent: float}|null */
+    public function getOptimizationAttribute(): ?array
+    {
+        $o = $this->custom_properties['optimization'] ?? null;
+
+        return is_array($o) && isset($o['original_bytes']) ? ['originalBytes' => (int) $o['original_bytes'], 'servedBytes' => (int) $o['served_bytes'], 'savedPercent' => (float) $o['saved_percent']] : null;
     }
 
     /** Best small rendition for lists, falling back to the original while conversions are pending. */

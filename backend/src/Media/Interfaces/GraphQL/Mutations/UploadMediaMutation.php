@@ -29,6 +29,7 @@ final class UploadMediaMutation
             clientName: $file->getClientOriginalName(),
             collection: $args['collection'] ?? 'library',
             uploadedBy: (string) $context->user()->getAuthIdentifier(),
+            slot: $args['slot'] ?? null,
         ));
 
         return MediaModel::query()->findOrFail($record->id);

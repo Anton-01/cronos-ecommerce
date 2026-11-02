@@ -18,5 +18,7 @@ final readonly class NewMedia
         public ?string $uploadedBy,
         public ?int $width,
         public ?int $height,
+        /** @var array<string, mixed> slot, warnings... kept next to the extracted metadata */
+        public array $properties = [],
     ) {}
 }

@@ -13,5 +13,6 @@ final readonly class UploadMedia
         public ?string $uploadedBy,
         public ?array $onlyMimes = null,
         public ?int $maxKb = null,
+        public ?string $slot = null,
     ) {}
 }

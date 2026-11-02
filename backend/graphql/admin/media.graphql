@@ -1,3 +1,34 @@
+enum ImageSlot {
+  PRODUCT @enum(value: "product")
+  CATEGORY @enum(value: "category")
+  HERO @enum(value: "hero")
+  HERO_MOBILE @enum(value: "hero_mobile")
+  BANNER @enum(value: "banner")
+  CONTENT @enum(value: "content")
+  LOGO @enum(value: "logo")
+  FAVICON @enum(value: "favicon")
+  OG @enum(value: "og")
+  LIBRARY @enum(value: "library")
+}
+
+type ImageSlotSpec {
+  slot: ImageSlot!
+  label: String!
+  hint: String!
+  "Width / height the design expects; null = any shape."
+  ratio: Float
+  recommendedWidth: Int!
+  recommendedHeight: Int!
+  minWidth: Int!
+  minHeight: Int!
+  "Widths of the optimised renditions the storefront chooses from."
+  widths: [Int!]!
+  "The layout crops this picture: mark the subject with a focal point."
+  focal: Boolean!
+  "A sanitised SVG is accepted."
+  svg: Boolean!
+}
+
 extend type Query {
   media(
     search: String @scope(name: "search")
@@ -10,11 +41,18 @@ extend type Query {
     @can(ability: "media.view", model: "Cronos\\Media\\Infrastructure\\Persistence\\Eloquent\\MediaModel")
     @paginate(type: CONNECTION, builder: "Cronos\\Media\\Interfaces\\GraphQL\\Queries\\MediaList", defaultCount: 24, maxCount: 100)
 
+  "What each kind of picture needs to look right: sizes, shape, and what it is used for."
+  imageSlots: [ImageSlotSpec!]!
+    @guard
+    @can(ability: "media.view", model: "Cronos\\Media\\Infrastructure\\Persistence\\Eloquent\\MediaModel")
+    @field(resolver: "Cronos\\Media\\Interfaces\\GraphQL\\Queries\\ImageSlotsQuery")
+
   mediaItem(id: ID! @eq): Media @guard @can(ability: "media.view") @find(model: "Cronos\\Media\\Infrastructure\\Persistence\\Eloquent\\MediaModel")
 }
 
 extend type Mutation {
-  uploadMedia(file: Upload!, collection: String = "library" @rules(apply: ["nullable", "max:64", "regex:/^[a-z0-9_-]+$/"])): Media!
+  "Pass `slot` to file the picture where it belongs and get its size checked (too small = refused; wrong shape = a warning)."
+  uploadMedia(file: Upload!, collection: String = "library" @rules(apply: ["nullable", "max:64", "regex:/^[a-z0-9_-]+$/"]), slot: ImageSlot): Media!
     @guard
     @can(ability: "media.upload")
     @throttle(maxAttempts: 60, decayMinutes: 1, prefix: "media-upload")
@@ -24,6 +62,12 @@ extend type Mutation {
     @guard
     @can(ability: "media.update")
     @field(resolver: "Cronos\\Media\\Interfaces\\GraphQL\\Mutations\\UpdateMediaMutation")
+
+  "Marks where the subject of a picture is and rebuilds its renditions so crops keep it in view."
+  setMediaFocalPoint(id: ID!, x: Float!, y: Float!): Media!
+    @guard
+    @can(ability: "media.update")
+    @field(resolver: "Cronos\\Media\\Interfaces\\GraphQL\\Mutations\\SetFocalPointMutation")
 
   deleteMedia(id: ID!): Boolean!
     @guard

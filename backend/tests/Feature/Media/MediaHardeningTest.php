@@ -41,9 +41,10 @@ final class MediaHardeningTest extends GraphQLTestCase
         $this->assertSame([640, 320], [$info[0], $info[1]], 'height follows the 2:1 ratio');
 
         $srcset = explode(', ', $media['srcset']);
-        $this->assertCount(4, $srcset, '3 renditions + the original');
+        $this->assertCount(4, $srcset, '3 narrower renditions + an optimised twin at the original width');
         $this->assertStringEndsWith('/responsive/w320.webp 320w', $srcset[0]);
-        $this->assertStringEndsWith('1000w', $srcset[3]);
+        $this->assertStringEndsWith('/responsive/w1000.webp 1000w', $srcset[3]);
+        $this->assertStringNotContainsString('/'.$media['id'].'/'.$media['id'].'.', $media['srcset'], 'the heavy uploaded original is never a candidate');
     }
 
     public function test_an_infected_upload_is_refused_and_nothing_is_stored(): void

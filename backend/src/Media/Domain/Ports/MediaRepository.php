@@ -13,6 +13,12 @@ interface MediaRepository
 
     public function find(string $id): ?MediaRecord;
 
+    /** Sets one custom property (focal point...) without touching the rest. */
+    public function setProperty(string $id, string $key, mixed $value): void;
+
+    /** Puts a finished item back in the queue (its renditions will be rebuilt). */
+    public function markPending(string $id): void;
+
     public function markProcessing(string $id): void;
 
     /** @param array<string, mixed> $properties @param array<string, array{path: string, width: int, height: int}> $conversions @param array<string, array{path: string, width: int, height: int}> $responsive width-only renditions for srcset */

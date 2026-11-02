@@ -30,6 +30,7 @@ final class EloquentMediaRepository implements MediaRepository
             'uploaded_by' => $media->uploadedBy,
             'width' => $media->width,
             'height' => $media->height,
+            'custom_properties' => $media->properties,
             'status' => 'pending',
         ]);
         // The id is chosen by the caller because the stored path is derived from it.
@@ -48,6 +49,20 @@ final class EloquentMediaRepository implements MediaRepository
         return $model ? $this->toRecord($model) : null;
     }
 
+    public function setProperty(string $id, string $key, mixed $value): void
+    {
+        $model = MediaModel::query()->findOrFail($id);
+        $props = (array) ($model->custom_properties ?? []);
+        $props[$key] = $value;
+        $model->custom_properties = $props;
+        $this->quietly(fn () => $model->saveQuietly());
+    }
+
+    public function markPending(string $id): void
+    {
+        $this->quietly(fn () => MediaModel::query()->whereKey($id)->update(['status' => 'pending', 'failure_reason' => null]));
+    }
+
     public function markProcessing(string $id): void
     {
         $this->quietly(fn () => MediaModel::query()->whereKey($id)->update(['status' => 'processing', 'failure_reason' => null]));
@@ -55,6 +70,9 @@ final class EloquentMediaRepository implements MediaRepository
 
     public function markReady(string $id, ?int $width, ?int $height, array $properties, array $conversions, array $responsive = []): void
     {
+        // What the person set (slot, focal point) and what the upload noticed (warnings) survive a re-run of the pipeline.
+        $kept = array_intersect_key((array) (MediaModel::query()->whereKey($id)->value('custom_properties') ?? []), array_flip(['slot', 'warnings', 'focal']));
+        $properties = $kept + $properties;
         $this->quietly(fn () => MediaModel::query()->whereKey($id)->update([
             'status' => 'ready',
             'width' => $width,
@@ -187,6 +205,8 @@ final class EloquentMediaRepository implements MediaRepository
             mimeType: $model->mime_type,
             status: $model->status,
             width: $model->width,
+            collection: (string) $model->collection_name,
+            properties: (array) ($model->custom_properties ?? []),
             height: $model->height,
         );
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cronos\Media\Application\Handlers;
 
 use Cronos\Media\Application\Commands\UploadMedia;
+use Cronos\Media\Application\ImageSlots;
 use Cronos\Media\Domain\Events\MediaUploaded;
 use Cronos\Media\Domain\Exceptions\InvalidImage;
 use Cronos\Media\Domain\Exceptions\MalwareDetected;
@@ -33,6 +34,7 @@ final class UploadMediaHandler
         private readonly ImageProcessor $images,
         private readonly MalwareScanner $scanner,
         private readonly DomainEventDispatcher $events,
+        private readonly ImageSlots $slots,
     ) {}
 
     public function __invoke(UploadMedia $command): MediaRecord
@@ -67,6 +69,15 @@ final class UploadMediaHandler
             }
         }
 
+        // A named slot ("hero", "product"...) decides the collection and is checked against its minimum size and shape.
+        $collection = $command->collection;
+        $properties = [];
+        if ($command->slot !== null && $info !== null) {
+            $spec = $this->slots->find($command->slot) ?? throw new InvalidImage("Unknown image slot [{$command->slot}].");
+            $collection = $spec['collection'];
+            $properties = ['slot' => $command->slot, 'warnings' => $this->slots->check($command->slot, $info)];
+        }
+
         $id = strtolower((string) Str::ulid());
         $disk = (string) config('media.disk');
         // The stored name is ours, never the client's: no path tricks, no collisions, no leaked names.
@@ -82,10 +93,11 @@ final class UploadMediaHandler
             disk: $disk,
             size: $size,
             checksum: hash('sha256', $contents),
-            collection: $command->collection,
+            collection: $collection,
             uploadedBy: $command->uploadedBy,
             width: $info?->width,
             height: $info?->height,
+            properties: $properties,
         ));
 
         $this->events->dispatch(new MediaUploaded($record->id));

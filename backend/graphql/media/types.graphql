@@ -30,9 +30,28 @@ type Media @model(class: "Cronos\\Media\\Infrastructure\\Persistence\\Eloquent\\
   thumbUrl: String @rename(attribute: "thumb_url")
   "Ready-made value for <img srcset>; null for documents or while renditions are still being generated."
   srcset: String
+  "Same widths in AVIF for <source type=\"image/avif\">; null when this server could not encode AVIF."
+  srcsetAvif: String @rename(attribute: "srcset_avif")
+  "Problems noticed at upload (wrong shape, below the recommended size)."
+  warnings: [String!]!
+  "Where the subject is (0..1 from the top-left): crops keep it in view."
+  focal: FocalPoint
+  "What the visitor downloads versus what was uploaded."
+  optimization: MediaOptimization
   conversions: [MediaConversion!]! @method(name: "conversionList")
   translations: [MediaTranslation!]! @hasMany(relation: "translations")
   createdAt: DateTime! @rename(attribute: "created_at")
+}
+
+type FocalPoint {
+  x: Float!
+  y: Float!
+}
+
+type MediaOptimization {
+  originalBytes: Int!
+  servedBytes: Int!
+  savedPercent: Float!
 }
 
 type MediaConversion {

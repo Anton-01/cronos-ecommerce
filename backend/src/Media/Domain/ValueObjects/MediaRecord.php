@@ -15,6 +15,9 @@ final readonly class MediaRecord
         public string $status,
         public ?int $width = null,
         public ?int $height = null,
+        public string $collection = 'library',
+        /** @var array<string, mixed> */
+        public array $properties = [],
     ) {}
 
     public function isImage(): bool
