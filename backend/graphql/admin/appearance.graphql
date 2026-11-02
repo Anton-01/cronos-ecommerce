@@ -1,0 +1,146 @@
+enum ThemeAssetSlot {
+  LOGO @enum(value: "logo")
+  LOGO_DARK @enum(value: "logoDark")
+  LOGO_MOBILE @enum(value: "logoMobile")
+  FAVICON @enum(value: "favicon")
+  OG @enum(value: "og")
+}
+
+type ContrastCheck {
+  pair: String!
+  ratio: Float!
+  needed: Float!
+  ok: Boolean!
+}
+
+type AdminTheme {
+  id: ID
+  number: Int!
+  "draft, published or archived"
+  status: String!
+  name: String
+  notes: String
+  updatedAt: DateTime
+  publishedAt: DateTime
+  tokens: JSON!
+  navigation: JSON!
+  "Sections as saved (pictures are library ids)."
+  home: JSON!
+  features: JSON!
+  "Logos and icons already processed: urls, sizes, crop used."
+  assets: JSON!
+  cssVariables: JSON!
+  fontsHref: String
+  "Readability of the chosen colours (WCAG AA): advice, never a blocker."
+  contrast: [ContrastCheck!]!
+}
+
+type ThemeVersionInfo {
+  id: ID!
+  number: Int!
+  status: String!
+  name: String
+  notes: String
+  createdAt: DateTime
+  publishedAt: DateTime
+}
+
+type ThemePreset {
+  key: String!
+  label: String!
+  description: String!
+  tokens: JSON!
+}
+
+type ThemeFont {
+  family: String!
+  label: String!
+  weights: [Int!]!
+}
+
+type ThemeFeatureInfo {
+  key: String!
+  label: String!
+  "Locked off: the module does not exist yet."
+  reserved: Boolean!
+}
+
+type ThemeAdminState {
+  draft: AdminTheme!
+  live: AdminTheme!
+  hasUnpublishedChanges: Boolean!
+  versions: [ThemeVersionInfo!]!
+  presets: [ThemePreset!]!
+  fonts: [ThemeFont!]!
+  features: [ThemeFeatureInfo!]!
+  "Section types the home accepts; `reserved` ones are stored but not shown until their module exists."
+  homeSectionTypes: [HomeSectionType!]!
+}
+
+type HomeSectionType {
+  type: String!
+  reserved: Boolean!
+}
+
+input CropInput {
+  "Pixels of the ORIGINAL picture."
+  x: Int!
+  y: Int!
+  width: Int!
+  height: Int!
+  "Clockwise, in steps of 90."
+  rotate: Int = 0
+  flipX: Boolean = false
+  flipY: Boolean = false
+  "Remove transparent margins around the logo."
+  trim: Boolean = false
+}
+
+extend type Query {
+  adminTheme: ThemeAdminState!
+    @guard @can(ability: "appearance.view", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Appearance\\Interfaces\\GraphQL\\AdminAppearance@state")
+}
+
+extend type Mutation {
+  "Changes the draft only. Each group sent is merged with what the draft has and validated as a whole; errors name the field (extensions.fields)."
+  saveThemeDraft(tokens: JSON, navigation: JSON, home: JSON, features: JSON): AdminTheme!
+    @guard @can(ability: "appearance.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Appearance\\Interfaces\\GraphQL\\AdminAppearance@save")
+  "Starts the draft's colours, type and shapes from a ready-made look."
+  applyThemePreset(key: String!): AdminTheme!
+    @guard @can(ability: "appearance.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Appearance\\Interfaces\\GraphQL\\AdminAppearance@preset")
+  resetThemeDraft: AdminTheme!
+    @guard @can(ability: "appearance.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Appearance\\Interfaces\\GraphQL\\AdminAppearance@reset")
+  discardThemeDraft: Boolean!
+    @guard @can(ability: "appearance.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Appearance\\Interfaces\\GraphQL\\AdminAppearance@discard")
+  "Brings an earlier version back as the draft (it is live only after publishing)."
+  restoreThemeVersion(id: ID!): AdminTheme!
+    @guard @can(ability: "appearance.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Appearance\\Interfaces\\GraphQL\\AdminAppearance@restore")
+  "Makes the draft the live look of the store."
+  publishTheme(notes: String): AdminTheme!
+    @guard @can(ability: "appearance.publish", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @throttle(maxAttempts: 10, decayMinutes: 1, prefix: "theme-publish")
+    @field(resolver: "Cronos\\Appearance\\Interfaces\\GraphQL\\AdminAppearance@publish")
+  "A link on the real storefront that shows the draft for an hour."
+  themePreviewLink: String!
+    @guard @can(ability: "appearance.view", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Appearance\\Interfaces\\GraphQL\\AdminAppearance@previewLink")
+  "Uploads a logo, icon or share image. Logos may be SVG (sanitised). Rasters are cropped by `crop` (whole picture by default) and rendered at the sizes the store uses."
+  uploadThemeAsset(slot: ThemeAssetSlot!, file: Upload!, crop: CropInput): AdminTheme!
+    @guard @can(ability: "appearance.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @throttle(maxAttempts: 20, decayMinutes: 1, prefix: "theme-asset")
+    @field(resolver: "Cronos\\Appearance\\Interfaces\\GraphQL\\AdminAppearance@upload")
+  "Re-crops a picture already in the library (or changes the crop of the current logo)."
+  setThemeAsset(slot: ThemeAssetSlot!, mediaId: ID!, crop: CropInput): AdminTheme!
+    @guard @can(ability: "appearance.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @throttle(maxAttempts: 30, decayMinutes: 1, prefix: "theme-asset")
+    @field(resolver: "Cronos\\Appearance\\Interfaces\\GraphQL\\AdminAppearance@setAsset")
+  removeThemeAsset(slot: ThemeAssetSlot!): AdminTheme!
+    @guard @can(ability: "appearance.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Appearance\\Interfaces\\GraphQL\\AdminAppearance@removeAsset")
+}

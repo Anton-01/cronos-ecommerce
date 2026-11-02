@@ -1,0 +1,34 @@
+"The live look of the store, ready to paint: CSS, fonts, logos, menus, home sections (pictures already resolved) and feature switches."
+type StorefrontTheme {
+  "Increases with every publication: cache key and change detector."
+  version: Int!
+  publishedAt: DateTime
+  siteName: String!
+  tagline: String!
+  "Colour of the browser bar on phones."
+  themeColor: String!
+  "The tokens as configured (colours, typography, shape, layout, identity)."
+  tokens: JSON!
+  "CSS custom properties, derived shades included: { '--c-primary': '#F59A57', ... }"
+  cssVariables: JSON!
+  "The same variables as a ready-to-inline :root { … } block."
+  css: String!
+  "Google Fonts stylesheet for the two chosen families; null when both are system fonts."
+  fontsHref: String
+  "logo, logoDark, logoMobile, favicon, og: { kind, url, width, height, srcset, alt, files[] }"
+  assets: JSON!
+  "topbarLinks, footerColumns, social, announcements (including the free-shipping ribbon of that store), footerNote."
+  navigation: JSON!
+  "Enabled sections in order, with pictures resolved to { url, srcset, srcsetAvif, width, height, alt, focal }."
+  home: JSON!
+  "wishlist, customOrders, ... Reserved modules (reviews, compare, brands, blog) are always false."
+  features: JSON!
+  manifestUrl: String!
+}
+
+extend type Query {
+  "Pass `market` for that store's ribbon and name, `preview` (from the back office) to see the draft instead of the live version."
+  storefrontTheme(locale: String, market: String, preview: String): StorefrontTheme!
+    @throttle(maxAttempts: 300, decayMinutes: 1, prefix: "theme")
+    @field(resolver: "Cronos\\Appearance\\Interfaces\\GraphQL\\StorefrontThemeQuery")
+}

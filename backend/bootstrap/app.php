@@ -1,6 +1,10 @@
 <?php
 
+use Cronos\Appearance\Interfaces\Http\BrandingController;
 use Cronos\Payments\Interfaces\Http\WebhookController;
+use Cronos\Reports\Interfaces\Http\ExportDownloadController;
+use Cronos\Seo\Interfaces\Http\SeoController;
+use Cronos\Shipping\Interfaces\Http\ShippingWebhookController;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -15,12 +19,14 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function (): void {
             // Provider callbacks: no session, no CSRF, own rate limit. The controller only stores and queues.
             Route::middleware('throttle:120,1')->group(function () {
-                Route::get('/robots.txt', [\Cronos\Seo\Interfaces\Http\SeoController::class, 'robots'])->name('seo.robots');
-                Route::get('/sitemap.xml', [\Cronos\Seo\Interfaces\Http\SeoController::class, 'index'])->name('seo.sitemap');
-                Route::get('/sitemaps/{name}.xml', [\Cronos\Seo\Interfaces\Http\SeoController::class, 'file'])->where('name', '[A-Za-z0-9-]{1,40}')->name('seo.sitemap.file');
+                Route::get('/manifest.webmanifest', [BrandingController::class, 'manifest'])->name('branding.manifest');
+                Route::get('/favicon.ico', [BrandingController::class, 'favicon'])->name('branding.favicon');
+                Route::get('/robots.txt', [SeoController::class, 'robots'])->name('seo.robots');
+                Route::get('/sitemap.xml', [SeoController::class, 'index'])->name('seo.sitemap');
+                Route::get('/sitemaps/{name}.xml', [SeoController::class, 'file'])->where('name', '[A-Za-z0-9-]{1,40}')->name('seo.sitemap.file');
             });
-            Route::middleware(['signed', 'throttle:60,1'])->get('/exports/{export}/download', \Cronos\Reports\Interfaces\Http\ExportDownloadController::class)->name('exports.download');
-            Route::middleware('throttle:webhooks')->post('/webhooks/shipping/{carrier}', \Cronos\Shipping\Interfaces\Http\ShippingWebhookController::class)->name('webhooks.shipping');
+            Route::middleware(['signed', 'throttle:60,1'])->get('/exports/{export}/download', ExportDownloadController::class)->name('exports.download');
+            Route::middleware('throttle:webhooks')->post('/webhooks/shipping/{carrier}', ShippingWebhookController::class)->name('webhooks.shipping');
             Route::middleware('throttle:webhooks')->post('/webhooks/{provider}', WebhookController::class)->name('webhooks.receive');
         },
     )

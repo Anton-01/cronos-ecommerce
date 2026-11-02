@@ -1,0 +1,153 @@
+fragment ThemeFields on AdminTheme {
+  id
+  number
+  status
+  updatedAt
+  tokens
+  navigation
+  home
+  features
+  assets
+  cssVariables
+  fontsHref
+  contrast {
+    pair
+    ratio
+    needed
+    ok
+  }
+}
+
+query AdminTheme {
+  adminTheme {
+    hasUnpublishedChanges
+    draft {
+      ...ThemeFields
+    }
+    live {
+      number
+      publishedAt
+    }
+    versions {
+      id
+      number
+      status
+      name
+      notes
+      createdAt
+      publishedAt
+    }
+    presets {
+      key
+      label
+      description
+      tokens
+    }
+    fonts {
+      family
+      label
+      weights
+    }
+    features {
+      key
+      label
+      reserved
+    }
+    homeSectionTypes {
+      type
+      reserved
+    }
+  }
+}
+
+mutation SaveThemeDraft($tokens: JSON, $navigation: JSON, $home: JSON, $features: JSON) {
+  saveThemeDraft(tokens: $tokens, navigation: $navigation, home: $home, features: $features) {
+    ...ThemeFields
+  }
+}
+
+mutation ApplyThemePreset($key: String!) {
+  applyThemePreset(key: $key) {
+    ...ThemeFields
+  }
+}
+
+mutation ResetThemeDraft {
+  resetThemeDraft {
+    ...ThemeFields
+  }
+}
+
+mutation DiscardThemeDraft {
+  discardThemeDraft
+}
+
+mutation RestoreThemeVersion($id: ID!) {
+  restoreThemeVersion(id: $id) {
+    ...ThemeFields
+  }
+}
+
+mutation PublishTheme($notes: String) {
+  publishTheme(notes: $notes) {
+    number
+  }
+}
+
+mutation ThemePreviewLink {
+  themePreviewLink
+}
+
+mutation UploadThemeAsset($slot: ThemeAssetSlot!, $file: Upload!, $crop: CropInput) {
+  uploadThemeAsset(slot: $slot, file: $file, crop: $crop) {
+    ...ThemeFields
+  }
+}
+
+mutation SetThemeAsset($slot: ThemeAssetSlot!, $mediaId: ID!, $crop: CropInput) {
+  setThemeAsset(slot: $slot, mediaId: $mediaId, crop: $crop) {
+    ...ThemeFields
+  }
+}
+
+mutation RemoveThemeAsset($slot: ThemeAssetSlot!) {
+  removeThemeAsset(slot: $slot) {
+    ...ThemeFields
+  }
+}
+
+query ImageSlots {
+  imageSlots {
+    slot
+    label
+    hint
+    ratio
+    recommendedWidth
+    recommendedHeight
+    minWidth
+    minHeight
+    focal
+    svg
+  }
+}
+
+mutation UploadHeroImage($file: Upload!, $slot: ImageSlot) {
+  uploadMedia(file: $file, slot: $slot) {
+    id
+    url
+    srcset
+    width
+    height
+    warnings
+  }
+}
+
+mutation SetMediaFocalPoint($id: ID!, $x: Float!, $y: Float!) {
+  setMediaFocalPoint(id: $id, x: $x, y: $y) {
+    id
+    focal {
+      x
+      y
+    }
+  }
+}

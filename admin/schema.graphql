@@ -1,6 +1,7 @@
 type Query {
  clientContext: ClientContext!
  supportedLocales: [SupportedLocale!]!
+ adminTheme: ThemeAdminState!
  "Immutable audit trail, newest first."
  adminAudits(entity: String, entityId: ID, userId: ID, country: String, event: String, before: ID, first: Int = 50): AuditPage!
  adminCategories: [AdminCategory!]!
@@ -25,6 +26,8 @@ type Query {
  adminInventoryHealth: InventoryHealth!
  "Every store with its seller identity, shipping, contact and the things linked to it (warehouses, payment methods, tax rates)."
  adminMarketProfiles: [AdminMarketProfile!]!
+ "What each kind of picture needs to look right: sizes, shape, and what it is used for."
+ imageSlots: [ImageSlotSpec!]!
  mediaItem(id: ID!): Media
  adminOrders(status: String, paymentStatus: String, search: String, first: Int = 25, offset: Int = 0): AdminOrderPage!
  adminOrder(id: ID!): AdminOrder
@@ -78,6 +81,23 @@ type Query {
  ): MediaConnection!
 }
 type Mutation {
+ "Changes the draft only. Each group sent is merged with what the draft has and validated as a whole; errors name the field (extensions.fields)."
+ saveThemeDraft(tokens: JSON, navigation: JSON, home: JSON, features: JSON): AdminTheme!
+ "Starts the draft's colours, type and shapes from a ready-made look."
+ applyThemePreset(key: String!): AdminTheme!
+ resetThemeDraft: AdminTheme!
+ discardThemeDraft: Boolean!
+ "Brings an earlier version back as the draft (it is live only after publishing)."
+ restoreThemeVersion(id: ID!): AdminTheme!
+ "Makes the draft the live look of the store."
+ publishTheme(notes: String): AdminTheme!
+ "A link on the real storefront that shows the draft for an hour."
+ themePreviewLink: String!
+ "Uploads a logo, icon or share image. Logos may be SVG (sanitised). Rasters are cropped by `crop` (whole picture by default) and rendered at the sizes the store uses."
+ uploadThemeAsset(slot: ThemeAssetSlot!, file: Upload!, crop: CropInput): AdminTheme!
+ "Re-crops a picture already in the library (or changes the crop of the current logo)."
+ setThemeAsset(slot: ThemeAssetSlot!, mediaId: ID!, crop: CropInput): AdminTheme!
+ removeThemeAsset(slot: ThemeAssetSlot!): AdminTheme!
  createCategory(parentId: ID, position: Int, isActive: Boolean, imageMediaId: ID, taxClassId: ID, translations: [CategoryTranslationInput!]!): AdminCategory!
  updateCategory(id: ID!, position: Int, isActive: Boolean, imageMediaId: ID, taxClassId: ID, translations: [CategoryTranslationInput!]): AdminCategory!
  moveCategory(id: ID!, parentId: ID, position: Int): AdminCategory!
@@ -139,8 +159,11 @@ type Mutation {
  setMarketCountries(code: String!, countries: [String!]!): AdminMarketProfile!
  "The store shown to visitors from countries that have none."
  setFallbackMarket(code: String!): AdminMarketProfile!
- uploadMedia(file: Upload!, collection: String = "library"): Media!
+ "Pass `slot` to file the picture where it belongs and get its size checked (too small = refused; wrong shape = a warning)."
+ uploadMedia(file: Upload!, collection: String = "library", slot: ImageSlot): Media!
  updateMedia(id: ID!, name: String, translations: [MediaTranslationInput!]): Media!
+ "Marks where the subject of a picture is and rebuilds its renditions so crops keep it in view."
+ setMediaFocalPoint(id: ID!, x: Float!, y: Float!): Media!
  deleteMedia(id: ID!): Boolean!
  "Moves the order along its logistic states. Cancelling has its own action."
  transitionOrder(id: ID!, to: String!, note: String, notifyCustomer: Boolean = false): AdminOrder!
@@ -268,9 +291,26 @@ type Media {
  thumbUrl: String
  "Ready-made value for <img srcset>; null for documents or while renditions are still being generated."
  srcset: String
+ "Same widths in AVIF for <source type=\"image/avif\">; null when this server could not encode AVIF."
+ srcsetAvif: String
+ "Problems noticed at upload (wrong shape, below the recommended size)."
+ warnings: [String!]!
+ "Where the subject is (0..1 from the top-left): crops keep it in view."
+ focal: FocalPoint
+ "What the visitor downloads versus what was uploaded."
+ optimization: MediaOptimization
  conversions: [MediaConversion!]!
  translations: [MediaTranslation!]!
  createdAt: DateTime!
+}
+type FocalPoint {
+ x: Float!
+ y: Float!
+}
+type MediaOptimization {
+ originalBytes: Int!
+ servedBytes: Int!
+ savedPercent: Float!
 }
 type MediaConversion {
  name: String!
@@ -454,6 +494,94 @@ type CustomOrder {
 type CustomOrderPage {
  total: Int!
  rows: [CustomOrder!]!
+}
+enum ThemeAssetSlot {
+ LOGO
+ LOGO_DARK
+ LOGO_MOBILE
+ FAVICON
+ OG
+}
+type ContrastCheck {
+ pair: String!
+ ratio: Float!
+ needed: Float!
+ ok: Boolean!
+}
+type AdminTheme {
+ id: ID
+ number: Int!
+ "draft, published or archived"
+ status: String!
+ name: String
+ notes: String
+ updatedAt: DateTime
+ publishedAt: DateTime
+ tokens: JSON!
+ navigation: JSON!
+ "Sections as saved (pictures are library ids)."
+ home: JSON!
+ features: JSON!
+ "Logos and icons already processed: urls, sizes, crop used."
+ assets: JSON!
+ cssVariables: JSON!
+ fontsHref: String
+ "Readability of the chosen colours (WCAG AA): advice, never a blocker."
+ contrast: [ContrastCheck!]!
+}
+type ThemeVersionInfo {
+ id: ID!
+ number: Int!
+ status: String!
+ name: String
+ notes: String
+ createdAt: DateTime
+ publishedAt: DateTime
+}
+type ThemePreset {
+ key: String!
+ label: String!
+ description: String!
+ tokens: JSON!
+}
+type ThemeFont {
+ family: String!
+ label: String!
+ weights: [Int!]!
+}
+type ThemeFeatureInfo {
+ key: String!
+ label: String!
+ "Locked off: the module does not exist yet."
+ reserved: Boolean!
+}
+type ThemeAdminState {
+ draft: AdminTheme!
+ live: AdminTheme!
+ hasUnpublishedChanges: Boolean!
+ versions: [ThemeVersionInfo!]!
+ presets: [ThemePreset!]!
+ fonts: [ThemeFont!]!
+ features: [ThemeFeatureInfo!]!
+ "Section types the home accepts; `reserved` ones are stored but not shown until their module exists."
+ homeSectionTypes: [HomeSectionType!]!
+}
+type HomeSectionType {
+ type: String!
+ reserved: Boolean!
+}
+input CropInput {
+ "Pixels of the ORIGINAL picture."
+ x: Int!
+ y: Int!
+ width: Int!
+ height: Int!
+ "Clockwise, in steps of 90."
+ rotate: Int = 0
+ flipX: Boolean = false
+ flipY: Boolean = false
+ "Remove transparent margins around the logo."
+ trim: Boolean = false
 }
 type AuditEntry {
  id: ID!
@@ -1027,6 +1155,35 @@ input MarketProfileInput {
  opsEmail: String
  shippingFlat: String
  shippingFreeOver: String
+}
+enum ImageSlot {
+ PRODUCT
+ CATEGORY
+ HERO
+ HERO_MOBILE
+ BANNER
+ CONTENT
+ LOGO
+ FAVICON
+ OG
+ LIBRARY
+}
+type ImageSlotSpec {
+ slot: ImageSlot!
+ label: String!
+ hint: String!
+ "Width / height the design expects; null = any shape."
+ ratio: Float
+ recommendedWidth: Int!
+ recommendedHeight: Int!
+ minWidth: Int!
+ minHeight: Int!
+ "Widths of the optimised renditions the storefront chooses from."
+ widths: [Int!]!
+ "The layout crops this picture: mark the subject with a focal point."
+ focal: Boolean!
+ "A sanitised SVG is accepted."
+ svg: Boolean!
 }
 type AdminOrderHistory {
  id: ID!

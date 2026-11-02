@@ -23,6 +23,11 @@ final class ClientSafeDomainException extends \RuntimeException implements Clien
 
     public function getExtensions(): array
     {
-        return ['code' => $this->error->errorCode()];
+        $extensions = ['code' => $this->error->errorCode()];
+        // Errors that point at fields (a theme with three bad colours) say which, so a form can mark them.
+        $fields = property_exists($this->error, 'fields') ? $this->error->fields : [];
+        is_array($fields) && $fields !== [] && $extensions['fields'] = $fields;
+
+        return $extensions;
     }
 }
