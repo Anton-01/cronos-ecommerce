@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Cronos\Notifications\Infrastructure;
 
+use Cronos\Contact\Domain\Events\ContactMessageReceived;
 use Cronos\CustomOrders\Domain\Events\CustomOrderSubmitted;
 use Cronos\CustomOrders\Domain\Events\CustomOrderUpdated;
 use Cronos\CustomOrders\Domain\Events\QuoteSent;
+use Cronos\Notifications\Application\Listeners\NotifyAboutContact;
 use Cronos\Notifications\Application\Listeners\NotifyAboutOrders;
 use Cronos\Notifications\Domain\Ports\NotificationDispatcher;
 use Cronos\Notifications\Domain\Ports\NotificationLog;
@@ -40,6 +42,7 @@ final class NotificationsServiceProvider extends ServiceProvider
         Event::listen(CustomOrderUpdated::class, [NotifyAboutOrders::class, 'customUpdated']);
         Event::listen(CustomOrderSubmitted::class, [NotifyAboutOrders::class, 'customSubmitted']);
         Event::listen(PaymentNeedsReview::class, [NotifyAboutOrders::class, 'paymentNeedsReview']);
+        Event::listen(ContactMessageReceived::class, [NotifyAboutContact::class, 'handle']);
 
         if ($this->app->runningInConsole()) {
             $this->commands([SweepNotificationsCommand::class]);

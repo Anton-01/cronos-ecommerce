@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 
 import { href, LOCALES, SITE_URL, type Locale } from '@/lib/config'
 import { getMarket, resolveLocale } from '@/lib/context'
-import { getProducts } from '@/lib/data'
+import { getProducts, PRODUCTS } from '@/lib/data'
 import { gql } from '@/lib/gql'
 import { messages } from '@/lib/i18n'
 import type { Image, Pricing, ProductSummary, Sales, Stock } from '@/lib/types'
@@ -40,7 +40,7 @@ async function load(locale: Locale, slug: string, market: string, token: string 
       seo { title description canonicalSlug alternates { locale slug } }
       ${PRICING(market)}
     } }`
-  const data = await gql<{ product: Product | null }>(query, { locale, slug, token }, token ? {} : { revalidate: 60, tags: ['products'] })
+  const data = await gql<{ product: Product | null }>(query, { locale, slug, token }, token ? {} : { revalidate: PRODUCTS, tags: ['products'] })
   return data.product
 }
 

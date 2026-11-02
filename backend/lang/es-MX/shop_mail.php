@@ -50,4 +50,21 @@ return [
         'button' => 'Descargar archivo',
         'types' => ['orders' => 'Pedidos', 'order_items' => 'Partidas de pedidos', 'payments' => 'Pagos', 'stock' => 'Existencias', 'custom_orders' => 'Pedidos personalizados'],
     ],
+    'contact_topics' => ['general' => 'Consulta general', 'order' => 'Sobre un pedido', 'custom' => 'Pedido personalizado', 'wholesale' => 'Ventas al mayoreo', 'other' => 'Otro'],
+    'contact_received' => [
+        'subject' => '[Contacto :reference] :topic_label — :name',
+        'title' => 'Nuevo mensaje desde el formulario de contacto',
+        'intro' => ':name escribió sobre «:topic». Para responder, usa «Responder» de tu correo: la respuesta le llega directamente.',
+        'from' => 'De', 'phone' => 'Teléfono', 'order' => 'Pedido', 'topic' => 'Tema', 'store' => 'Tienda', 'reference' => 'Referencia',
+        'button' => 'Responder por correo',
+        'footer' => 'Mensaje recibido por el formulario de contacto de la tienda. Puedes marcarlo como atendido en el panel, sección Mensajes.',
+    ],
+    'contact_receipt' => [
+        'subject' => 'Recibimos tu mensaje (:reference)',
+        'title' => 'Hola, :name',
+        'intro' => 'Gracias por escribir a :shop. Recibimos tu mensaje y te responderemos lo antes posible. Esto fue lo que nos enviaste:',
+        'reference' => 'Tu referencia: :reference',
+        'hours' => 'Horario de atención: :hours.',
+        'footer' => 'Este es un acuse automático. Si necesitas añadir algo, responde a este correo.',
+    ],
 ];

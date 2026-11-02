@@ -23,6 +23,8 @@ final class ShopMail extends Mailable
         $scalars = array_filter($this->data, 'is_scalar');
         $this->template === 'order_status' && $scalars['status_label'] = __("shop_mail.order_status.labels.{$this->data['status']}", [], $this->mailLocale);
 
+        $this->template === 'contact_received' && $scalars['topic_label'] = __("shop_mail.contact_topics.{$this->data['topic']}", [], $this->mailLocale);
+
         $replyTo = isset($this->data['reply_to']) && is_string($this->data['reply_to']) && $this->data['reply_to'] !== '' ? [new Address($this->data['reply_to'])] : [];
 
         return new Envelope(replyTo: $replyTo, subject: __("shop_mail.{$this->template}.subject", $scalars, $this->mailLocale));

@@ -8,6 +8,7 @@ use Cronos\Pricing\Domain\Ports\CurrencyStore;
 use Cronos\Pricing\Domain\Ports\MarketStore;
 use Cronos\Pricing\Domain\Ports\PricingCatalog;
 use Cronos\Pricing\Domain\Ports\TaxStore;
+use Cronos\Shared\Domain\StorefrontCache;
 use Illuminate\Support\Facades\Cache;
 
 /** Currencies, markets and tax rules are a few dozen rows read on every price: one permanent snapshot, dropped on any write. */
@@ -17,7 +18,7 @@ final class CachedPricingCatalog implements PricingCatalog
 
     private const KEY = 'pricing:snapshot';
 
-    public function __construct(private readonly CurrencyStore $currencies, private readonly MarketStore $markets, private readonly TaxStore $taxes) {}
+    public function __construct(private readonly CurrencyStore $currencies, private readonly MarketStore $markets, private readonly TaxStore $taxes, private readonly StorefrontCache $storefront) {}
 
     public function snapshot(): array
     {
@@ -32,5 +33,7 @@ final class CachedPricingCatalog implements PricingCatalog
     public function forget(): void
     {
         Cache::tags([self::TAG])->flush();
+        // Prices shown by the storefront depend on currencies, rates, markets and taxes.
+        $this->storefront->invalidate('products', 'markets');
     }
 }

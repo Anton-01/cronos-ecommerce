@@ -32,14 +32,13 @@ export function Footer({ theme, locale, market, pages }: { theme: Theme; locale:
             </address>
           )}
         </div>
-        {pages.length > 0 && (
-          <nav aria-label={t.information}>
+        <nav aria-label={t.information}>
             <h2 className="mb-3 text-base" style={{ color: 'var(--c-footer-heading)' }}>{t.information}</h2>
             <ul className="space-y-1.5 text-sm">
               {pages.map((p) => <li key={p.key}><Link href={href.info(locale, p.slug)} className="hover:underline">{p.title}</Link></li>)}
+              <li><Link href={href.page(locale, 'contact')} className="hover:underline">{t.contactTitle}</Link></li>
             </ul>
-          </nav>
-        )}
+        </nav>
         {nav.footerColumns.map((col) => (
           <nav key={col.title} aria-label={col.title}>
             <h2 className="mb-3 text-base" style={{ color: 'var(--c-footer-heading)' }}>{col.title}</h2>

@@ -4,6 +4,8 @@ enum ProductSort {
   PRICE_DESC
   NAME
   RELEVANCE
+  "Most orders in the last 90 days."
+  BEST_SELLING
 }
 
 "How a product is bought: by the piece, by free cut in steps, by whole rolls, or both for ribbons."
@@ -201,6 +203,8 @@ extend type Query {
     category: String
     tag: String
     search: String @rules(apply: ["nullable", "max:100"])
+    "Prices below are in this store's currency (MX, US…); without it, in the catalogue's base currency."
+    market: String
     priceMin: String
     priceMax: String
     attributes: [AttributeFilter!]
@@ -210,4 +214,50 @@ extend type Query {
   ): ProductConnection!
     @throttle(maxAttempts: 120, decayMinutes: 1, prefix: "products")
     @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Queries\\StorefrontCatalogQuery@products")
+
+  "What can be chosen to narrow a listing, with how many products each choice leaves. Same filters as products()."
+  productFacets(
+    locale: String
+    category: String
+    tag: String
+    search: String @rules(apply: ["nullable", "max:100"])
+    market: String
+    priceMin: String
+    priceMax: String
+    attributes: [AttributeFilter!]
+  ): ProductFacets!
+    @throttle(maxAttempts: 120, decayMinutes: 1, prefix: "facets")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\Queries\\StorefrontCatalogQuery@facets")
+}
+
+type FacetValue {
+  code: String!
+  label: String!
+  "Extra data, e.g. { hex: \"#C8285A\" } for colours."
+  meta: JSON
+  "Products this choice leaves, given every other filter."
+  count: Int!
+  selected: Boolean!
+}
+
+type FacetAttribute {
+  code: String!
+  name: String!
+  "select, color…"
+  type: String!
+  values: [FacetValue!]!
+}
+
+type FacetPrice {
+  "Whole units, rounded outwards (the cheapest rounds down, the dearest up). Null when nothing matches."
+  min: String
+  max: String
+  currency: String!
+}
+
+type ProductFacets {
+  "Products matching everything chosen."
+  total: Int!
+  price: FacetPrice!
+  attributes: [FacetAttribute!]!
 }

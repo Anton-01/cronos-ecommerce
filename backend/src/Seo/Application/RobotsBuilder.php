@@ -21,7 +21,7 @@ final class RobotsBuilder
             }
         }
         // Sorted and filtered listings are the same products again: only the clean listing is indexed.
-        foreach (['sort', 'price_min', 'price_max', 'attr'] as $param) {
+        foreach (['sort', 'price_min', 'price_max', 'attr', 'min', 'max', 'f_', 'page'] as $param) {
             $lines[] = "Disallow: /*?*{$param}=";
         }
         $lines[] = '';

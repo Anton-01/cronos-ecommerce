@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
  */
 final class NotificationService
 {
-    public const TEMPLATES = ['order_placed', 'order_status', 'shipment_created', 'quote_ready', 'custom_order_update', 'ops_alert', 'export_ready'];
+    public const TEMPLATES = ['order_placed', 'order_status', 'shipment_created', 'quote_ready', 'custom_order_update', 'ops_alert', 'export_ready', 'contact_received', 'contact_receipt'];
 
     public function __construct(private readonly NotificationLog $log, private readonly RecipientDirectory $directory, private readonly NotificationDispatcher $dispatcher) {}
 
@@ -23,11 +23,12 @@ final class NotificationService
      * @param  array<string, mixed>  $data  everything the template needs (already formatted: the job renders without touching the database)
      * @return bool false when the same notification was already recorded
      */
-    public function send(string $template, string $dedupeKey, string $email, ?string $userId, ?string $marketCode, array $data, ?string $relatedType = null, ?string $relatedId = null): bool
+    public function send(string $template, string $dedupeKey, string $email, ?string $userId, ?string $marketCode, array $data, ?string $relatedType = null, ?string $relatedId = null, ?string $locale = null): bool
     {
         in_array($template, self::TEMPLATES, true) || throw new \InvalidArgumentException("Unknown notification template [{$template}].");
 
-        $locale = $this->directory->localeOf($userId) ?? ($marketCode === null ? null : $this->directory->marketLocale($marketCode)) ?? config('app.locale_default');
+        // An explicit language (the one the visitor was reading) wins over the account's and the store's.
+        $locale ??= $this->directory->localeOf($userId) ?? ($marketCode === null ? null : $this->directory->marketLocale($marketCode)) ?? config('app.locale_default');
         in_array($locale, config('app.supported_locales'), true) || $locale = config('app.locale_default');
 
         $id = $this->log->record([

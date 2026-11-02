@@ -10,6 +10,7 @@ use Cronos\Catalog\Domain\Ports\CatalogCache;
 use Cronos\Inventory\Domain\Events\StockChanged;
 use Cronos\Media\Domain\Events\MediaChanged;
 use Cronos\Media\Domain\Ports\MediaRepository;
+use Cronos\Shared\Domain\StorefrontCache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -21,11 +22,17 @@ final class PurgeCatalogCache
     public function __construct(
         private readonly CatalogCache $cache,
         private readonly MediaRepository $media,
+        private readonly StorefrontCache $storefront,
     ) {}
 
     public function handle(CatalogEntityChanged $event): void
     {
-        DB::afterCommit(fn () => $this->cache->flush($this->tagsFor($event)));
+        DB::afterCommit(function () use ($event): void {
+            $tags = $this->tagsFor($event);
+            $this->cache->flush($tags);
+            // The storefront keeps listings and pages for hours too: tell it what moved.
+            $this->storefront->invalidate('products', ...(array_intersect([CatalogTags::TREE, CatalogTags::CATEGORIES], $tags) === [] ? [] : ['categories']));
+        });
     }
 
     /** Stock moved: the product's availability (in stock / out of stock) is part of what the storefront cached. */

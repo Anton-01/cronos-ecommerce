@@ -50,4 +50,21 @@ return [
         'button' => 'Download file',
         'types' => ['orders' => 'Orders', 'order_items' => 'Order lines', 'payments' => 'Payments', 'stock' => 'Stock', 'custom_orders' => 'Custom orders'],
     ],
+    'contact_topics' => ['general' => 'General question', 'order' => 'About an order', 'custom' => 'Custom order', 'wholesale' => 'Wholesale', 'other' => 'Other'],
+    'contact_received' => [
+        'subject' => '[Contact :reference] :topic_label — :name',
+        'title' => 'New message from the contact form',
+        'intro' => ':name wrote about “:topic”. To answer, just hit “Reply” in your mail app: the reply goes straight to them.',
+        'from' => 'From', 'phone' => 'Phone', 'order' => 'Order', 'topic' => 'Topic', 'store' => 'Store', 'reference' => 'Reference',
+        'button' => 'Reply by e-mail',
+        'footer' => 'Message received through the shop contact form. You can mark it as handled in the back office, Messages section.',
+    ],
+    'contact_receipt' => [
+        'subject' => 'We received your message (:reference)',
+        'title' => 'Hello, :name',
+        'intro' => 'Thank you for writing to :shop. We received your message and will answer as soon as we can. This is what you sent us:',
+        'reference' => 'Your reference: :reference',
+        'hours' => 'Support hours: :hours.',
+        'footer' => 'This is an automatic receipt. If you need to add something, just reply to this e-mail.',
+    ],
 ];

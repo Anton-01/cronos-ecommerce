@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
-import { ListingView, parseQuery } from '@/components/Listing'
+import { isRefined, ListingView, parseQuery } from '@/components/Listing'
+import { getFacets } from '@/lib/data'
 import { href, LOCALES, SITE_URL, type Locale } from '@/lib/config'
 import { getMarket, resolveLocale } from '@/lib/context'
 import { gql } from '@/lib/gql'
@@ -16,12 +17,12 @@ async function load(locale: Locale, slug: string): Promise<Category | null> {
   const data = await gql<{ category: Category | null }>(
     `query($locale: String, $slug: String!) { category(locale: $locale, slug: $slug) { id slug name description breadcrumb { slug name } children { slug name } seo { title description } image { id url thumbUrl srcset alt width height } } }`,
     { locale, slug },
-    { revalidate: 120, tags: ['categories'] },
+    { revalidate: 6 * 60 * 60, tags: ['categories'] },
   )
   return data.category
 }
 
-export async function categoryMetadata(rawLocale: string, slug: string): Promise<Metadata> {
+export async function categoryMetadata(rawLocale: string, slug: string, searchParams: Record<string, string | string[] | undefined> = {}): Promise<Metadata> {
   const locale = resolveLocale(rawLocale)
   const category = await load(locale, slug)
   if (!category) return {}
@@ -29,6 +30,8 @@ export async function categoryMetadata(rawLocale: string, slug: string): Promise
     title: category.seo.title ?? category.name ?? undefined,
     description: category.seo.description ?? undefined,
     alternates: { canonical: `${SITE_URL}${href.category(locale, slug)}` },
+    // Filtered, sorted or later pages repeat the same products: crawlers follow them but only the clean listing is indexed.
+    robots: isRefined(parseQuery(searchParams)) ? { index: false, follow: true } : undefined,
   }
 }
 
@@ -39,7 +42,8 @@ export async function CategoryView({ rawLocale, slug, searchParams }: { rawLocal
   if (!category) notFound()
   const { market } = await getMarket()
   const query = parseQuery(searchParams)
-  const data = await getPage({ locale, market: market.code, category: slug, sort: query.sort, priceMin: query.priceMin, priceMax: query.priceMax }, query.page)
+  const args = { locale, market: market.code, category: slug, priceMin: query.priceMin, priceMax: query.priceMax, attributes: query.attrs }
+  const [data, facets] = await Promise.all([getPage({ ...args, sort: query.sort }, query.page), getFacets(args).catch(() => null)])
   const t = messages(locale)
   const base = href.category(locale, slug)
 
@@ -61,7 +65,7 @@ export async function CategoryView({ rawLocale, slug, searchParams }: { rawLocal
           </ul>
         )}
       </div>
-      <ListingView data={data} locale={locale} base={base} query={query} currency={market.currency.code} withSidebar />
+      <ListingView data={data} facets={facets} locale={locale} base={base} query={query} withSidebar />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'CollectionPage', name: category.name, url: `${SITE_URL}${base}` }).replace(/</g, '\\u003c') }} />
     </>
   )

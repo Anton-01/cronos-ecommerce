@@ -8,6 +8,8 @@ type Query {
  adminTags(search: String): [AdminTag!]!
  adminAttributes: [AdminAttribute!]!
  adminProduct(id: ID!): AdminProduct
+ contactMessages(status: String, search: String, first: Int = 25, offset: Int = 0): ContactMessagePage!
+ contactMessage(id: ID!): ContactMessage
  adminPages(status: String, search: String): [AdminPage!]!
  adminPage(id: ID!): AdminPage
  adminCustomOrders(status: String, search: String, assignedTo: ID, first: Int = 25, offset: Int = 0): AdminCustomOrderPage!
@@ -129,6 +131,7 @@ type Mutation {
  updateVariation(id: ID!, input: UpdateVariationInput!): AdminProduct!
  deleteVariation(id: ID!): AdminProduct!
  generateVariations(parentId: ID!): AdminProduct!
+ setContactMessageStatus(id: ID!, status: String!): ContactMessage!
  createPage(key: String!, markets: [String!], position: Int, translations: [PageTranslationInput!]!): AdminPage!
  updatePage(id: ID!, markets: [String!], position: Int, translations: [PageTranslationInput!]): AdminPage!
  publishPage(id: ID!): AdminPage!
@@ -874,6 +877,31 @@ input UpdateVariationInput {
  dimensions: DimensionsInput
  barcode: String
  position: Int
+}
+type ContactMessage {
+ id: ID!
+ marketCode: String
+ locale: String!
+ name: String!
+ email: String!
+ phone: String
+ topic: String!
+ orderNumber: String
+ message: String!
+ "new, read, replied or spam"
+ status: String!
+ "Why it looked suspicious (may be empty): honeypot, too_fast, duplicate, many_links…"
+ spamSignals: [String!]!
+ "passed, skipped (no Turnstile configured), unavailable (Cloudflare unreachable)"
+ humanCheck: String!
+ ip: String
+ country: String
+ createdAt: DateTime!
+ handledAt: DateTime
+}
+type ContactMessagePage {
+ total: Int!
+ rows: [ContactMessage!]!
 }
 input PageTranslationInput {
  locale: String!

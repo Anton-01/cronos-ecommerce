@@ -27,6 +27,7 @@ class RolesAndPermissionsSeeder extends Seeder
         'reports.view', 'reports.export',
         'appearance.view', 'appearance.manage', 'appearance.publish',
         'content.view', 'content.manage', 'content.publish',
+        'contact.view', 'contact.manage',
         'custom-orders.view', 'custom-orders.manage',
         'payments.view', 'payments.manage', 'payments.refund', 'payments.go-live',
     ];
@@ -40,7 +41,7 @@ class RolesAndPermissionsSeeder extends Seeder
         }
 
         Role::findOrCreate('customer', 'web');
-        Role::findOrCreate('support', 'web')->syncPermissions(['admin.access', 'users.view', 'media.view', 'settings.view', 'catalog.view', 'pricing.view', 'inventory.view', 'orders.view', 'custom-orders.view']);
+        Role::findOrCreate('support', 'web')->syncPermissions(['admin.access', 'users.view', 'media.view', 'settings.view', 'catalog.view', 'pricing.view', 'inventory.view', 'orders.view', 'custom-orders.view', 'contact.view', 'contact.manage']);
         Role::findOrCreate('admin', 'web')->syncPermissions(
             array_diff(self::PERMISSIONS, ['roles.manage', 'payments.go-live', 'appearance.publish'])
         );

@@ -29,6 +29,15 @@ interface StorefrontCatalog
     public function products(string $locale, array $filter, string $sort, int $limit, int $offset): array;
 
     /**
+     * What a visitor can narrow a listing by, given what is already chosen: the price range of the matching products and, for each filterable
+     * attribute, its values with how many products each would leave (counted with every OTHER filter applied, so picking "red" never hides "blue").
+     *
+     * @param  array<string, mixed>  $filter  same shape as for products()
+     * @return array{total: int, price: array{min: ?string, max: ?string}, attributes: list<array<string, mixed>>}
+     */
+    public function facets(string $locale, array $filter): array;
+
+    /**
      * Summaries of specific products, in the order given; products that are not published (or no longer exist) are left out.
      *
      * @param  list<string>  $ids

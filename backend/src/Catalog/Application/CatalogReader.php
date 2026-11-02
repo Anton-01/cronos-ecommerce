@@ -78,6 +78,19 @@ final class CatalogReader
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $filter
+     * @return array<string, mixed>
+     */
+    public function facets(?string $locale, array $filter): array
+    {
+        $locale = $this->locale($locale);
+        // Same tag as the listings: any change to the catalogue (or its stock) drops the counts too.
+        $facets = $this->cache->remember([CatalogTags::LISTS], 'facets:'.$locale.':'.sha1(json_encode($filter, JSON_THROW_ON_ERROR)), self::TTL, fn () => $this->catalog->facets($locale, $filter));
+
+        return $facets;
+    }
+
     private function locale(?string $locale): string
     {
         return in_array($locale, Localized::supported(), true) ? $locale : Localized::default();

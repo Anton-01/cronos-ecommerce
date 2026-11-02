@@ -1,0 +1,33 @@
+fragment ContactMessageFields on ContactMessage {
+  id
+  marketCode
+  locale
+  name
+  email
+  phone
+  topic
+  orderNumber
+  message
+  status
+  spamSignals
+  humanCheck
+  ip
+  country
+  createdAt
+  handledAt
+}
+
+query ContactMessages($status: String, $search: String, $first: Int, $offset: Int) {
+  contactMessages(status: $status, search: $search, first: $first, offset: $offset) {
+    total
+    rows {
+      ...ContactMessageFields
+    }
+  }
+}
+
+mutation SetContactMessageStatus($id: ID!, $status: String!) {
+  setContactMessageStatus(id: $id, status: $status) {
+    ...ContactMessageFields
+  }
+}

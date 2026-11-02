@@ -102,6 +102,49 @@ final class EloquentStorefrontCatalog implements StorefrontCatalog
         return ['items' => $this->summaries($locale, $ids), 'total' => $total];
     }
 
+    public function facets(string $locale, array $filter): array
+    {
+        $withoutAttributes = array_diff_key($filter, ['attributes' => 1]);
+        $everything = $this->visible();
+        $this->applyFilters($everything, $locale, array_diff_key($withoutAttributes, ['price_min' => 1, 'price_max' => 1]));
+        $range = (clone $everything)->selectRaw('MIN('.self::PRICE_EXPR.') AS lo, MAX('.self::PRICE_EXPR.') AS hi')->toBase()->first();
+
+        $matching = $this->visible();
+        $this->applyFilters($matching, $locale, $filter);
+        $total = (clone $matching)->count();
+
+        $attributes = [];
+        $chosen = collect($filter['attributes'] ?? [])->keyBy('code');
+        $candidates = DB::table('attributes as a')->join('attribute_values as av', 'av.attribute_id', '=', 'a.id')->join('product_attribute_values as pav', 'pav.attribute_value_id', '=', 'av.id')
+            ->whereNull('a.deleted_at')->whereNull('av.deleted_at')->where('a.is_filterable', true)
+            ->whereIn('pav.product_id', (clone $everything)->select('products.id')->toBase())
+            ->distinct()->orderBy('a.position')->get(['a.id', 'a.code', 'a.type', 'a.position']);
+
+        foreach ($candidates->unique('code') as $a) {
+            // Counted with every other filter on, this attribute's own off: the standard way to let someone pick a second value.
+            $others = array_values(array_filter($filter['attributes'] ?? [], static fn (array $f) => $f['code'] !== $a->code));
+            $q = $this->visible();
+            $this->applyFilters($q, $locale, array_replace($filter, ['attributes' => $others]));
+            $counts = DB::table('product_attribute_values as pav')->join('attribute_values as av', 'av.id', '=', 'pav.attribute_value_id')
+                ->where('av.attribute_id', $a->id)->whereNull('av.deleted_at')->whereIn('pav.product_id', $q->select('products.id')->toBase())
+                ->groupBy('av.id', 'av.code', 'av.meta', 'av.position')->orderBy('av.position')->get(['av.id', 'av.code', 'av.meta', 'av.position', DB::raw('COUNT(DISTINCT pav.product_id) AS n')]);
+            if ($counts->isEmpty()) {
+                continue;
+            }
+            $labels = DB::table('attribute_value_translations')->whereIn('attribute_value_id', $counts->pluck('id'))->get()->groupBy('attribute_value_id');
+            $name = DB::table('attribute_translations')->where('attribute_id', $a->id)->orderByRaw('CASE WHEN locale = ? THEN 0 ELSE 1 END', [$locale])->value('name');
+            $attributes[] = [
+                'code' => $a->code, 'name' => $name ?? $a->code, 'type' => $a->type,
+                'values' => $counts->map(fn ($v) => [
+                    'code' => $v->code, 'label' => ($labels[$v->id] ?? collect())->sortBy(fn ($l) => $l->locale === $locale ? 0 : 1)->first()->label ?? $v->code,
+                    'meta' => $v->meta === null ? null : json_decode($v->meta, true), 'count' => (int) $v->n, 'selected' => in_array($v->code, $chosen[$a->code]['values'] ?? [], true),
+                ])->all(),
+            ];
+        }
+
+        return ['total' => $total, 'price' => ['min' => $range->lo === null ? null : (string) $range->lo, 'max' => $range->hi === null ? null : (string) $range->hi], 'attributes' => $attributes];
+    }
+
     // ---------------------------------------------------------------- listing
 
     private function visible(): Builder
@@ -159,6 +202,8 @@ final class EloquentStorefrontCatalog implements StorefrontCatalog
             $sort === 'PRICE_ASC' => $query->orderByRaw(self::PRICE_EXPR.' ASC NULLS LAST'),
             $sort === 'PRICE_DESC' => $query->orderByRaw(self::PRICE_EXPR.' DESC NULLS LAST'),
             $sort === 'NAME' => $query->orderByRaw($name.' ASC', [$locale]),
+            // Popularity = how many orders in the last 90 days contained it (a variation counts for its parent). Lines, not quantities: metres, rolls and pieces do not add up.
+            $sort === 'BEST_SELLING' => $query->orderByRaw("(SELECT COUNT(DISTINCT oi.order_id) FROM order_items oi JOIN orders o ON o.id = oi.order_id AND o.status <> 'cancelled' AND o.placed_at >= now() - interval '90 days' WHERE oi.product_id = products.id OR oi.product_id IN (SELECT v.id FROM products v WHERE v.parent_id = products.id)) DESC")->orderByDesc('products.published_at'),
             $sort === 'RELEVANCE' && $search !== null && trim($search) !== '' => $query->orderByRaw(
                 "COALESCE((SELECT MAX(ts_rank(r.search_vector, websearch_to_tsquery('{$this->tsConfig($locale)}'::regconfig, unaccent(?)))) FROM product_translations r WHERE r.product_id = products.id AND r.deleted_at IS NULL), 0) DESC",
                 [trim($search)],

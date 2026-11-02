@@ -1,0 +1,41 @@
+type ContactMessage {
+  id: ID!
+  marketCode: String
+  locale: String!
+  name: String!
+  email: String!
+  phone: String
+  topic: String!
+  orderNumber: String
+  message: String!
+  "new, read, replied or spam"
+  status: String!
+  "Why it looked suspicious (may be empty): honeypot, too_fast, duplicate, many_links…"
+  spamSignals: [String!]!
+  "passed, skipped (no Turnstile configured), unavailable (Cloudflare unreachable)"
+  humanCheck: String!
+  ip: String
+  country: String
+  createdAt: DateTime!
+  handledAt: DateTime
+}
+
+type ContactMessagePage {
+  total: Int!
+  rows: [ContactMessage!]!
+}
+
+extend type Query {
+  contactMessages(status: String, search: String, first: Int = 25, offset: Int = 0): ContactMessagePage!
+    @guard @can(ability: "contact.view", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Contact\\Interfaces\\GraphQL\\AdminContact@list")
+  contactMessage(id: ID!): ContactMessage
+    @guard @can(ability: "contact.view", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Contact\\Interfaces\\GraphQL\\AdminContact@show")
+}
+
+extend type Mutation {
+  setContactMessageStatus(id: ID!, status: String!): ContactMessage!
+    @guard @can(ability: "contact.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Contact\\Interfaces\\GraphQL\\AdminContact@setStatus")
+}

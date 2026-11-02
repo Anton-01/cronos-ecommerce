@@ -11,9 +11,9 @@ const ok = (locale: string) => {
   return l !== null && LOCALES[l].category === 'categorias'
 }
 
-export async function generateMetadata({ params }: Props) {
+export async function generateMetadata({ params, searchParams }: Props) {
   const { locale, slug } = await params
-  return ok(locale) ? categoryMetadata(locale, slug) : {}
+  return ok(locale) ? categoryMetadata(locale, slug, await searchParams) : {}
 }
 
 export default async function Page({ params, searchParams }: Props) {

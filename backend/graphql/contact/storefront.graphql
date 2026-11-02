@@ -1,0 +1,39 @@
+type ContactConfig {
+  "Cloudflare Turnstile site key (public). Null = no human check configured: the form shows no widget."
+  turnstileSiteKey: String
+  "Action name the widget must be created with."
+  turnstileAction: String!
+  topics: [String!]!
+}
+
+input ContactMessageInput {
+  name: String!
+  email: String!
+  phone: String
+  "general, order, custom, wholesale or other."
+  topic: String
+  "Optional: the order the message is about."
+  orderNumber: String
+  message: String!
+  "Honeypot: an input people never see. Must be empty."
+  website: String
+  "Milliseconds since 1970 when the form was shown: a message sent within seconds is not typed by a person."
+  renderedAt: String
+}
+
+type ContactReceipt {
+  "Short code the person can quote when they write again."
+  reference: String!
+}
+
+extend type Query {
+  contactConfig: ContactConfig!
+    @field(resolver: "Cronos\\Contact\\Interfaces\\GraphQL\\StorefrontContact@config")
+}
+
+extend type Mutation {
+  "Sends a message to the shop. `humanToken` is the Cloudflare Turnstile token (cf-turnstile-response). Failure codes: INVALID_MESSAGE (with fields), HUMAN_CHECK_FAILED, RATE_LIMITED."
+  submitContactMessage(input: ContactMessageInput!, humanToken: String, market: String, locale: String): ContactReceipt!
+    @throttle(maxAttempts: 10, decayMinutes: 10, prefix: "contact")
+    @field(resolver: "Cronos\\Contact\\Interfaces\\GraphQL\\StorefrontContact@submit")
+}
