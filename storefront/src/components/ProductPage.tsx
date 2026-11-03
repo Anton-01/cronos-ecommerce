@@ -11,6 +11,7 @@ import type { Image, Pricing, ProductSummary, Sales, Stock } from '@/lib/types'
 
 import { BuyBox, type Attribute, type Variation } from './BuyBox'
 import { Gallery } from './Gallery'
+import { VariationImages } from './VariationImages'
 import { Price } from './Price'
 import { ProductCard } from './ProductCard'
 
@@ -89,6 +90,7 @@ export async function ProductView({ rawLocale, slug }: { rawLocale: string; slug
         </ol>
       </nav>
 
+      <VariationImages productImages={images} byVariation={Object.fromEntries(p.variations.filter((v) => v.gallery.length > 0).map((v) => [v.id, v.gallery]))}>
       <div className="mt-4 grid gap-8 lg:grid-cols-2">
         <Gallery images={images} name={p.name ?? ''} />
         <div className="space-y-4">
@@ -101,6 +103,7 @@ export async function ProductView({ rawLocale, slug }: { rawLocale: string; slug
           <BuyBox locale={locale} market={market.code} productId={p.id} sales={p.sales} pricing={p.pricing} stock={p.stockStatusIn} attributes={p.attributes} variations={p.variations} />
         </div>
       </div>
+      </VariationImages>
 
       {(p.description || details.length > 0) && (
         <div className="card mt-10 grid gap-8 p-6 md:grid-cols-2">

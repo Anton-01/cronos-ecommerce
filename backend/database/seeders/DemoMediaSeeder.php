@@ -67,5 +67,7 @@ final class DemoMediaSeeder extends Seeder
         ];
         $theme->saveDraft(['home' => $home], null);
         $theme->publish('Demo home page', null);
+
+        $this->call(DemoVariationPhotosSeeder::class);
     }
 }

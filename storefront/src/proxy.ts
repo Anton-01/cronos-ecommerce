@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { DEFAULT_LOCALE, LOCALES, prefixes, type Locale } from '@/lib/config'
+import { buildCsp, imgOrigins, newNonce } from '@/lib/csp'
 
 const API = (process.env.API_URL ?? 'http://localhost:8000').replace(/\/$/, '')
 const DAY = 60 * 60 * 24
@@ -46,9 +47,16 @@ export async function proxy(request: NextRequest) {
   if (hasPrefix) {
     // The page being rendered right now must already see the cookies we are about to set.
     const headers = new Headers(request.headers)
+    // A fresh nonce per page: Next reads it from the request's policy and stamps its own scripts; the layout reads x-nonce for ours.
+    const nonce = newNonce()
+    const policy = buildCsp({ nonce, imgOrigins: imgOrigins(API, process.env.CSP_IMG_SRC), dev: process.env.NODE_ENV !== 'production', reportUri: process.env.CSP_REPORT_URI })
+    headers.set('x-nonce', nonce)
+    headers.set('content-security-policy', policy)
     const merged = [request.headers.get('cookie'), ...Object.entries(cookies).map(([k, v]) => `${k}=${v}`)].filter(Boolean).join('; ')
     merged && headers.set('cookie', merged)
     response = NextResponse.next({ request: { headers } })
+    response.headers.set(process.env.CSP_REPORT_ONLY === '1' ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy', policy)
+    process.env.CSP_REPORT_ONLY === '1' && headers.delete('content-security-policy')
   } else {
     const remembered = found.locale ?? request.cookies.get('lang')?.value
     const locale = remembered && remembered in LOCALES ? (remembered as Locale) : DEFAULT_LOCALE

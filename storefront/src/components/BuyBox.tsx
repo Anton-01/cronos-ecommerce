@@ -9,6 +9,8 @@ import { clampToStep, isMultipleOf, money } from '@/lib/format'
 import { fill, messages } from '@/lib/i18n'
 import type { Pricing, Sales, Stock } from '@/lib/types'
 
+import { useVariationImages } from './VariationImages'
+
 export interface Attribute { code: string; name: string | null; values: { id: string; label: string | null; meta: { hex?: string } | null }[] }
 export interface Variation { id: string; sku: string | null; stockStatus: Stock; valueIds: string[]; pricing: Pricing | null }
 
@@ -36,6 +38,7 @@ export function BuyBox({ locale, market, productId, sales, pricing, stock, attri
   const max = sales.max ? Number(sales.max) : null
   const [qty, setQty] = useState<string>(String(mode === 'roll' ? 1 : min))
   const [chosen, setChosen] = useState<Record<string, string>>({})
+  const photos = useVariationImages()
   const [pending, start] = useTransition()
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -60,6 +63,14 @@ export function BuyBox({ locale, market, productId, sales, pricing, stock, attri
   const estimate = Number.isFinite(unitPrice) && valid ? unitPrice * n : null
   const out = (active?.stockStatus ?? stock) === 'OUT_OF_STOCK'
   const canBuy = !out && active !== null && valid && (!byRoll || activePricing?.rollPrice != null)
+
+  /** Picks a value; if that completes a combination, the gallery switches to that variation's photos. */
+  const choose = (code: string, valueId: string) => {
+    const next = { ...chosen, [code]: valueId }
+    setChosen(next)
+    const done = variationAttrs.every((a) => next[a.code])
+    photos?.select(done ? (variations.find((v) => Object.values(next).every((id) => v.valueIds.includes(id)))?.id ?? null) : null)
+  }
 
   const setMode2 = (next: 'cut' | 'roll') => {
     setMode(next)
@@ -86,7 +97,7 @@ export function BuyBox({ locale, market, productId, sales, pricing, stock, attri
             {a.values.filter((v) => variations.some((x) => x.valueIds.includes(v.id))).map((v) => {
               const on = chosen[a.code] === v.id
               return (
-                <button key={v.id} type="button" aria-pressed={on} title={v.label ?? ''} onClick={() => setChosen({ ...chosen, [a.code]: v.id })} className="min-h-9 min-w-9 border px-3 text-sm" style={{ borderRadius: 'var(--radius-button)', borderColor: on ? 'var(--c-primary)' : 'var(--c-border)', background: v.meta?.hex ? v.meta.hex : 'var(--c-surface)', outline: on ? '2px solid var(--c-primary)' : undefined, outlineOffset: 2, color: v.meta?.hex ? 'transparent' : undefined, width: v.meta?.hex ? 36 : undefined, padding: v.meta?.hex ? 0 : undefined }}>
+                <button key={v.id} type="button" aria-pressed={on} title={v.label ?? ''} onClick={() => choose(a.code, v.id)} className="min-h-9 min-w-9 border px-3 text-sm" style={{ borderRadius: 'var(--radius-button)', borderColor: on ? 'var(--c-primary)' : 'var(--c-border)', background: v.meta?.hex ? v.meta.hex : 'var(--c-surface)', outline: on ? '2px solid var(--c-primary)' : undefined, outlineOffset: 2, color: v.meta?.hex ? 'transparent' : undefined, width: v.meta?.hex ? 36 : undefined, padding: v.meta?.hex ? 0 : undefined }}>
                   {v.meta?.hex ? <span className="sr-only">{v.label}</span> : v.label}
                 </button>
               )

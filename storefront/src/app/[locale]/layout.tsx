@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { headers } from 'next/headers'
 
 import { Footer } from '@/components/Footer'
 import { Header } from '@/components/Header'
@@ -41,6 +42,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   const { market, markets, context } = await getMarket()
   const [theme, categories, cart, me, pages] = await Promise.all([getTheme(locale, market.code, await previewToken()), getCategoryTree(locale), getCart(), getMe(), getPageLinks(locale, market.code).catch(() => [])])
   const newsletter = theme.features.newsletter === false ? null : await getNewsletterConfig().catch(() => null)
+  const nonce = (await headers()).get('x-nonce') ?? undefined
   const t = messages(locale)
   const vars = Object.entries(theme.cssVariables).filter(([k]) => k.startsWith('--')).map(([k, v]) => `${k}:${v.replace(/[;{}<>]/g, '')}`).join(';')
 
@@ -51,11 +53,11 @@ export default async function LocaleLayout({ children, params }: Props) {
           <>
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-            <link rel="stylesheet" href={theme.fontsHref} />
+            <link rel="stylesheet" href={theme.fontsHref} nonce={nonce} />
           </>
         )}
         {/* The published theme, derived by the API: colours, fonts, radii and spacing for the whole shop. */}
-        <style dangerouslySetInnerHTML={{ __html: `:root{${vars}}` }} />
+        <style nonce={nonce} dangerouslySetInnerHTML={{ __html: `:root{${vars}}` }} />
       </head>
       <body>
         <a href="#main" className="sr-only-focusable btn btn-primary left-2 top-2 z-50">{t.skip}</a>
