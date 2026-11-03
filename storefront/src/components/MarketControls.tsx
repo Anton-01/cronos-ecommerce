@@ -26,14 +26,14 @@ export function MarketSwitcher({ markets, current, locale, labels }: { markets: 
       {markets.length > 1 && (
         <label className="flex items-center gap-1">
           <span className="sr-only">{labels.store}</span>
-          <select className="bg-transparent" value={current} onChange={(e) => start(async () => { await chooseMarket(e.target.value); router.refresh() })}>
+          <select className="bg-transparent text-topbar-ink" value={current} onChange={(e) => start(async () => { await chooseMarket(e.target.value); router.refresh() })}>
             {markets.map((m) => <option key={m.code} value={m.code}>{m.name}</option>)}
           </select>
         </label>
       )}
       <label className="flex items-center gap-1">
         <span className="sr-only">{labels.language}</span>
-        <select className="bg-transparent" value={locale} onChange={(e) => switchLocale(e.target.value as Locale)}>
+        <select className="bg-transparent text-topbar-ink" value={locale} onChange={(e) => switchLocale(e.target.value as Locale)}>
           {(Object.keys(LOCALES) as Locale[]).map((l) => <option key={l} value={l}>{LOCALES[l].label}</option>)}
         </select>
       </label>

@@ -126,7 +126,7 @@ export function ListingView({ data, facets, locale, base, query, withSidebar }: 
         )}
         {data.items.length > 0 && (
           <ul className={`product-grid ${withSidebar ? 'with-sidebar' : ''}`}>
-            {data.items.map((p, i) => <li key={p.id}><ProductCard product={p} locale={locale} priority={i < 4} /></li>)}
+            {data.items.map((p, i) => <li key={p.id}><ProductCard product={p} locale={locale} priority={i < 4} heading="h2" /></li>)}
           </ul>
         )}
         {pages > 1 && (

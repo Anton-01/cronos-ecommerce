@@ -20,7 +20,7 @@ export default async function WishlistPage({ params }: { params: Promise<{ local
   return (
     <div className="container-x mt-6">
       <h1 className="text-3xl md:text-4xl">{t.wishlist}</h1>
-      {myWishlist.items.length === 0 ? <p className="mt-6">{t.wishlistEmpty}</p> : <ul className="product-grid mt-6">{myWishlist.items.map((p) => <li key={p.id}><ProductCard product={p} locale={locale} /></li>)}</ul>}
+      {myWishlist.items.length === 0 ? <p className="mt-6">{t.wishlistEmpty}</p> : <ul className="product-grid mt-6">{myWishlist.items.map((p) => <li key={p.id}><ProductCard product={p} locale={locale} heading="h2" /></li>)}</ul>}
     </div>
   )
 }

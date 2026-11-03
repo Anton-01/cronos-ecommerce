@@ -66,9 +66,10 @@ export function Header({ theme, locale, categories, markets, market, cart, ribbo
             <Link href={href.page(locale, 'wishlist')} className="p-2" aria-label={t.wishlist}><svg {...icon}><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.5-9.5 9-9.5 9Z" /></svg></Link>
             <Link href={href.page(locale, 'account')} className="btn btn-ghost">{userName ?? `${t.login} / ${t.register}`}</Link>
           </nav>
-          <Link href={href.page(locale, 'cart')} className="btn btn-dark ml-auto lg:ml-0" aria-label={`${t.cart}: ${count}`}>
+          <Link href={href.page(locale, 'cart')} className="btn btn-dark ml-auto lg:ml-0">
             {cart?.totals ? <span className="hidden sm:inline">{money(cart.totals.total, cart.totals.currency, locale)}</span> : <span className="hidden sm:inline">{t.cart}</span>}
             <svg {...icon}><path d="M6 6h15l-2 9H8L6 6Zm0 0L5 3H2M9 20a1 1 0 1 0 0 .01M18 20a1 1 0 1 0 0 .01" /></svg>
+            <span className="sr-only">{t.cart}:</span>
             <span className="grid min-w-5 place-items-center rounded-full bg-primary px-1 text-xs text-on-primary">{count}</span>
           </Link>
         </div>

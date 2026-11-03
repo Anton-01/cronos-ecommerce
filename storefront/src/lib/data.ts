@@ -152,3 +152,26 @@ export async function getNewsletterConfig(): Promise<NewsletterConfig> {
   const data = await gql<{ newsletterConfig: NewsletterConfig }>(`query { newsletterConfig { turnstileSiteKey turnstileAction } }`, {}, { revalidate: 60 * 60, tags: ['content'] })
   return data.newsletterConfig
 }
+
+/**
+ * The Google Fonts stylesheet the theme asks for, fetched here and inlined into the page. As a <link> it is a request to another server that holds
+ * back the first paint (about 0.8 s on a phone); inlined, only the font FILES load, and they load without blocking anything (font-display: swap).
+ * Only fonts.googleapis.com is ever fetched, whatever the API says. Cached for hours and refreshed with the theme.
+ */
+export async function getFontCss(href: string | null): Promise<string | null> {
+  if (!href) return null
+  try {
+    if (new URL(href).hostname !== 'fonts.googleapis.com') return null
+    const response = await fetch(href, {
+      // Without a browser-like agent Google serves old formats; with one it serves woff2 split by script, the smallest download.
+      headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36' },
+      next: { revalidate: LONG, tags: ['theme'] },
+    })
+    if (!response.ok) return null
+    const css = await response.text()
+    // It must be plain @font-face rules: anything else (a tag, a script) is dropped rather than inlined.
+    return css.length < 60000 && !/[<>]/.test(css) ? css : null
+  } catch {
+    return null
+  }
+}

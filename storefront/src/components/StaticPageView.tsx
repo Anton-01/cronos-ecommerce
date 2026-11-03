@@ -14,7 +14,8 @@ export async function pageMetadata(rawLocale: string, slug: string): Promise<Met
   if (!page) return {}
   return {
     title: page.seoTitle,
-    description: page.seoDescription ?? undefined,
+    // Never empty: the editor's text, else the first words of the page itself.
+    description: page.seoDescription ?? (page.bodyHtml.replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ').trim().slice(0, 155) || undefined),
     alternates: {
       canonical: `${SITE_URL}${href.info(locale, page.slug)}`,
       languages: Object.fromEntries(page.alternates.map((a) => [a.locale, `${SITE_URL}${href.info(a.locale as Locale, a.slug)}`])),

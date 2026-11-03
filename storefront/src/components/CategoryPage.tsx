@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { isRefined, ListingView, parseQuery } from '@/components/Listing'
-import { getFacets } from '@/lib/data'
+import { getFacets, getTheme } from '@/lib/data'
 import { href, LOCALES, SITE_URL, type Locale } from '@/lib/config'
 import { getMarket, resolveLocale } from '@/lib/context'
 import { gql } from '@/lib/gql'
@@ -28,7 +28,8 @@ export async function categoryMetadata(rawLocale: string, slug: string, searchPa
   if (!category) return {}
   return {
     title: category.seo.title ?? category.name ?? undefined,
-    description: category.seo.description ?? undefined,
+    // Never leave it empty (search engines then invent a snippet from the page): the editor's text, else the category's, else its name and the shop's.
+    description: category.seo.description ?? (category.description ? category.description.slice(0, 160) : `${category.name} · ${(await getTheme(locale, null, null)).siteName}`),
     alternates: { canonical: `${SITE_URL}${href.category(locale, slug)}` },
     // Filtered, sorted or later pages repeat the same products: crawlers follow them but only the clean listing is indexed.
     robots: isRefined(parseQuery(searchParams)) ? { index: false, follow: true } : undefined,

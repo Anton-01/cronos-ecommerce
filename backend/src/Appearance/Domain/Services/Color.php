@@ -66,6 +66,24 @@ final class Color
         return self::hex([$x[0] + ($y[0] - $x[0]) * $weight, $x[1] + ($y[1] - $x[1]) * $weight, $x[2] + ($y[2] - $x[2]) * $weight]);
     }
 
+    /**
+     * The colour closest to `$color` that still reads as TEXT (at least `$min`, WCAG AA = 4.5) on every given background: darkened on light
+     * backgrounds, lightened on dark ones. A brand orange is a fine button but a poor price; this is the shade to print numbers in.
+     *
+     * @param  list<string>  $backgrounds
+     */
+    public static function inkOn(string $color, array $backgrounds, float $min = 4.5): string
+    {
+        $ok = static fn (string $c): bool => array_reduce($backgrounds, static fn (bool $all, string $bg) => $all && self::contrast($c, $bg) >= $min, true);
+        $darkBackgrounds = array_sum(array_map(self::luminance(...), $backgrounds)) / max(1, count($backgrounds)) < 0.18;
+        $candidate = self::normalize($color);
+        for ($step = 0; $step <= 20 && ! $ok($candidate); $step++) {
+            $candidate = $darkBackgrounds ? self::lighten($color, $step * 0.05) : self::darken($color, $step * 0.05);
+        }
+
+        return $candidate;
+    }
+
     public static function darken(string $hex, float $amount): string
     {
         return self::mix($hex, '#000000', $amount);

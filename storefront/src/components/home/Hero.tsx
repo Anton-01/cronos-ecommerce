@@ -43,10 +43,10 @@ export function Hero({ slides, autoplay, labels }: { slides: Slide[]; autoplay: 
               </picture>
               {s.image && s.overlay > 0 && <div aria-hidden className="absolute inset-0" style={{ background: `rgba(0,0,0,${s.overlay / 100})` }} />}
               <div className={`absolute inset-0 flex flex-col justify-center gap-3 px-6 md:px-16 ${align}`}>
-                {s.kicker && <p className="text-sm font-semibold uppercase" style={{ color: light ? '#fff' : 'var(--c-primary-hover)' }}>{s.kicker}</p>}
+                {s.kicker && <p className="text-sm font-semibold uppercase" style={{ color: light ? '#fff' : 'var(--c-primary-ink)' }}>{s.kicker}</p>}
                 {s.title && <h2 className="max-w-xl text-3xl md:text-5xl" style={{ color: light ? '#fff' : undefined }}>{s.title}</h2>}
                 {s.subtitle && <p className="max-w-lg text-base md:text-lg" style={{ color: light ? '#fff' : undefined }}>{s.subtitle}</p>}
-                {s.priceText && <p className="text-xl font-semibold" style={{ color: light ? '#fff' : 'var(--c-primary-hover)' }}>{s.priceText}</p>}
+                {s.priceText && <p className="text-xl font-semibold" style={{ color: light ? '#fff' : 'var(--c-primary-ink)' }}>{s.priceText}</p>}
                 {s.ctaLabel && s.ctaUrl && <Link href={s.ctaUrl} className="btn btn-primary mt-2">{s.ctaLabel}</Link>}
               </div>
             </div>
@@ -58,7 +58,7 @@ export function Hero({ slides, autoplay, labels }: { slides: Slide[]; autoplay: 
             <button type="button" aria-label={labels.next} onClick={() => go(index + 1)} className="absolute right-3 top-1/2 hidden size-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-black shadow md:grid">›</button>
             <div className="absolute inset-x-0 bottom-3 flex justify-center">
               <div className="flex gap-2 rounded-full bg-white/80 px-3 py-1.5">
-                {slides.map((_, i) => <button key={i} type="button" aria-label={`${labels.goTo} ${i + 1}`} aria-current={i === index} onClick={() => go(i)} className="size-2.5 rounded-full" style={{ background: i === index ? 'var(--c-primary)' : '#999' }} />)}
+                {slides.map((_, i) => <button key={i} type="button" aria-label={`${labels.goTo} ${i + 1}`} aria-current={i === index} onClick={() => go(i)} className="grid size-6 place-items-center rounded-full"><span aria-hidden className="block size-2.5 rounded-full" style={{ background: i === index ? 'var(--c-primary)' : '#767676' }} /></button>)}
               </div>
             </div>
           </>

@@ -25,6 +25,8 @@ final class ThemeCss
             '--c-primary' => $c['primary'], '--c-primary-rgb' => Color::channels($c['primary']),
             '--c-primary-hover' => Color::darken($c['primary'], 0.1), '--c-primary-soft' => Color::mix($c['primary'], $c['background'], 0.85),
             '--c-on-primary' => $onPrimary,
+            // The brand colour as TEXT (prices, links, kickers): the nearest shade that passes WCAG AA on the page and card backgrounds.
+            '--c-primary-ink' => Color::inkOn($c['primary'], [$c['background'], $c['surface']]),
             '--c-secondary' => $c['secondary'], '--c-secondary-hover' => Color::lighten($c['secondary'], 0.15), '--c-on-secondary' => $onSecondary,
             '--c-bg' => $c['background'], '--c-surface' => $c['surface'], '--c-surface-alt' => Color::mix($c['surface'], $c['background'], 0.5),
             '--c-text' => $c['text'], '--c-heading' => $c['heading'], '--c-link' => $c['link'], '--c-border' => $c['border'],

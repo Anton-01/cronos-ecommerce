@@ -105,6 +105,20 @@ final class ThemeRulesTest extends TestCase
         $this->assertSame(1, substr_count($css, '}'));
     }
 
+    public function test_the_brand_colour_gets_a_text_shade_that_passes_wcag_on_both_backgrounds(): void
+    {
+        $vars = ThemeCss::variables(ThemeSchema::normalize(['colors' => ['primary' => '#F59A57', 'background' => '#F3F2EE', 'surface' => '#FFFFFF']]));
+        $ink = $vars['--c-primary-ink'];
+        $this->assertGreaterThanOrEqual(4.5, Color::contrast($ink, '#FFFFFF'));
+        $this->assertGreaterThanOrEqual(4.5, Color::contrast($ink, '#F3F2EE'));
+        $this->assertNotSame('#F59A57', $ink, 'the raw orange is only 2.2:1 on white');
+
+        $this->assertSame('#1A5FB4', Color::inkOn('#1A5FB4', ['#FFFFFF']), 'a colour that already reads is left alone');
+        $onDark = Color::inkOn('#3A3A3A', ['#101010']);
+        $this->assertGreaterThanOrEqual(4.5, Color::contrast($onDark, '#101010'));
+        $this->assertGreaterThan(Color::luminance('#3A3A3A'), Color::luminance($onDark), 'on a dark background the shade is lightened');
+    }
+
     public function test_the_fonts_stylesheet_asks_only_for_the_weights_in_use(): void
     {
         $href = ThemeCss::fontsHref(ThemeSchema::normalize([]));
