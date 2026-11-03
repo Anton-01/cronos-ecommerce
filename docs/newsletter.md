@@ -1,6 +1,6 @@
 # Boletín (suscripción con doble confirmación)
 
-**Alcance**: captura y gestión de la lista (alta, confirmación, baja, prueba de consentimiento, borrado). **No incluye el envío de campañas**: para eso exporta los confirmados (admin → *Boletín* → «Exportar confirmados (CSV)») a la herramienta de envío (Mailchimp, Brevo, Resend…) o se construye después un módulo de campañas. Quien envíe debe usar la baja de la tienda o sincronizar las bajas de vuelta.
+**Alcance**: captura y gestión de la lista (alta, confirmación, baja, prueba de consentimiento, borrado) y **campañas enviadas con Resend** (sección al final). También se puede exportar a CSV (admin → *Boletín* → «Exportar confirmados»).
 
 ## Flujo
 
@@ -21,3 +21,29 @@
 - Interruptor en *Apariencia → Funciones* («Boletín»): oculta el formulario del pie.
 - Permisos `newsletter.view` / `newsletter.manage` (rol admin; volver a ejecutar `RolesAndPermissionsSeeder`).
 - Límites: `NEWSLETTER_MAX_PER_IP_HOUR`, `NEWSLETTER_MAX_PER_EMAIL_DAY`, `NEWSLETTER_MIN_FILL_SECONDS`.
+
+
+## Campañas con Resend
+
+Admin → *Boletín* → pestaña **Campañas**: redactar (Markdown por idioma, asunto y texto de vista previa), elegir audiencia (tiendas e idiomas; siempre solo **confirmados**), **previsualizar** el correo real, **enviar una prueba** a tu correo, y **enviar ahora o programar**.
+
+**Configurar Resend**
+1. En resend.com verifica el dominio desde el que envías (registros SPF y DKIM en tu DNS) y crea una API key.
+2. `backend/.env`: `RESEND_API_KEY`, `NEWSLETTER_FROM="Tienda <news@tu-dominio.com>"` (el dominio debe ser el verificado), opcional `NEWSLETTER_REPLY_TO`.
+3. Webhooks en Resend: endpoint `https://<tu-api>/webhooks/resend`, eventos `email.delivered`, `email.bounced`, `email.complained`; copia el *signing secret* a `RESEND_WEBHOOK_SECRET`. Sin él los rebotes y quejas no se registran (el admin lo avisa).
+4. Un *worker* que procese la cola `campaigns` y el *scheduler* de Laravel (`php artisan schedule:work`) para las campañas programadas.
+5. Los correos transaccionales (pedidos, contacto…) pueden salir también por Resend sin código: `MAIL_MAILER=smtp`, `MAIL_HOST=smtp.resend.com`, `MAIL_PORT=587`, `MAIL_USERNAME=resend`, `MAIL_PASSWORD=<api key>`.
+
+**Cómo envía** (diseñado para no mandar nada dos veces)
+- Al enviar se **congela la lista**: una fila por suscriptor confirmado (única por campaña), numerada en lotes de 100. Enviar dos veces o reintentar un lote no duplica a nadie.
+- Un trabajo por lote, separados 1 s (el límite por defecto de Resend son 2 peticiones/s), con `Idempotency-Key` `campaign:{id}:batch:{n}`: si un lote se reintenta tras un corte, Resend responde lo mismo en vez de reenviarlo.
+- 429 y errores 5xx → se reintenta con esperas crecientes; 401/403 (llave mala) → los mensajes **quedan en cola** hasta corregirla; un 4xx por el contenido → ese lote se marca fallido y la campaña sigue.
+- Quien se dio de baja entre que se congeló la lista y su turno **no recibe** el correo.
+- Cancelar detiene lo que no se ha entregado a Resend; lo ya aceptado no se puede recuperar.
+
+**Cumplimiento y reputación**
+- Cada correo lleva enlace de baja visible, la dirección postal de la tienda (domicilio fiscal del mercado, o `NEWSLETTER_POSTAL_ADDRESS`) y las cabeceras `List-Unsubscribe` + `List-Unsubscribe-Post` (RFC 8058): Gmail y Apple Mail muestran su botón «Cancelar suscripción» y hacen un POST a `/newsletter/unsubscribe` sin abrir ninguna página.
+- Un **rebote permanente** o una **queja de spam** sacan la dirección de la lista automáticamente; un rebote temporal no. No se rastrean aperturas ni clics (no hay píxeles ni enlaces espía).
+- Las firmas de los webhooks (Svix) se verifican, con tolerancia de 5 minutos contra repeticiones.
+
+**Probado**: 15 pruebas automáticas (lotes, idiomas, filtros, reintentos, cancelación, programación, permisos, firmas) y una prueba de punta a punta con el *worker* real y un servidor Resend simulado. **No probado contra Resend de verdad**: no hay API key en este entorno (el servicio sí responde; sin llave contesta 401), así que el primer envío real hay que hacerlo con «Enviar prueba».

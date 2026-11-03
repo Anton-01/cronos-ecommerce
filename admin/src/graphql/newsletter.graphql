@@ -34,3 +34,86 @@ mutation UnsubscribeNewsletterSubscriber($id: ID!) {
 mutation EraseNewsletterSubscriber($id: ID!) {
   eraseNewsletterSubscriber(id: $id)
 }
+
+fragment CampaignFields on Campaign {
+  id
+  name
+  status
+  audience {
+    markets
+    locales
+  }
+  translations {
+    locale
+    subject
+    preheader
+    bodyMd
+  }
+  scheduledAt
+  startedAt
+  finishedAt
+  total
+  counts {
+    queued
+    sent
+    delivered
+    bounced
+    complained
+    failed
+  }
+  createdAt
+}
+
+query NewsletterSending {
+  newsletterSending {
+    configured
+    from
+    webhookConfigured
+  }
+}
+
+query Campaigns {
+  campaigns {
+    ...CampaignFields
+  }
+}
+
+query CampaignPreview($id: ID!, $locale: String) {
+  campaignPreview(id: $id, locale: $locale) {
+    subject
+    locale
+    html
+  }
+}
+
+mutation CreateCampaign($name: String!, $audience: CampaignAudienceInput, $translations: [CampaignTranslationInput!]) {
+  createCampaign(name: $name, audience: $audience, translations: $translations) {
+    ...CampaignFields
+  }
+}
+
+mutation UpdateCampaign($id: ID!, $name: String, $audience: CampaignAudienceInput, $translations: [CampaignTranslationInput!]) {
+  updateCampaign(id: $id, name: $name, audience: $audience, translations: $translations) {
+    ...CampaignFields
+  }
+}
+
+mutation DeleteCampaign($id: ID!) {
+  deleteCampaign(id: $id)
+}
+
+mutation SendCampaignTest($id: ID!, $email: String!, $locale: String) {
+  sendCampaignTest(id: $id, email: $email, locale: $locale)
+}
+
+mutation SendCampaign($id: ID!, $at: DateTime) {
+  sendCampaign(id: $id, at: $at) {
+    ...CampaignFields
+  }
+}
+
+mutation CancelCampaign($id: ID!) {
+  cancelCampaign(id: $id) {
+    ...CampaignFields
+  }
+}

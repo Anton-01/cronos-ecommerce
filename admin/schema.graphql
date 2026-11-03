@@ -34,6 +34,10 @@ type Query {
  imageSlots: [ImageSlotSpec!]!
  mediaItem(id: ID!): Media
  newsletterSubscribers(status: String, search: String, first: Int = 50, offset: Int = 0): NewsletterSubscriberPage!
+ newsletterSending: NewsletterSending!
+ campaigns(status: String): [Campaign!]!
+ campaign(id: ID!): Campaign
+ campaignPreview(id: ID!, locale: String): CampaignPreview!
  adminOrders(status: String, paymentStatus: String, search: String, first: Int = 25, offset: Int = 0): AdminOrderPage!
  adminOrder(id: ID!): AdminOrder
  adminPaymentProviders: [AdminPaymentProvider!]!
@@ -180,6 +184,16 @@ type Mutation {
  unsubscribeNewsletterSubscriber(id: ID!): Boolean!
  "Right to erasure: deletes the row for good."
  eraseNewsletterSubscriber(id: ID!): Boolean!
+ createCampaign(name: String!, audience: CampaignAudienceInput, translations: [CampaignTranslationInput!]): Campaign!
+ "Only drafts and scheduled campaigns can change."
+ updateCampaign(id: ID!, name: String, audience: CampaignAudienceInput, translations: [CampaignTranslationInput!]): Campaign!
+ deleteCampaign(id: ID!): Boolean!
+ "Sends the campaign to one address, marked [TEST]. Does not touch the list."
+ sendCampaignTest(id: ID!, email: String!, locale: String): Boolean!
+ "Sends to every confirmed subscriber of the audience, now (`at` empty) or at that time. Failure codes: MAILER_NOT_CONFIGURED, INVALID_CAMPAIGN, CAMPAIGN_LOCKED."
+ sendCampaign(id: ID!, at: DateTime): Campaign!
+ "Stops a scheduled or sending campaign. What Resend already accepted cannot be recalled."
+ cancelCampaign(id: ID!): Campaign!
  "Moves the order along its logistic states. Cancelling has its own action."
  transitionOrder(id: ID!, to: String!, note: String, notifyCustomer: Boolean = false): AdminOrder!
  "Cancels an unshipped order, puts the stock back and (optionally) refunds the whole payment."
@@ -1284,6 +1298,67 @@ type NewsletterSubscriberPage {
  "Counts per status among those matching the search (ignoring the status filter)."
  counts: NewsletterCounts!
  rows: [NewsletterSubscriber!]!
+}
+type CampaignCounts {
+ "Not yet handed to Resend."
+ queued: Int!
+ "Accepted by Resend (includes the ones already delivered, bounced or complained)."
+ sent: Int!
+ delivered: Int!
+ bounced: Int!
+ complained: Int!
+ failed: Int!
+}
+type CampaignAudience {
+ markets: [String!]!
+ locales: [String!]!
+}
+type CampaignTranslation {
+ locale: String!
+ subject: String!
+ preheader: String!
+ bodyMd: String!
+}
+type Campaign {
+ id: ID!
+ name: String!
+ "draft, scheduled, sending, sent or cancelled"
+ status: String!
+ audience: CampaignAudience!
+ translations: [CampaignTranslation!]!
+ scheduledAt: DateTime
+ startedAt: DateTime
+ finishedAt: DateTime
+ "Recipients frozen when the sending started."
+ total: Int!
+ counts: CampaignCounts!
+ createdAt: DateTime!
+}
+type CampaignPreview {
+ subject: String!
+ locale: String!
+ "The complete e-mail, ready for an iframe."
+ html: String!
+}
+type NewsletterSending {
+ "False until RESEND_API_KEY and NEWSLETTER_FROM are set: campaigns can be written but not sent."
+ configured: Boolean!
+ from: String
+ "Whether Resend's delivery events (bounces, complaints) are verified: needs RESEND_WEBHOOK_SECRET."
+ webhookConfigured: Boolean!
+}
+input CampaignAudienceInput {
+ "Store codes; empty = every store."
+ markets: [String!]
+ "Languages; empty = every language."
+ locales: [String!]
+}
+input CampaignTranslationInput {
+ locale: String!
+ subject: String!
+ preheader: String
+ "Markdown. Raw HTML is dropped."
+ bodyMd: String!
 }
 type AdminOrderHistory {
  id: ID!

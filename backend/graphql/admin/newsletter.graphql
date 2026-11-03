@@ -46,3 +46,113 @@ extend type Mutation {
     @guard @can(ability: "newsletter.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
     @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\AdminNewsletter@erase")
 }
+
+type CampaignCounts {
+  "Not yet handed to Resend."
+  queued: Int!
+  "Accepted by Resend (includes the ones already delivered, bounced or complained)."
+  sent: Int!
+  delivered: Int!
+  bounced: Int!
+  complained: Int!
+  failed: Int!
+}
+
+type CampaignAudience {
+  markets: [String!]!
+  locales: [String!]!
+}
+
+type CampaignTranslation {
+  locale: String!
+  subject: String!
+  preheader: String!
+  bodyMd: String!
+}
+
+type Campaign {
+  id: ID!
+  name: String!
+  "draft, scheduled, sending, sent or cancelled"
+  status: String!
+  audience: CampaignAudience!
+  translations: [CampaignTranslation!]!
+  scheduledAt: DateTime
+  startedAt: DateTime
+  finishedAt: DateTime
+  "Recipients frozen when the sending started."
+  total: Int!
+  counts: CampaignCounts!
+  createdAt: DateTime!
+}
+
+type CampaignPreview {
+  subject: String!
+  locale: String!
+  "The complete e-mail, ready for an iframe."
+  html: String!
+}
+
+type NewsletterSending {
+  "False until RESEND_API_KEY and NEWSLETTER_FROM are set: campaigns can be written but not sent."
+  configured: Boolean!
+  from: String
+  "Whether Resend's delivery events (bounces, complaints) are verified: needs RESEND_WEBHOOK_SECRET."
+  webhookConfigured: Boolean!
+}
+
+input CampaignAudienceInput {
+  "Store codes; empty = every store."
+  markets: [String!]
+  "Languages; empty = every language."
+  locales: [String!]
+}
+
+input CampaignTranslationInput {
+  locale: String!
+  subject: String!
+  preheader: String
+  "Markdown. Raw HTML is dropped."
+  bodyMd: String!
+}
+
+extend type Query {
+  newsletterSending: NewsletterSending!
+    @guard @can(ability: "newsletter.view", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\AdminCampaigns@sending")
+  campaigns(status: String): [Campaign!]!
+    @guard @can(ability: "newsletter.view", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\AdminCampaigns@list")
+  campaign(id: ID!): Campaign
+    @guard @can(ability: "newsletter.view", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\AdminCampaigns@show")
+  campaignPreview(id: ID!, locale: String): CampaignPreview!
+    @guard @can(ability: "newsletter.view", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\AdminCampaigns@preview")
+}
+
+extend type Mutation {
+  createCampaign(name: String!, audience: CampaignAudienceInput, translations: [CampaignTranslationInput!]): Campaign!
+    @guard @can(ability: "newsletter.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\AdminCampaigns@create")
+  "Only drafts and scheduled campaigns can change."
+  updateCampaign(id: ID!, name: String, audience: CampaignAudienceInput, translations: [CampaignTranslationInput!]): Campaign!
+    @guard @can(ability: "newsletter.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\AdminCampaigns@update")
+  deleteCampaign(id: ID!): Boolean!
+    @guard @can(ability: "newsletter.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\AdminCampaigns@delete")
+  "Sends the campaign to one address, marked [TEST]. Does not touch the list."
+  sendCampaignTest(id: ID!, email: String!, locale: String): Boolean!
+    @guard @can(ability: "newsletter.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @throttle(maxAttempts: 10, decayMinutes: 10, prefix: "campaign-test")
+    @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\AdminCampaigns@test")
+  "Sends to every confirmed subscriber of the audience, now (`at` empty) or at that time. Failure codes: MAILER_NOT_CONFIGURED, INVALID_CAMPAIGN, CAMPAIGN_LOCKED."
+  sendCampaign(id: ID!, at: DateTime): Campaign!
+    @guard @can(ability: "newsletter.send", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\AdminCampaigns@send")
+  "Stops a scheduled or sending campaign. What Resend already accepted cannot be recalled."
+  cancelCampaign(id: ID!): Campaign!
+    @guard @can(ability: "newsletter.send", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\AdminCampaigns@cancel")
+}

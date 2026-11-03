@@ -1,6 +1,8 @@
 <?php
 
 use Cronos\Appearance\Interfaces\Http\BrandingController;
+use Cronos\Newsletter\Interfaces\Http\OneClickUnsubscribeController;
+use Cronos\Newsletter\Interfaces\Http\ResendWebhookController;
 use Cronos\Payments\Interfaces\Http\WebhookController;
 use Cronos\Reports\Interfaces\Http\ExportDownloadController;
 use Cronos\Seo\Interfaces\Http\SeoController;
@@ -26,6 +28,9 @@ return Application::configure(basePath: dirname(__DIR__))
                 Route::get('/sitemaps/{name}.xml', [SeoController::class, 'file'])->where('name', '[A-Za-z0-9-]{1,40}')->name('seo.sitemap.file');
             });
             Route::middleware(['signed', 'throttle:60,1'])->get('/exports/{export}/download', ExportDownloadController::class)->name('exports.download');
+            // Newsletter: Resend's delivery events (Svix-signed) and the one-click unsubscribe that mail apps POST to. Before the generic /webhooks/{provider}.
+            Route::middleware('throttle:webhooks')->post('/webhooks/resend', ResendWebhookController::class)->name('webhooks.resend');
+            Route::middleware('throttle:60,1')->post('/newsletter/unsubscribe', OneClickUnsubscribeController::class)->name('newsletter.unsubscribe');
             Route::middleware('throttle:webhooks')->post('/webhooks/shipping/{carrier}', ShippingWebhookController::class)->name('webhooks.shipping');
             Route::middleware('throttle:webhooks')->post('/webhooks/{provider}', WebhookController::class)->name('webhooks.receive');
         },

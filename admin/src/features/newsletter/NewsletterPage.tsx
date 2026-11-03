@@ -6,12 +6,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { PageHeader } from '@/features/catalog/shared'
 import { useRun } from '@/features/catalog/products/useRun'
 import { EraseNewsletterSubscriberDocument, NewsletterSubscribersDocument, UnsubscribeNewsletterSubscriberDocument } from '@/graphql/generated'
 import { useClock } from '@/lib/clock'
 
+import { CampaignsPanel } from './CampaignsPanel'
 import { toCsv } from './csv'
 
 const FILTERS = [{ value: '', label: 'Todos' }, { value: 'confirmed', label: 'Confirmados' }, { value: 'pending', label: 'Pendientes' }, { value: 'unsubscribed', label: 'Bajas' }]
@@ -20,6 +22,21 @@ const PAGE = 50
 
 /** Newsletter list. Only CONFIRMED addresses may be written to; pending ones have not proved the address is theirs. */
 export function NewsletterPage() {
+  return (
+    <div className="max-w-5xl space-y-4">
+      <Tabs defaultValue="subscribers">
+        <TabsList>
+          <TabsTrigger value="subscribers">Suscriptores</TabsTrigger>
+          <TabsTrigger value="campaigns">Campañas</TabsTrigger>
+        </TabsList>
+        <TabsContent value="subscribers"><SubscribersPanel /></TabsContent>
+        <TabsContent value="campaigns"><CampaignsPanel /></TabsContent>
+      </Tabs>
+    </div>
+  )
+}
+
+function SubscribersPanel() {
   const { can } = useAuth()
   const canManage = can('newsletter.manage')
   const clock = useClock()
@@ -50,10 +67,10 @@ export function NewsletterPage() {
   }, 'Exportación lista.')
 
   return (
-    <div className="max-w-5xl space-y-4">
+    <div className="space-y-4">
       <PageHeader
         title="Boletín"
-        description="Suscriptores del pie de página. Es doble confirmación: solo los confirmados aceptaron recibir correo; no se escribe a los pendientes. Exporta los confirmados para tu herramienta de envío; los enlaces de baja de cada correo los gestiona la tienda."
+        description="Suscriptores del pie de página. Es doble confirmación: solo los confirmados aceptaron recibir correo; no se escribe a los pendientes. Las campañas se envían desde la pestaña Campañas; también puedes exportar los confirmados."
         actions={<Button size="sm" variant="outline" onClick={exportConfirmed} disabled={!counts?.confirmed}><Download className="size-4" /> Exportar confirmados (CSV)</Button>}
       />
       <div className="flex flex-wrap items-center gap-2">
