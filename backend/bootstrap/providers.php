@@ -14,6 +14,7 @@ use Cronos\Identity\Infrastructure\IdentityServiceProvider;
 use Cronos\Inventory\Infrastructure\InventoryServiceProvider;
 use Cronos\Markets\Infrastructure\MarketsServiceProvider;
 use Cronos\Media\Infrastructure\MediaServiceProvider;
+use Cronos\Newsletter\Infrastructure\NewsletterServiceProvider;
 use Cronos\Notifications\Infrastructure\NotificationsServiceProvider;
 use Cronos\Orders\Infrastructure\OrdersServiceProvider;
 use Cronos\Payments\Infrastructure\PaymentsServiceProvider;
@@ -50,4 +51,5 @@ return [
     WishlistServiceProvider::class,
     ContentServiceProvider::class,
     ContactServiceProvider::class,
+    NewsletterServiceProvider::class,
 ];

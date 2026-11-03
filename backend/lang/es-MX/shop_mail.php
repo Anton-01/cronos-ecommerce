@@ -67,4 +67,19 @@ return [
         'hours' => 'Horario de atención: :hours.',
         'footer' => 'Este es un acuse automático. Si necesitas añadir algo, responde a este correo.',
     ],
+    'newsletter_confirm' => [
+        'subject' => 'Confirma tu suscripción',
+        'title' => 'Confirma tu correo',
+        'intro' => 'Alguien (esperamos que tú) pidió recibir las novedades de :shop. Para empezar a recibirlas, confirma que este correo es tuyo.',
+        'button' => 'Confirmar suscripción',
+        'expires' => 'El enlace sirve por :days días.',
+        'ignore' => 'Si no fuiste tú, ignora este mensaje: no te escribiremos más.',
+    ],
+    'newsletter_welcome' => [
+        'subject' => '¡Ya estás en la lista!',
+        'title' => '¡Bienvenida, bienvenido!',
+        'intro' => 'Quedaste suscrito al boletín de :shop. Te escribiremos cuando haya algo que valga la pena.',
+        'leave' => 'Puedes dejar de recibirlo cuando quieras:',
+        'unsubscribe' => 'darme de baja',
+    ],
 ];

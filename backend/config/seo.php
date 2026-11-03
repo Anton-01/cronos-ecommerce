@@ -18,7 +18,7 @@ return [
     ],
 
     // Pages that must never appear in a search engine (private, transactional or personal). Under each locale prefix.
-    'noindex_paths' => ['cart', 'checkout', 'account', 'orders', 'login', 'register', 'wishlist', 'search'],
+    'noindex_paths' => ['cart', 'checkout', 'account', 'orders', 'login', 'register', 'wishlist', 'search', 'newsletter'],
 
     'sitemap_page_size' => (int) env('SEO_SITEMAP_PAGE_SIZE', 5000),
 

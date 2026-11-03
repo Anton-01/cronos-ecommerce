@@ -27,7 +27,7 @@ final class ContactTest extends GraphQLTestCase
         $this->seed(PricingSeeder::class);
         Cache::flush();
         Queue::fake();
-        config(['contact.turnstile.secret' => '', 'contact.turnstile.site_key' => '', 'contact.min_fill_seconds' => 3]);
+        config(['human.turnstile.secret' => '', 'human.turnstile.site_key' => '', 'contact.min_fill_seconds' => 3]);
         app(MarketProfileManager::class)->update('MX', ['ops_email' => 'tienda@example.com', 'contact_email' => 'hola@example.com', 'support_hours' => 'Lun-Vie 9-18']);
     }
 
@@ -142,7 +142,7 @@ final class ContactTest extends GraphQLTestCase
 
     public function test_cloudflare_turnstile_is_checked_with_the_secret_the_token_and_the_visitors_ip(): void
     {
-        config(['contact.turnstile.secret' => 'sekret', 'contact.turnstile.site_key' => 'site']);
+        config(['human.turnstile.secret' => 'sekret', 'human.turnstile.site_key' => 'site']);
         Http::fake(['challenges.cloudflare.com/*' => Http::response(['success' => true, 'action' => 'contact', 'hostname' => 'tienda.example'])]);
 
         $this->send([], 'token-123')->assertJsonMissingPath('errors');
@@ -153,7 +153,7 @@ final class ContactTest extends GraphQLTestCase
 
     public function test_a_failed_missing_or_foreign_token_is_refused_and_not_stored(): void
     {
-        config(['contact.turnstile.secret' => 'sekret', 'contact.turnstile.site_key' => 'site']);
+        config(['human.turnstile.secret' => 'sekret', 'human.turnstile.site_key' => 'site']);
         Http::fake(['challenges.cloudflare.com/*' => Http::sequence()
             ->push(['success' => false, 'error-codes' => ['invalid-input-response']])
             ->push(['success' => true, 'action' => 'login'])]);
@@ -167,7 +167,7 @@ final class ContactTest extends GraphQLTestCase
 
     public function test_when_cloudflare_is_down_the_message_goes_through_flagged_instead_of_blocking_real_customers(): void
     {
-        config(['contact.turnstile.secret' => 'sekret', 'contact.turnstile.site_key' => 'site']);
+        config(['human.turnstile.secret' => 'sekret', 'human.turnstile.site_key' => 'site']);
         Http::fake(['challenges.cloudflare.com/*' => Http::response('oops', 503)]);
 
         $this->send([], 'token')->assertJsonMissingPath('errors');
@@ -179,10 +179,10 @@ final class ContactTest extends GraphQLTestCase
     public function test_the_widget_key_is_offered_only_when_the_server_can_check_it(): void
     {
         $q = fn () => $this->gql('{ contactConfig { turnstileSiteKey turnstileAction topics } }')->assertJsonMissingPath('errors')->json('data.contactConfig');
-        config(['contact.turnstile.site_key' => 'site', 'contact.turnstile.secret' => '']);
+        config(['human.turnstile.site_key' => 'site', 'human.turnstile.secret' => '']);
         $this->assertNull($q()['turnstileSiteKey']);
 
-        config(['contact.turnstile.secret' => 'sekret']);
+        config(['human.turnstile.secret' => 'sekret']);
         $this->assertSame(['site', 'contact'], [$q()['turnstileSiteKey'], $q()['turnstileAction']]);
         $this->assertContains('wholesale', $q()['topics']);
     }

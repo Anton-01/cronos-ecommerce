@@ -20,6 +20,7 @@ const CategoriesPage = lazy(() => import('@/features/catalog/categories/Categori
 const TagsPage = lazy(() => import('@/features/catalog/tags/TagsPage').then((m) => ({ default: m.TagsPage })))
 const AttributesPage = lazy(() => import('@/features/catalog/attributes/AttributesPage').then((m) => ({ default: m.AttributesPage })))
 const CurrenciesPage = lazy(() => import('@/features/pricing/CurrenciesPage').then((m) => ({ default: m.CurrenciesPage })))
+const NewsletterPage = lazy(() => import('@/features/newsletter/NewsletterPage').then((m) => ({ default: m.NewsletterPage })))
 const MessagesPage = lazy(() => import('@/features/contact/MessagesPage').then((m) => ({ default: m.MessagesPage })))
 const PagesPage = lazy(() => import('@/features/content/PagesPage').then((m) => ({ default: m.PagesPage })))
 const AppearancePage = lazy(() => import('@/features/appearance/AppearancePage').then((m) => ({ default: m.AppearancePage })))
@@ -75,6 +76,9 @@ export function App() {
           </Route>
           <Route element={<RequireAuth permission="payments.view" />}>
             <Route path="payments" element={page(<PaymentsPage />)} />
+          </Route>
+          <Route element={<RequireAuth permission="newsletter.view" />}>
+            <Route path="newsletter" element={page(<NewsletterPage />)} />
           </Route>
           <Route element={<RequireAuth permission="contact.view" />}>
             <Route path="messages" element={page(<MessagesPage />)} />

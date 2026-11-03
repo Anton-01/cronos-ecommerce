@@ -145,3 +145,10 @@ export async function getContactConfig(): Promise<ContactConfig> {
   const data = await gql<{ contactConfig: ContactConfig }>(`query { contactConfig { turnstileSiteKey turnstileAction topics } }`, {}, { revalidate: 60 * 60, tags: ['content'] })
   return data.contactConfig
 }
+
+export interface NewsletterConfig { turnstileSiteKey: string | null; turnstileAction: string }
+
+export async function getNewsletterConfig(): Promise<NewsletterConfig> {
+  const data = await gql<{ newsletterConfig: NewsletterConfig }>(`query { newsletterConfig { turnstileSiteKey turnstileAction } }`, {}, { revalidate: 60 * 60, tags: ['content'] })
+  return data.newsletterConfig
+}

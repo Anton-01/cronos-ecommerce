@@ -1,0 +1,30 @@
+type NewsletterConfig {
+  "Cloudflare Turnstile site key (public); null = no human check configured."
+  turnstileSiteKey: String
+  turnstileAction: String!
+}
+
+type NewsletterResult {
+  "check_email, confirmed or unsubscribed. Signing up always answers check_email, whoever the address is."
+  status: String!
+}
+
+extend type Query {
+  newsletterConfig: NewsletterConfig!
+    @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\StorefrontNewsletter@config")
+}
+
+extend type Mutation {
+  "Asks to join the list (double opt-in: a link is e-mailed; nothing else is ever sent until it is followed). Failure codes: INVALID_EMAIL, HUMAN_CHECK_FAILED, RATE_LIMITED."
+  subscribeToNewsletter(email: String!, humanToken: String, source: String, market: String, locale: String, website: String, renderedAt: String): NewsletterResult!
+    @throttle(maxAttempts: 10, decayMinutes: 10, prefix: "newsletter")
+    @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\StorefrontNewsletter@subscribe")
+  "The link in the confirmation e-mail. Failure codes: INVALID_TOKEN, EXPIRED_TOKEN."
+  confirmNewsletter(token: String!): NewsletterResult!
+    @throttle(maxAttempts: 20, decayMinutes: 10, prefix: "newsletter-token")
+    @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\StorefrontNewsletter@confirm")
+  "The link in every newsletter. Never expires."
+  unsubscribeNewsletter(token: String!): NewsletterResult!
+    @throttle(maxAttempts: 20, decayMinutes: 10, prefix: "newsletter-token")
+    @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\StorefrontNewsletter@unsubscribe")
+}

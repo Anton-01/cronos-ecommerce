@@ -1,0 +1,48 @@
+type NewsletterSubscriber {
+  id: ID!
+  email: String!
+  "pending, confirmed or unsubscribed"
+  status: String!
+  locale: String!
+  marketCode: String
+  "footer, register or admin"
+  source: String!
+  consentedAt: DateTime!
+  consentCountry: String
+  confirmedAt: DateTime
+  unsubscribedAt: DateTime
+  "subscriber or admin"
+  unsubscribedBy: String
+  createdAt: DateTime!
+}
+
+type NewsletterCounts {
+  pending: Int!
+  confirmed: Int!
+  unsubscribed: Int!
+}
+
+type NewsletterSubscriberPage {
+  "Rows matching the status filter."
+  total: Int!
+  "Counts per status among those matching the search (ignoring the status filter)."
+  counts: NewsletterCounts!
+  rows: [NewsletterSubscriber!]!
+}
+
+extend type Query {
+  newsletterSubscribers(status: String, search: String, first: Int = 50, offset: Int = 0): NewsletterSubscriberPage!
+    @guard @can(ability: "newsletter.view", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\AdminNewsletter@list")
+}
+
+extend type Mutation {
+  "Stops messages to that address (the row and the proof of consent are kept)."
+  unsubscribeNewsletterSubscriber(id: ID!): Boolean!
+    @guard @can(ability: "newsletter.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\AdminNewsletter@unsubscribe")
+  "Right to erasure: deletes the row for good."
+  eraseNewsletterSubscriber(id: ID!): Boolean!
+    @guard @can(ability: "newsletter.manage", model: "Cronos\\Orders\\Infrastructure\\Persistence\\OrderPermissionAnchor")
+    @field(resolver: "Cronos\\Newsletter\\Interfaces\\GraphQL\\AdminNewsletter@erase")
+}

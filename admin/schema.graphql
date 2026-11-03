@@ -33,6 +33,7 @@ type Query {
  "What each kind of picture needs to look right: sizes, shape, and what it is used for."
  imageSlots: [ImageSlotSpec!]!
  mediaItem(id: ID!): Media
+ newsletterSubscribers(status: String, search: String, first: Int = 50, offset: Int = 0): NewsletterSubscriberPage!
  adminOrders(status: String, paymentStatus: String, search: String, first: Int = 25, offset: Int = 0): AdminOrderPage!
  adminOrder(id: ID!): AdminOrder
  adminPaymentProviders: [AdminPaymentProvider!]!
@@ -175,6 +176,10 @@ type Mutation {
  "Marks where the subject of a picture is and rebuilds its renditions so crops keep it in view."
  setMediaFocalPoint(id: ID!, x: Float!, y: Float!): Media!
  deleteMedia(id: ID!): Boolean!
+ "Stops messages to that address (the row and the proof of consent are kept)."
+ unsubscribeNewsletterSubscriber(id: ID!): Boolean!
+ "Right to erasure: deletes the row for good."
+ eraseNewsletterSubscriber(id: ID!): Boolean!
  "Moves the order along its logistic states. Cancelling has its own action."
  transitionOrder(id: ID!, to: String!, note: String, notifyCustomer: Boolean = false): AdminOrder!
  "Cancels an unshipped order, puts the stock back and (optionally) refunds the whole payment."
@@ -1250,6 +1255,35 @@ type ImageSlotSpec {
  focal: Boolean!
  "A sanitised SVG is accepted."
  svg: Boolean!
+}
+type NewsletterSubscriber {
+ id: ID!
+ email: String!
+ "pending, confirmed or unsubscribed"
+ status: String!
+ locale: String!
+ marketCode: String
+ "footer, register or admin"
+ source: String!
+ consentedAt: DateTime!
+ consentCountry: String
+ confirmedAt: DateTime
+ unsubscribedAt: DateTime
+ "subscriber or admin"
+ unsubscribedBy: String
+ createdAt: DateTime!
+}
+type NewsletterCounts {
+ pending: Int!
+ confirmed: Int!
+ unsubscribed: Int!
+}
+type NewsletterSubscriberPage {
+ "Rows matching the status filter."
+ total: Int!
+ "Counts per status among those matching the search (ignoring the status filter)."
+ counts: NewsletterCounts!
+ rows: [NewsletterSubscriber!]!
 }
 type AdminOrderHistory {
  id: ID!

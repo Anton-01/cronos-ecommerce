@@ -17,6 +17,7 @@ final class FeatureFlags
         'storeSelector' => ['label' => 'Selector de tienda / país', 'default' => true],
         'guestCheckout' => ['label' => 'Comprar sin cuenta', 'default' => true],
         'orderTracking' => ['label' => 'Rastreo de pedidos', 'default' => true],
+        'newsletter' => ['label' => 'Boletín (suscripción en el pie de página)', 'default' => true],
     ];
 
     /** @var array<string, string> */

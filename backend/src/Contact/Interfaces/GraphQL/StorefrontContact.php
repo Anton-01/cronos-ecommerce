@@ -16,10 +16,10 @@ final class StorefrontContact
 
     public function config(): array
     {
-        $key = (string) config('contact.turnstile.site_key');
+        $key = (string) config('human.turnstile.site_key');
 
         // The site key is only offered when the secret is set too: a widget without server-side checking would be decoration.
-        return ['turnstileSiteKey' => $key !== '' && (string) config('contact.turnstile.secret') !== '' ? $key : null, 'turnstileAction' => (string) config('contact.turnstile.action'), 'topics' => $this->contact->topics()];
+        return ['turnstileSiteKey' => $key !== '' && (string) config('human.turnstile.secret') !== '' ? $key : null, 'turnstileAction' => 'contact', 'topics' => $this->contact->topics()];
     }
 
     /** @param array<string, mixed> $args */

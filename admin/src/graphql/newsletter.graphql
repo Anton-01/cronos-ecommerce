@@ -1,0 +1,36 @@
+fragment NewsletterSubscriberFields on NewsletterSubscriber {
+  id
+  email
+  status
+  locale
+  marketCode
+  source
+  consentedAt
+  consentCountry
+  confirmedAt
+  unsubscribedAt
+  unsubscribedBy
+  createdAt
+}
+
+query NewsletterSubscribers($status: String, $search: String, $first: Int, $offset: Int) {
+  newsletterSubscribers(status: $status, search: $search, first: $first, offset: $offset) {
+    total
+    counts {
+      pending
+      confirmed
+      unsubscribed
+    }
+    rows {
+      ...NewsletterSubscriberFields
+    }
+  }
+}
+
+mutation UnsubscribeNewsletterSubscriber($id: ID!) {
+  unsubscribeNewsletterSubscriber(id: $id)
+}
+
+mutation EraseNewsletterSubscriber($id: ID!) {
+  eraseNewsletterSubscriber(id: $id)
+}

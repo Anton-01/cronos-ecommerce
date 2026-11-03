@@ -31,6 +31,7 @@ export function AuthForm({ mode, locale, next }: { mode: 'login' | 'register'; l
           <input name="password" type="password" required autoComplete={mode === 'login' ? 'current-password' : 'new-password'} minLength={mode === 'register' ? 8 : undefined} className="field mt-1" />
           {(err('input.password') ?? err('password')) && <span role="alert" className="text-xs text-danger">{err('input.password') ?? err('password')}</span>}
         </label>
+        {mode === 'register' && <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="newsletter" className="mt-1" /> {t.registerNewsletter}</label>}
         {state.error && !state.fields?.['input.email'] && !state.fields?.['input.password'] && <p role="alert" className="text-sm text-danger">{state.error === 'invalid' ? (locale === 'es-MX' ? 'Correo o contraseña incorrectos.' : 'Wrong email or password.') : state.error === 'unexpected' ? t.error : state.error}</p>}
         <button className="btn btn-primary w-full" disabled={pending}>{mode === 'login' ? t.signIn : t.signUp}</button>
         <p className="text-center text-sm">

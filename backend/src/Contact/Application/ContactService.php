@@ -7,10 +7,10 @@ namespace Cronos\Contact\Application;
 use Cronos\Contact\Domain\Events\ContactMessageReceived;
 use Cronos\Contact\Domain\Exceptions\ContactError;
 use Cronos\Contact\Domain\Ports\ContactMessageRepository;
-use Cronos\Contact\Domain\Ports\HumanVerifier;
 use Cronos\Contact\Domain\Services\ContactRules;
 use Cronos\Shared\Domain\ClientContext;
 use Cronos\Shared\Domain\DomainEventDispatcher;
+use Cronos\Shared\Domain\HumanVerifier;
 
 /**
  * Receives what visitors write through the contact form. Defences, cheapest first: field validation → honeypot → fill time → Cloudflare Turnstile →
@@ -50,7 +50,7 @@ final class ContactService
 
         // A bot that tripped a hard signal does not get a Cloudflare round trip.
         $hard = array_intersect($signals, ['honeypot', 'too_fast']) !== [];
-        $check = $hard ? 'skipped' : $this->human->verify($humanToken, $client->ip);
+        $check = $hard ? 'skipped' : $this->human->verify($humanToken, $client->ip, 'contact');
         $check === HumanVerifier::FAILED && throw new ContactError('We could not confirm you are a person. Reload the page and try again.', 'HUMAN_CHECK_FAILED');
         $check === HumanVerifier::UNAVAILABLE && $signals[] = 'human_check_unavailable';
 

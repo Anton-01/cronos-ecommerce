@@ -43,6 +43,10 @@ export async function register(_: FormState, form: FormData): Promise<FormState>
     )
     await writeToken(data.register.token, data.register.expiresAt)
     await openGuestCartIntoAccount(await readMarket())
+    // They ticked the box: still double opt-in (the address is not verified yet), and it must never get in the way of creating the account.
+    if (form.get('newsletter') === 'on') {
+      await gql(`mutation($email: String!, $market: String, $locale: String) { subscribeToNewsletter(email: $email, source: "register", market: $market, locale: $locale) { status } }`, { email: String(form.get('email') ?? ''), market: await readMarket(), locale: rawLocale }).catch(() => undefined)
+    }
   } catch (e) {
     return fail(e)
   }

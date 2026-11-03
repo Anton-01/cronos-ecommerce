@@ -5,11 +5,12 @@ import { messages } from '@/lib/i18n'
 import type { Market, Theme } from '@/lib/types'
 
 import { href } from '@/lib/config'
-import type { PageLinkItem } from '@/lib/data'
+import type { NewsletterConfig, PageLinkItem } from '@/lib/data'
 
 import { Logo, link } from './Header'
+import { NewsletterForm } from './NewsletterForm'
 
-export function Footer({ theme, locale, market, pages }: { theme: Theme; locale: Locale; market: Market; pages: PageLinkItem[] }) {
+export function Footer({ theme, locale, market, pages, newsletter }: { theme: Theme; locale: Locale; market: Market; pages: PageLinkItem[]; newsletter: NewsletterConfig | null }) {
   const t = messages(locale)
   const nav = theme.navigation
   const social = Object.entries(nav.social).filter(([, url]) => url)
@@ -31,6 +32,7 @@ export function Footer({ theme, locale, market, pages }: { theme: Theme; locale:
               {market.profile.supportHours && <div>{market.profile.supportHours}</div>}
             </address>
           )}
+          {newsletter && <div className="pt-3"><NewsletterForm locale={locale} config={newsletter} /></div>}
         </div>
         <nav aria-label={t.information}>
             <h2 className="mb-3 text-base" style={{ color: 'var(--c-footer-heading)' }}>{t.information}</h2>

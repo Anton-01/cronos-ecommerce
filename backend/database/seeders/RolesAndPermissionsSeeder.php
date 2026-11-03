@@ -28,6 +28,7 @@ class RolesAndPermissionsSeeder extends Seeder
         'appearance.view', 'appearance.manage', 'appearance.publish',
         'content.view', 'content.manage', 'content.publish',
         'contact.view', 'contact.manage',
+        'newsletter.view', 'newsletter.manage',
         'custom-orders.view', 'custom-orders.manage',
         'payments.view', 'payments.manage', 'payments.refund', 'payments.go-live',
     ];

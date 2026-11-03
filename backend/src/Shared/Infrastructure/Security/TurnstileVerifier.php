@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Cronos\Contact\Infrastructure;
+namespace Cronos\Shared\Infrastructure\Security;
 
-use Cronos\Contact\Domain\Ports\HumanVerifier;
+use Cronos\Shared\Domain\HumanVerifier;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -16,10 +16,10 @@ final class TurnstileVerifier implements HumanVerifier
 {
     public function enabled(): bool
     {
-        return (string) config('contact.turnstile.secret') !== '';
+        return (string) config('human.turnstile.secret') !== '';
     }
 
-    public function verify(?string $token, ?string $ip): string
+    public function verify(?string $token, ?string $ip, string $action): string
     {
         if (! $this->enabled()) {
             return self::SKIPPED;
@@ -29,8 +29,8 @@ final class TurnstileVerifier implements HumanVerifier
         }
 
         try {
-            $response = Http::asForm()->timeout((int) config('contact.turnstile.timeout'))->post((string) config('contact.turnstile.verify_url'), array_filter([
-                'secret' => (string) config('contact.turnstile.secret'), 'response' => $token, 'remoteip' => $ip,
+            $response = Http::asForm()->timeout((int) config('human.turnstile.timeout'))->post((string) config('human.turnstile.verify_url'), array_filter([
+                'secret' => (string) config('human.turnstile.secret'), 'response' => $token, 'remoteip' => $ip,
             ]));
         } catch (\Throwable $e) {
             Log::warning('Turnstile unreachable', ['error' => $e->getMessage()]);
@@ -48,11 +48,10 @@ final class TurnstileVerifier implements HumanVerifier
             // "internal-error" is Cloudflare's own failure, not the visitor's: do not punish them for it.
             return in_array('internal-error', (array) ($body['error-codes'] ?? []), true) ? self::UNAVAILABLE : self::FAILED;
         }
-        $action = (string) config('contact.turnstile.action');
-        if ($action !== '' && isset($body['action']) && $body['action'] !== $action) {
+        if (isset($body['action']) && $body['action'] !== $action) {
             return self::FAILED;
         }
-        $host = (string) config('contact.turnstile.hostname', '');
+        $host = (string) config('human.turnstile.hostname', '');
         if ($host !== '' && isset($body['hostname']) && $body['hostname'] !== $host) {
             return self::FAILED;
         }

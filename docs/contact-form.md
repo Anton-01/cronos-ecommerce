@@ -16,7 +16,7 @@ Si Cloudflare no responde (caída o error 5xx), el mensaje **pasa marcado** (`hu
 ## Configurar Turnstile
 
 1. Cloudflare → *Turnstile* → *Add widget*: dominio de la tienda, modo *Managed*. Da dos llaves.
-2. API (`backend/.env`): `TURNSTILE_SITE_KEY=…` (pública) y `TURNSTILE_SECRET=…` (secreta). Opcional: `TURNSTILE_EXPECTED_HOSTNAME=tienda.com` para exigir que el reto se resolvió en tu dominio.
+2. API (`backend/.env`; la config vive ahora en `config/human.php`, compartida con el boletín): `TURNSTILE_SITE_KEY=…` (pública) y `TURNSTILE_SECRET=…` (secreta). Opcional: `TURNSTILE_EXPECTED_HOSTNAME=tienda.com` para exigir que el reto se resolvió en tu dominio.
 3. Sin `TURNSTILE_SECRET` no hay verificación (desarrollo): el formulario no muestra el widget y los mensajes quedan con `human_check = skipped`. La llave pública solo se ofrece si el secreto también está, para no dejar un widget decorativo.
 4. Llaves de prueba de Cloudflare: sitio `1x00000000000000000000AA` + secreto `1x0000000000000000000000000000000AA` (siempre pasa); secreto `2x0000000000000000000000000000000AA` (siempre falla). Con ellas se probó de punta a punta contra Cloudflare real.
 5. Si algún día se añade una política CSP al storefront debe permitir `script-src` y `frame-src` `https://challenges.cloudflare.com`.

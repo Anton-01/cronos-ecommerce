@@ -67,4 +67,19 @@ return [
         'hours' => 'Support hours: :hours.',
         'footer' => 'This is an automatic receipt. If you need to add something, just reply to this e-mail.',
     ],
+    'newsletter_confirm' => [
+        'subject' => 'Confirm your subscription',
+        'title' => 'Confirm your e-mail',
+        'intro' => 'Someone (we hope you) asked to receive news from :shop. To start receiving it, confirm this e-mail is yours.',
+        'button' => 'Confirm subscription',
+        'expires' => 'The link works for :days days.',
+        'ignore' => 'If it was not you, just ignore this message: we will not write to you again.',
+    ],
+    'newsletter_welcome' => [
+        'subject' => 'You are on the list!',
+        'title' => 'Welcome!',
+        'intro' => 'You are now subscribed to the :shop newsletter. We will write when there is something worth saying.',
+        'leave' => 'You can stop receiving it any time:',
+        'unsubscribe' => 'unsubscribe',
+    ],
 ];

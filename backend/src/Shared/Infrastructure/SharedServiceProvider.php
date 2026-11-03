@@ -6,10 +6,12 @@ namespace Cronos\Shared\Infrastructure;
 
 use Cronos\Shared\Domain\DomainEventDispatcher;
 use Cronos\Shared\Domain\Geo\GeoLocator;
+use Cronos\Shared\Domain\HumanVerifier;
 use Cronos\Shared\Domain\StorefrontCache;
 use Cronos\Shared\Infrastructure\Console\ImportGeoRangesCommand;
 use Cronos\Shared\Infrastructure\Geo\CurrentClient;
 use Cronos\Shared\Infrastructure\Geo\DatabaseGeoLocator;
+use Cronos\Shared\Infrastructure\Security\TurnstileVerifier;
 use Cronos\Shared\Infrastructure\Storefront\HttpStorefrontCache;
 use Illuminate\Support\ServiceProvider;
 
@@ -33,5 +35,6 @@ final class SharedServiceProvider extends ServiceProvider
         DomainEventDispatcher::class => LaravelDomainEventDispatcher::class,
         GeoLocator::class => DatabaseGeoLocator::class,
         StorefrontCache::class => HttpStorefrontCache::class,
+        HumanVerifier::class => TurnstileVerifier::class,
     ];
 }

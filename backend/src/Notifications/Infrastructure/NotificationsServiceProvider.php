@@ -8,7 +8,10 @@ use Cronos\Contact\Domain\Events\ContactMessageReceived;
 use Cronos\CustomOrders\Domain\Events\CustomOrderSubmitted;
 use Cronos\CustomOrders\Domain\Events\CustomOrderUpdated;
 use Cronos\CustomOrders\Domain\Events\QuoteSent;
+use Cronos\Newsletter\Domain\Events\NewsletterConfirmationRequested;
+use Cronos\Newsletter\Domain\Events\NewsletterConfirmed;
 use Cronos\Notifications\Application\Listeners\NotifyAboutContact;
+use Cronos\Notifications\Application\Listeners\NotifyAboutNewsletter;
 use Cronos\Notifications\Application\Listeners\NotifyAboutOrders;
 use Cronos\Notifications\Domain\Ports\NotificationDispatcher;
 use Cronos\Notifications\Domain\Ports\NotificationLog;
@@ -43,6 +46,8 @@ final class NotificationsServiceProvider extends ServiceProvider
         Event::listen(CustomOrderSubmitted::class, [NotifyAboutOrders::class, 'customSubmitted']);
         Event::listen(PaymentNeedsReview::class, [NotifyAboutOrders::class, 'paymentNeedsReview']);
         Event::listen(ContactMessageReceived::class, [NotifyAboutContact::class, 'handle']);
+        Event::listen(NewsletterConfirmationRequested::class, [NotifyAboutNewsletter::class, 'confirmationRequested']);
+        Event::listen(NewsletterConfirmed::class, [NotifyAboutNewsletter::class, 'confirmed']);
 
         if ($this->app->runningInConsole()) {
             $this->commands([SweepNotificationsCommand::class]);

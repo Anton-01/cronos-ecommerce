@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Cronos\Contact\Domain\Ports;
+namespace Cronos\Shared\Domain;
 
+/** "Is this a person?" for public forms (Cloudflare Turnstile today). Shared by every module with a public form. */
 interface HumanVerifier
 {
     public const PASSED = 'passed';
@@ -19,5 +20,6 @@ interface HumanVerifier
     public function enabled(): bool;
 
     /** @return self::PASSED|self::FAILED|self::UNAVAILABLE|self::SKIPPED */
-    public function verify(?string $token, ?string $ip): string;
+    /** @param string $action the form the token was issued for ("contact", "newsletter"): a token solved on another form is refused */
+    public function verify(?string $token, ?string $ip, string $action): string;
 }
