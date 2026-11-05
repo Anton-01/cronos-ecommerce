@@ -69,6 +69,12 @@ final class LocationLedger
         return $result;
     }
 
+    /** The row an earlier request with this key produced, if any: lets a caller skip its own checks on a retry. */
+    public function replayOf(?string $key): ?string
+    {
+        return $key === null ? null : ($this->store->findByIdempotencyKey($key)['ulid'] ?? null);
+    }
+
     /**
      * Moves stock between two shelves of the same warehouse as two linked rows (out + in) in one transaction.
      *

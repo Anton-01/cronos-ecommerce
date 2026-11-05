@@ -9,6 +9,7 @@ use Cronos\Inventory\Domain\Events\StockChanged;
 use Cronos\Inventory\Domain\Ports\InventoryQueries;
 use Cronos\Inventory\Domain\Ports\LocationRepository;
 use Cronos\Inventory\Domain\Ports\LocationStore;
+use Cronos\Inventory\Domain\Ports\OperationsStore;
 use Cronos\Inventory\Domain\Ports\ProductStockInfo;
 use Cronos\Inventory\Domain\Ports\ReservationStore;
 use Cronos\Inventory\Domain\Ports\StockStore;
@@ -21,6 +22,7 @@ use Cronos\Inventory\Infrastructure\Console\ReconcileLocationsCommand;
 use Cronos\Inventory\Infrastructure\Persistence\DatabaseInventoryQueries;
 use Cronos\Inventory\Infrastructure\Persistence\DatabaseLocationRepository;
 use Cronos\Inventory\Infrastructure\Persistence\DatabaseLocationStore;
+use Cronos\Inventory\Infrastructure\Persistence\DatabaseOperationsStore;
 use Cronos\Inventory\Infrastructure\Persistence\DatabaseProductStockInfo;
 use Cronos\Inventory\Infrastructure\Persistence\DatabaseReservationStore;
 use Cronos\Inventory\Infrastructure\Persistence\DatabaseStockStore;
@@ -41,6 +43,7 @@ final class InventoryServiceProvider extends ServiceProvider
         InventoryQueries::class => DatabaseInventoryQueries::class,
         LocationRepository::class => DatabaseLocationRepository::class,
         LocationStore::class => DatabaseLocationStore::class,
+        OperationsStore::class => DatabaseOperationsStore::class,
     ];
 
     public function boot(): void
