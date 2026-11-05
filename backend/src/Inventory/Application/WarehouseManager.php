@@ -11,7 +11,7 @@ use Cronos\Inventory\Domain\Ports\WarehouseRepository;
 
 final class WarehouseManager
 {
-    public function __construct(private readonly WarehouseRepository $warehouses) {}
+    public function __construct(private readonly WarehouseRepository $warehouses, private readonly LocationManager $locations) {}
 
     /** @param array<string, mixed> $input code, name, address, market_code, is_default, is_active */
     public function create(array $input): int
@@ -19,7 +19,10 @@ final class WarehouseManager
         $data = $this->validated($input);
         ! $this->warehouses->codeTaken($data['code']) || throw new Conflict("The warehouse {$data['code']} already exists.", 'WAREHOUSE_EXISTS');
 
-        return $this->warehouses->create($data + ['is_default' => (bool) ($input['is_default'] ?? $this->warehouses->all() === [])]);
+        $id = $this->warehouses->create($data + ['is_default' => (bool) ($input['is_default'] ?? $this->warehouses->all() === [])]);
+        $this->locations->ensureReception($id);
+
+        return $id;
     }
 
     /** @param array<string, mixed> $input */

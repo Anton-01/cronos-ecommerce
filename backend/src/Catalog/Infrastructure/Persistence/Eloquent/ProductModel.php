@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cronos\Catalog\Infrastructure\Persistence\Eloquent;
 
+use Cronos\Inventory\Infrastructure\Persistence\StockCodeIssuer;
 use Cronos\Media\Infrastructure\Persistence\Eloquent\MediaModel;
 use Cronos\Shared\Infrastructure\Persistence\StableOrderScope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
@@ -31,6 +32,16 @@ class ProductModel extends Model implements AuditableContract
 
     /** @var list<string> Written by the inventory ledger, not a catalogue edit. */
     protected $auditExclude = ['stock_quantity'];
+
+    protected static function booted(): void
+    {
+        // The permanent warehouse code (what the QR carries) is born with the product and never derived from anything editable.
+        static::creating(function (self $product): void {
+            if ($product->stock_code === null && in_array($product->type, ['simple', 'variation'], true)) {
+                $product->stock_code = app(StockCodeIssuer::class)->fresh();
+            }
+        });
+    }
 
     protected function casts(): array
     {
