@@ -8,6 +8,7 @@ use Cronos\Inventory\Application\Actor;
 use Cronos\Inventory\Application\AdjustmentRequests;
 use Cronos\Inventory\Application\AlertSubscriptions;
 use Cronos\Inventory\Application\CountSessions;
+use Cronos\Inventory\Application\LabelStyles;
 use Cronos\Inventory\Application\LocationLedger;
 use Cronos\Inventory\Application\LocationManager;
 use Cronos\Inventory\Application\LocationReconciler;
@@ -50,6 +51,7 @@ final class WarehouseApi
         private readonly AlertSubscriptions $subscriptions,
         private readonly AlertStore $alerts,
         private readonly LocationReconciler $reconciler,
+        private readonly LabelStyles $labelStyles,
     ) {}
 
     // ------------------------------------------------------------------ reading
@@ -238,6 +240,25 @@ final class WarehouseApi
         $names = $this->queries->userNames(array_column($rows, 'changed_by'));
 
         return array_map(fn (array $r) => ['key' => $r['key'], 'value' => $r['value'], 'changedByName' => $names[$r['changed_by']] ?? null, 'changedAt' => (string) $r['changed_at']], $rows);
+    }
+
+    public function labelStyle(): array
+    {
+        return $this->labelStyles->current();
+    }
+
+    public function labelStyleHistory(): array
+    {
+        $rows = $this->labelStyles->history(50);
+        $names = $this->queries->userNames(array_column($rows, 'changed_by'));
+
+        return array_map(fn (array $r) => ['style' => $r['style'], 'changedByName' => $names[$r['changed_by']] ?? null, 'changedAt' => $r['changed_at']], $rows);
+    }
+
+    /** @param array<string, mixed> $a */
+    public function updateLabelStyle(mixed $root, array $a, GraphQLContext $c): array
+    {
+        return $this->labelStyles->update($a['input'], $this->actor($c)->userId);
     }
 
     // ------------------------------------------------------------------ the warehouse team's work

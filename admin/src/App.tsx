@@ -1,11 +1,12 @@
 import { lazy, Suspense } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 
 import { Skeleton } from '@/components/ui/skeleton'
 
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
+import { useAuth } from '@/features/auth/AuthProvider'
 import { AdminLayout } from '@/layouts/AdminLayout'
 
 // Heavy screens load on demand so the login page and dashboard stay small.
@@ -36,6 +37,32 @@ const MarketsPage = lazy(() => import('@/features/markets/MarketsPage').then((m)
 const InventoryPage = lazy(() => import('@/features/inventory/InventoryPage').then((m) => ({ default: m.InventoryPage })))
 const RolesPage = lazy(() => import('@/features/roles/RolesPage').then((m) => ({ default: m.RolesPage })))
 
+const WarehouseShell = lazy(() => import('@/features/warehouse/WarehouseShell').then((m) => ({ default: m.WarehouseShell })))
+const MorePage = lazy(() => import('@/features/warehouse/WarehouseShell').then((m) => ({ default: m.MorePage })))
+const ScanPage = lazy(() => import('@/features/warehouse/ScanPage').then((m) => ({ default: m.ScanPage })))
+const ItemPage = lazy(() => import('@/features/warehouse/ItemPage').then((m) => ({ default: m.ItemPage })))
+const ShelfPage = lazy(() => import('@/features/warehouse/ShelfPage').then((m) => ({ default: m.ShelfPage })))
+const PickPage = lazy(() => import('@/features/warehouse/PickPage').then((m) => ({ default: m.PickPage })))
+const CountPage = lazy(() => import('@/features/warehouse/CountPage').then((m) => ({ default: m.CountPage })))
+const AlertsPage = lazy(() => import('@/features/warehouse/AlertsPage').then((m) => ({ default: m.AlertsPage })))
+const LocationsPage = lazy(() => import('@/features/warehouse/LocationsPage').then((m) => ({ default: m.LocationsPage })))
+const ApprovalsPage = lazy(() => import('@/features/warehouse/ApprovalsPage').then((m) => ({ default: m.ApprovalsPage })))
+const TrailPage = lazy(() => import('@/features/warehouse/TrailPage').then((m) => ({ default: m.TrailPage })))
+const RulesPage = lazy(() => import('@/features/warehouse/RulesPage').then((m) => ({ default: m.RulesPage })))
+const LabelsPage = lazy(() => import('@/features/warehouse/LabelsPage').then((m) => ({ default: m.LabelsPage })))
+
+/** The warehouse team has no dashboard of sales: their home is the warehouse. */
+function Home() {
+  const { can } = useAuth()
+  return can('warehouse.view') && !can('reports.view') && !can('inventory.view') ? <Navigate to="/warehouse" replace /> : <DashboardPage />
+}
+
+/** A label's QR opens here: `/w/<code>` for a product, `/w/loc/<code>` for a shelf. */
+function ScanRedirect({ shelf }: { shelf?: boolean }) {
+  const { code = '' } = useParams()
+  return <Navigate to={`/warehouse/${shelf ? 'shelf' : 'item'}/${encodeURIComponent(code)}`} replace />
+}
+
 const page = (node: React.ReactNode) => <Suspense fallback={<Skeleton className="h-64 w-full" />}>{node}</Suspense>
 
 export function App() {
@@ -44,7 +71,30 @@ export function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route element={<RequireAuth />}>
         <Route element={<AdminLayout />}>
-          <Route index element={<DashboardPage />} />
+          <Route index element={<Home />} />
+          <Route element={<RequireAuth permission="warehouse.view" />}>
+            <Route path="w/loc/:code" element={<ScanRedirect shelf />} />
+            <Route path="w/:code" element={<ScanRedirect />} />
+            <Route path="warehouse" element={page(<WarehouseShell />)}>
+              <Route index element={page(<ScanPage />)} />
+              <Route path="more" element={page(<MorePage />)} />
+              <Route path="item/:code" element={page(<ItemPage />)} />
+              <Route path="shelf/:code" element={page(<ShelfPage />)} />
+              <Route path="pick" element={page(<PickPage />)} />
+              <Route path="count" element={page(<CountPage />)} />
+              <Route path="count/:id" element={page(<CountPage />)} />
+              <Route path="alerts" element={page(<AlertsPage />)} />
+              <Route path="locations" element={page(<LocationsPage />)} />
+              <Route path="labels" element={page(<LabelsPage />)} />
+              <Route element={<RequireAuth permission="warehouse.approve" />}>
+                <Route path="approvals" element={page(<ApprovalsPage />)} />
+                <Route path="rules" element={page(<RulesPage />)} />
+              </Route>
+              <Route element={<RequireAuth permission="warehouse.audit" />}>
+                <Route path="trail" element={page(<TrailPage />)} />
+              </Route>
+            </Route>
+          </Route>
           <Route element={<RequireAuth permission="users.view" />}>
             <Route path="users" element={page(<UsersPage />)} />
           </Route>

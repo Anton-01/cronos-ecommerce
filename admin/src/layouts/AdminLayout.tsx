@@ -1,4 +1,4 @@
-import { Boxes, Globe2, ClipboardList, CreditCard, PackageCheck, Coins, FolderTree, FileText, Images, MessageSquare, Mail, Palette, LayoutDashboard, LogOut, Percent, Receipt, Settings, ShieldAlert, ScrollText, ShieldCheck, SlidersHorizontal, Tags, Ticket, User, Users, Warehouse } from 'lucide-react'
+import { Boxes, ScanLine, Globe2, ClipboardList, CreditCard, PackageCheck, Coins, FolderTree, FileText, Images, MessageSquare, Mail, Palette, LayoutDashboard, LogOut, Percent, Receipt, Settings, ShieldAlert, ScrollText, ShieldCheck, SlidersHorizontal, Tags, Ticket, User, Users, Warehouse } from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,7 @@ const NAV = [
   { to: '/orders', label: 'Pedidos', icon: PackageCheck, permission: 'orders.view', end: false },
   { to: '/custom-orders', label: 'Personalizados', icon: ClipboardList, permission: 'custom-orders.view', end: false },
   { to: '/payments', label: 'Pagos', icon: CreditCard, permission: 'payments.view', end: false },
+  { to: '/warehouse', label: 'Almacén', icon: ScanLine, permission: 'warehouse.view', end: false },
   { to: '/inventory', label: 'Inventario', icon: Warehouse, permission: 'inventory.view', end: false },
   { to: '/finance/currencies', label: 'Monedas y mercados', icon: Coins, permission: 'pricing.view', end: false },
   { to: '/finance/taxes', label: 'Impuestos', icon: Receipt, permission: 'pricing.view', end: false },

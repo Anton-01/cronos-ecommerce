@@ -1,0 +1,480 @@
+fragment WhLocationFields on WhLocation {
+  id
+  warehouseId
+  parentId
+  code
+  name
+  type
+  depth
+  capacity
+  isPickable
+  isActive
+  isSystem
+  version
+  products
+  units
+}
+
+fragment WhMovementFields on WhMovement {
+  id
+  productId
+  sku
+  productName
+  locationId
+  locationCode
+  locationName
+  counterpartCode
+  type
+  quantity
+  balanceBefore
+  balanceAfter
+  referenceType
+  referenceId
+  note
+  userId
+  userName
+  userEmail
+  ip
+  country
+  timezone
+  createdAt
+  compensatedBy
+}
+
+fragment WhScanFields on WhScan {
+  productId
+  sku
+  name
+  type
+  status
+  removed
+  stockCode
+  stockCodeFormatted
+  unit
+  pendingToPick
+  places {
+    locationId
+    code
+    name
+    isActive
+    isPickable
+    warehouseId
+    warehouseCode
+    quantity
+    version
+  }
+  books {
+    warehouseId
+    warehouseCode
+    onHand
+    reserved
+    available
+  }
+  thresholds {
+    warehouseId
+    minimum
+    critical
+  }
+  recent {
+    ...WhMovementFields
+  }
+}
+
+query WhWarehouses {
+  whWarehouses {
+    id
+    code
+    name
+    isDefault
+    isActive
+  }
+}
+
+query WhLocations($warehouseId: ID!, $includeInactive: Boolean) {
+  whLocations(warehouseId: $warehouseId, includeInactive: $includeInactive) {
+    ...WhLocationFields
+  }
+}
+
+query WhLocationDetail($id: ID!) {
+  whLocation(id: $id) {
+    location {
+      ...WhLocationFields
+    }
+    contents {
+      productId
+      sku
+      stockCode
+      name
+      quantity
+      version
+    }
+    versions {
+      version
+      changedBy
+      changedAt
+      snapshot
+    }
+  }
+}
+
+query WhLocationByCode($code: String!, $warehouseId: ID) {
+  whLocationByCode(code: $code, warehouseId: $warehouseId) {
+    location {
+      ...WhLocationFields
+    }
+    contents {
+      productId
+      sku
+      stockCode
+      name
+      quantity
+      version
+    }
+  }
+}
+
+query WhScan($code: String!) {
+  whScan(code: $code) {
+    ...WhScanFields
+  }
+}
+
+query WhSearchProducts($search: String!, $first: Int) {
+  whSearchProducts(search: $search, first: $first) {
+    productId
+    sku
+    name
+    stockCode
+    status
+  }
+}
+
+query WhTrail($productId: ID, $locationId: ID, $warehouseId: ID, $userId: ID, $type: WhMovementType, $from: DateTime, $to: DateTime, $before: ID, $first: Int) {
+  whTrail(productId: $productId, locationId: $locationId, warehouseId: $warehouseId, userId: $userId, type: $type, from: $from, to: $to, before: $before, first: $first) {
+    nextBefore
+    entries {
+      ...WhMovementFields
+    }
+  }
+}
+
+query WhVerifyChain($productId: ID!, $locationId: ID!) {
+  whVerifyChain(productId: $productId, locationId: $locationId) {
+    ok
+    brokenAt
+  }
+}
+
+query WhIntegrity {
+  whIntegrity {
+    ok
+    stockMismatches
+    brokenChains
+    untrackedCodes
+    variance
+  }
+}
+
+query WhPickLines($warehouseId: ID) {
+  whPickLines(warehouseId: $warehouseId) {
+    orderId
+    orderNumber
+    productId
+    sku
+    name
+    stockCode
+    warehouseId
+    pending
+    shelves {
+      locationId
+      code
+      isPickable
+      quantity
+      version
+    }
+  }
+}
+
+query WhCountSessions($warehouseId: ID, $status: String) {
+  whCountSessions(warehouseId: $warehouseId, status: $status) {
+    id
+    name
+    status
+    warehouseId
+    warehouseCode
+    scopeCode
+    createdByName
+    createdAt
+    closedAt
+    entries
+    inReview
+  }
+}
+
+query WhCountEntries($sessionId: ID!, $status: String) {
+  whCountEntries(sessionId: $sessionId, status: $status) {
+    id
+    productId
+    sku
+    name
+    locationId
+    locationCode
+    counted
+    systemAtStart
+    status
+    countedByName
+    countedAt
+    note
+    reviewedByName
+    reviewNote
+  }
+}
+
+query WhAdjustmentRequests($status: String, $warehouseId: ID) {
+  whAdjustmentRequests(status: $status, warehouseId: $warehouseId) {
+    id
+    productId
+    sku
+    name
+    warehouseId
+    locationId
+    locationCode
+    seenQuantity
+    targetQuantity
+    delta
+    reason
+    status
+    requestedByName
+    requestedAt
+    decidedByName
+    decidedAt
+    decisionNote
+  }
+}
+
+query WhThresholds($warehouseId: ID) {
+  whThresholds(warehouseId: $warehouseId) {
+    productId
+    sku
+    name
+    warehouseId
+    locationId
+    locationCode
+    minimum
+    critical
+    changedByName
+    changedAt
+  }
+}
+
+query WhAlertInbox($unreadOnly: Boolean, $first: Int) {
+  whAlertInbox(unreadOnly: $unreadOnly, first: $first) {
+    unread
+    items {
+      id
+      process
+      severity
+      title
+      detail
+      productId
+      warehouseId
+      locationId
+      createdAt
+      read
+    }
+  }
+}
+
+query WhAlertProcesses {
+  whAlertProcesses {
+    code
+    label
+    description
+    severity
+    subscribers {
+      userId
+      email
+      inbox
+      emailEnabled
+    }
+  }
+}
+
+query WhAlertCandidates {
+  whAlertCandidates {
+    id
+    email
+    roles
+  }
+}
+
+query WhSubscriptionLog($process: String) {
+  whSubscriptionLog(process: $process) {
+    process
+    userId
+    userName
+    action
+    doneByName
+    doneAt
+  }
+}
+
+query WhPolicies {
+  whPolicies {
+    approvalUnits
+    approvalPercent
+    approvalAmount
+    recoveryMarginPercent
+  }
+}
+
+query WhPolicyHistory {
+  whPolicyHistory {
+    key
+    value
+    changedByName
+    changedAt
+  }
+}
+
+query WhLabelStyle {
+  whLabelStyle {
+    foreground
+    background
+    errorCorrection
+    margin
+    widthMm
+    heightMm
+    qrSizeMm
+    headerText
+    showName
+    showSku
+    showCode
+  }
+}
+
+mutation WhReceive($input: WhReceiveInput!) {
+  whReceive(input: $input)
+}
+
+mutation WhMove($input: WhMoveInput!) {
+  whMove(input: $input) {
+    outId
+    inId
+  }
+}
+
+mutation WhPick($input: WhPickInput!) {
+  whPick(input: $input)
+}
+
+mutation WhReturnToShelf($input: WhReturnInput!) {
+  whReturnToShelf(input: $input)
+}
+
+mutation WhWriteOff($input: WhWriteOffInput!) {
+  whWriteOff(input: $input)
+}
+
+mutation WhRequestAdjustment($input: WhAdjustmentInput!) {
+  whRequestAdjustment(input: $input) {
+    id
+    status
+  }
+}
+
+mutation WhSubmitCount($input: WhCountInput!) {
+  whSubmitCount(input: $input) {
+    id
+    status
+    movementId
+  }
+}
+
+mutation WhOpenCount($warehouseId: ID!, $name: String!, $scopeLocationId: ID) {
+  whOpenCount(warehouseId: $warehouseId, name: $name, scopeLocationId: $scopeLocationId)
+}
+
+mutation WhCloseCount($sessionId: ID!) {
+  whCloseCount(sessionId: $sessionId)
+}
+
+mutation WhReviewCount($entryId: ID!, $approve: Boolean!, $note: String) {
+  whReviewCount(entryId: $entryId, approve: $approve, note: $note)
+}
+
+mutation WhApproveAdjustment($id: ID!, $note: String) {
+  whApproveAdjustment(id: $id, note: $note)
+}
+
+mutation WhRejectAdjustment($id: ID!, $note: String!) {
+  whRejectAdjustment(id: $id, note: $note)
+}
+
+mutation WhCompensate($movementId: ID!, $reason: String!, $idempotencyKey: String) {
+  whCompensate(movementId: $movementId, reason: $reason, idempotencyKey: $idempotencyKey)
+}
+
+mutation WhCreateLocation($warehouseId: ID!, $input: WhLocationInput!) {
+  whCreateLocation(warehouseId: $warehouseId, input: $input) {
+    ...WhLocationFields
+  }
+}
+
+mutation WhUpdateLocation($id: ID!, $input: WhLocationUpdateInput!) {
+  whUpdateLocation(id: $id, input: $input) {
+    ...WhLocationFields
+  }
+}
+
+mutation WhMoveLocation($id: ID!, $parentId: ID) {
+  whMoveLocation(id: $id, parentId: $parentId) {
+    ...WhLocationFields
+  }
+}
+
+mutation WhSetThreshold($productId: ID!, $warehouseId: ID!, $locationId: ID, $minimum: String, $critical: String) {
+  whSetThreshold(productId: $productId, warehouseId: $warehouseId, locationId: $locationId, minimum: $minimum, critical: $critical)
+}
+
+mutation WhUpdatePolicies($input: WhPoliciesInput!) {
+  whUpdatePolicies(input: $input) {
+    approvalUnits
+    approvalPercent
+    approvalAmount
+    recoveryMarginPercent
+  }
+}
+
+mutation WhAddSubscriber($process: String!, $userId: ID!, $inbox: Boolean, $email: Boolean) {
+  whAddSubscriber(process: $process, userId: $userId, inbox: $inbox, email: $email) {
+    code
+  }
+}
+
+mutation WhRemoveSubscriber($process: String!, $userId: ID!) {
+  whRemoveSubscriber(process: $process, userId: $userId) {
+    code
+  }
+}
+
+mutation WhMarkAlertsRead($ids: [ID!]) {
+  whMarkAlertsRead(ids: $ids)
+}
+
+mutation WhUpdateLabelStyle($input: WhLabelStyleInput!) {
+  whUpdateLabelStyle(input: $input) {
+    foreground
+    background
+    errorCorrection
+    margin
+    widthMm
+    heightMm
+    qrSizeMm
+    headerText
+    showName
+    showSku
+    showCode
+  }
+}

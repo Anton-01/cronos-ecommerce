@@ -425,7 +425,49 @@ input WhPoliciesInput {
   recoveryMarginPercent: Int
 }
 
+"How the printed QR labels look. The QR itself only carries the code; this is just paper."
+type WhLabelStyle {
+  foreground: String!
+  background: String!
+  "L, M, Q or H: how much of the QR can be damaged and still read."
+  errorCorrection: String!
+  margin: Int!
+  widthMm: Int!
+  heightMm: Int!
+  qrSizeMm: Int!
+  headerText: String!
+  showName: Boolean!
+  showSku: Boolean!
+  showCode: Boolean!
+}
+
+type WhLabelStyleChange {
+  style: WhLabelStyle!
+  changedByName: String
+  changedAt: String!
+}
+
+input WhLabelStyleInput {
+  foreground: String
+  background: String
+  errorCorrection: String
+  margin: Int
+  widthMm: Int
+  heightMm: Int
+  qrSizeMm: Int
+  headerText: String
+  showName: Boolean
+  showSku: Boolean
+  showCode: Boolean
+}
+
 extend type Query {
+  whLabelStyle: WhLabelStyle!
+    @guard @can(ability: "warehouse.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@labelStyle")
+  whLabelStyleHistory: [WhLabelStyleChange!]!
+    @guard @can(ability: "warehouse.locations", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@labelStyleHistory")
   whWarehouses: [AdminWarehouse!]!
     @guard @can(ability: "warehouse.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
     @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@warehouses")
@@ -489,6 +531,9 @@ extend type Query {
 }
 
 extend type Mutation {
+  whUpdateLabelStyle(input: WhLabelStyleInput!): WhLabelStyle!
+    @guard @can(ability: "warehouse.locations", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@updateLabelStyle")
   whReceive(input: WhReceiveInput!): String!
     @guard @can(ability: "warehouse.operate", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
     @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@receive")

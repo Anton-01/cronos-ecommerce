@@ -12,6 +12,7 @@ use Cronos\Inventory\Domain\Events\LocationStockChanged;
 use Cronos\Inventory\Domain\Events\StockChanged;
 use Cronos\Inventory\Domain\Ports\AlertStore;
 use Cronos\Inventory\Domain\Ports\InventoryQueries;
+use Cronos\Inventory\Domain\Ports\LabelStyleStore;
 use Cronos\Inventory\Domain\Ports\LocationRepository;
 use Cronos\Inventory\Domain\Ports\LocationStore;
 use Cronos\Inventory\Domain\Ports\OperationsStore;
@@ -30,6 +31,7 @@ use Cronos\Inventory\Infrastructure\Console\ReconcileLocationsCommand;
 use Cronos\Inventory\Infrastructure\Console\SendWarehouseDigestCommand;
 use Cronos\Inventory\Infrastructure\Persistence\DatabaseAlertStore;
 use Cronos\Inventory\Infrastructure\Persistence\DatabaseInventoryQueries;
+use Cronos\Inventory\Infrastructure\Persistence\DatabaseLabelStyleStore;
 use Cronos\Inventory\Infrastructure\Persistence\DatabaseLocationRepository;
 use Cronos\Inventory\Infrastructure\Persistence\DatabaseLocationStore;
 use Cronos\Inventory\Infrastructure\Persistence\DatabaseOperationsStore;
@@ -58,6 +60,7 @@ final class InventoryServiceProvider extends ServiceProvider
         LocationStore::class => DatabaseLocationStore::class,
         OperationsStore::class => DatabaseOperationsStore::class,
         AlertStore::class => DatabaseAlertStore::class,
+        LabelStyleStore::class => DatabaseLabelStyleStore::class,
         WarehouseQueries::class => DatabaseWarehouseQueries::class,
         StaffDirectory::class => DatabaseStaffDirectory::class,
         ProductValuation::class => DatabaseProductValuation::class,

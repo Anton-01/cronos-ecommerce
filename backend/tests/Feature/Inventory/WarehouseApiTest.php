@@ -217,4 +217,23 @@ final class WarehouseApiTest extends GraphQLTestCase
         $this->assertTrue($this->ok($this->api('query($p: ID!, $l: ID!) { whVerifyChain(productId: $p, locationId: $l) { ok brokenAt } }', ['p' => $this->productId, 'l' => $a], $this->lead))['whVerifyChain']['ok']);
         app(LocationManager::class)->ensureReception($this->mx);
     }
+
+    public function test_the_label_style_is_editable_by_the_lead_versioned_and_keeps_the_qr_readable(): void
+    {
+        $default = $this->ok($this->api('{ whLabelStyle { foreground widthMm showCode } }', [], $this->operator))['whLabelStyle'];
+        $this->assertSame(['#111827', 60, true], array_values($default));
+        $this->denied($this->api('mutation { whUpdateLabelStyle(input: {widthMm: 80}) { widthMm } }', [], $this->operator));
+
+        $new = $this->ok($this->api('mutation { whUpdateLabelStyle(input: {widthMm: 80, heightMm: 50, qrSizeMm: 35, foreground: "#0b3d91", headerText: "Cintas Cronos"}) { widthMm foreground headerText } }', [], $this->lead))['whUpdateLabelStyle'];
+        $this->assertSame([80, '#0B3D91', 'Cintas Cronos'], array_values($new));
+        $this->assertSame(80, $this->ok($this->api('{ whLabelStyle { widthMm } }', [], $this->operator))['whLabelStyle']['widthMm']);
+
+        // A QR nobody can read from a shelf, or without any typed fallback, is refused.
+        $this->assertSame('LOW_CONTRAST', $this->errorCode($this->api('mutation { whUpdateLabelStyle(input: {foreground: "#CCCCCC"}) { widthMm } }', [], $this->lead)));
+        $this->assertSame('INVALID_LABEL_STYLE', $this->errorCode($this->api('mutation { whUpdateLabelStyle(input: {showCode: false, showSku: false}) { widthMm } }', [], $this->lead)));
+        $this->assertSame('INVALID_LABEL_STYLE', $this->errorCode($this->api('mutation { whUpdateLabelStyle(input: {qrSizeMm: 90}) { widthMm } }', [], $this->lead)));
+
+        $history = $this->ok($this->api('{ whLabelStyleHistory { changedByName style { widthMm } } }', [], $this->lead))['whLabelStyleHistory'];
+        $this->assertSame([['changedByName' => 'lead@example.com', 'style' => ['widthMm' => 80]]], $history);
+    }
 }
