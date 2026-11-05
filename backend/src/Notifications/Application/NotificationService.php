@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
  */
 final class NotificationService
 {
-    public const TEMPLATES = ['order_placed', 'order_status', 'shipment_created', 'quote_ready', 'custom_order_update', 'ops_alert', 'export_ready', 'contact_received', 'contact_receipt', 'newsletter_confirm', 'newsletter_welcome'];
+    public const TEMPLATES = ['order_placed', 'order_status', 'shipment_created', 'quote_ready', 'custom_order_update', 'ops_alert', 'export_ready', 'contact_received', 'contact_receipt', 'newsletter_confirm', 'newsletter_welcome', 'warehouse_alert'];
 
     public function __construct(private readonly NotificationLog $log, private readonly RecipientDirectory $directory, private readonly NotificationDispatcher $dispatcher) {}
 

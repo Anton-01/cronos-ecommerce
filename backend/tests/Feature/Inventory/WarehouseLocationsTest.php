@@ -12,6 +12,7 @@ use Cronos\Inventory\Domain\Exceptions\InvalidMovement;
 use Cronos\Inventory\Domain\Ports\LocationRepository;
 use Cronos\Inventory\Domain\ValueObjects\StockCode;
 use Cronos\Inventory\Infrastructure\Persistence\StockCodeIssuer;
+use Database\Seeders\WarehouseDemoSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -257,5 +258,16 @@ final class WarehouseLocationsTest extends InventoryTestCase
     private function versions(string $id): array
     {
         return app(LocationRepository::class)->versions($id);
+    }
+
+    public function test_the_demo_tree_of_the_client_seeds_once_and_has_the_expected_depth(): void
+    {
+        $this->seed(WarehouseDemoSeeder::class);
+        $this->seed(WarehouseDemoSeeder::class);
+
+        $rows = DB::table('warehouse_locations')->where('warehouse_id', $this->mx)->where('is_system', false)->get()->keyBy('code');
+        $this->assertCount(10, $rows);
+        $this->assertSame(4, (int) $rows['C02']->depth, 'Bodega > Pasillo A > Estante 03 > Caja 02');
+        $this->assertSame(2, (int) $rows['MOS']->depth);
     }
 }

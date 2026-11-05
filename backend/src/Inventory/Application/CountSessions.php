@@ -13,6 +13,7 @@ use Cronos\Inventory\Domain\Ports\LocationRepository;
 use Cronos\Inventory\Domain\Ports\OperationsStore;
 use Cronos\Inventory\Domain\Ports\WarehouseRepository;
 use Cronos\Inventory\Domain\Services\Quantities;
+use Cronos\Inventory\Domain\ValueObjects\AlertProcess;
 use Cronos\Inventory\Domain\ValueObjects\LocationMovementType as L;
 
 /**
@@ -27,6 +28,7 @@ final class CountSessions
         private readonly LocationRepository $locations,
         private readonly WarehouseRepository $warehouses,
         private readonly WarehouseOperations $operations,
+        private readonly AlertRaiser $alerts,
     ) {}
 
     /** @return string session id */
@@ -77,6 +79,8 @@ final class CountSessions
             }
             $row['note'] ??= $why;
             $id = $this->store->createEntry($row + ['status' => $status, 'movement_ulid' => $movement]);
+
+            $status !== 'in_review' || $this->alerts->raise(AlertProcess::COUNT_REVIEW, 'Conteo por revisar', "{$counted} contado donde el sistema tenía {$frozen}. ".($why ?? ''), 'countrev:'.$id, $productId, $location['warehouse_id'], $locationId, ['entry' => $id, 'session' => $sessionId]);
 
             return ['id' => $id, 'status' => $status, 'movement' => $movement];
         });

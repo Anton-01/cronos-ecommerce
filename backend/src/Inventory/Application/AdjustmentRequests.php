@@ -11,8 +11,11 @@ use Cronos\Inventory\Domain\Exceptions\NotFound;
 use Cronos\Inventory\Domain\Ports\LocationRepository;
 use Cronos\Inventory\Domain\Ports\LocationStore;
 use Cronos\Inventory\Domain\Ports\OperationsStore;
+use Cronos\Inventory\Domain\Ports\ProductValuation;
 use Cronos\Inventory\Domain\Ports\StockStore;
+use Cronos\Inventory\Domain\Services\ApprovalPolicy;
 use Cronos\Inventory\Domain\Services\Quantities;
+use Cronos\Inventory\Domain\ValueObjects\AlertProcess;
 use Cronos\Inventory\Domain\ValueObjects\LocationMovementType as L;
 
 /**
@@ -27,6 +30,9 @@ final class AdjustmentRequests
         private readonly StockStore $books,
         private readonly LocationRepository $locations,
         private readonly WarehouseOperations $operations,
+        private readonly WarehousePolicies $policies,
+        private readonly ProductValuation $valuation,
+        private readonly AlertRaiser $alerts,
     ) {}
 
     /**
@@ -38,7 +44,7 @@ final class AdjustmentRequests
         $target = Quantities::of((string) $target);
         $target->isNegative() && throw new InvalidMovement('A quantity cannot be negative.', 'INVALID_QUANTITY');
 
-        return $this->store->atomically(function () use ($productId, $locationId, $target, $seenVersion, $reason, $actor, $idempotencyKey): array {
+        $result = $this->store->atomically(function () use ($productId, $locationId, $target, $seenVersion, $reason, $actor, $idempotencyKey): array {
             if ($idempotencyKey !== null) {
                 $this->store->advisoryLock('idem:'.$idempotencyKey);
                 if (($seen = $this->store->requestByKey($idempotencyKey)) !== null) {
@@ -58,14 +64,23 @@ final class AdjustmentRequests
                 'target_quantity' => (string) $target, 'delta' => (string) $delta, 'reason' => mb_substr($reason, 0, 500), 'idempotency_key' => $idempotencyKey,
                 'requested_by' => $actor->userId, 'requested_at' => now(),
             ]);
-            if ($delta->abs()->isGreaterThan((string) config('inventory.adjustment_auto_threshold', 5))) {
-                return ['id' => $id, 'status' => 'pending'];
+            $unit = $this->valuation->unitValue($productId);
+            if (ApprovalPolicy::needsApproval($delta, BigDecimal::of($current['quantity']), $unit === null ? null : BigDecimal::of($unit), $this->policies->current())) {
+                return ['id' => $id, 'status' => 'pending', 'notify' => [$productId, $location['warehouse_id'], $locationId, (string) $delta, $current['quantity'], $reason]];
             }
             $ulid = $this->apply($id, $productId, $locationId, $delta, $actor, $reason);
             $this->store->decideRequest($id, 'approved', $actor->userId, 'Within the automatic limit', $ulid);
 
             return ['id' => $id, 'status' => 'approved'];
         });
+
+        if (isset($result['notify'])) {
+            [$productId, $warehouseId, $locationId, $delta, $was, $why] = $result['notify'];
+            $this->alerts->raise(AlertProcess::ADJUSTMENT_REQUESTED, 'Ajuste por aprobar', "Se pidió un cambio de {$delta} (había {$was}). Motivo: {$why}", 'adjreq:'.$result['id'], $productId, $warehouseId, $locationId, ['request' => $result['id'], 'delta' => $delta]);
+            unset($result['notify']);
+        }
+
+        return $result;
     }
 
     /** A lead says yes: the difference the person reported is applied now (against what the shelf holds today). */
@@ -76,6 +91,7 @@ final class AdjustmentRequests
             ($r['requested_by'] === null || $r['requested_by'] !== $lead->userId) || throw new Conflict('Someone else has to approve your own request.', 'SELF_APPROVAL');
             $ulid = $this->apply($requestId, $r['product_id'], $r['location_id'], BigDecimal::of($r['delta']), $lead, $r['reason']);
             $this->store->decideRequest($requestId, 'approved', $lead->userId, $note, $ulid);
+            $this->told($r, 'aprobado', $note);
 
             return $ulid;
         });
@@ -85,9 +101,16 @@ final class AdjustmentRequests
     {
         trim($note) !== '' || throw new InvalidMovement('Say why it is rejected.', 'REASON_REQUIRED');
         $this->store->atomically(function () use ($requestId, $lead, $note): void {
-            $this->pending($requestId);
+            $r = $this->pending($requestId);
             $this->store->decideRequest($requestId, 'rejected', $lead->userId, mb_substr($note, 0, 500), null);
+            $this->told($r, 'rechazado', $note);
         });
+    }
+
+    /** @param array<string, mixed> $r */
+    private function told(array $r, string $outcome, ?string $note): void
+    {
+        $this->alerts->raise(AlertProcess::ADJUSTMENT_DECIDED, "Ajuste {$outcome}", "El ajuste de {$r['delta']} fue {$outcome}.".($note ? " Nota: {$note}" : ''), 'adjdec:'.$r['id'], $r['product_id'], (int) $r['warehouse_id'], $r['location_id'], ['request' => $r['id']], $r['requested_by'] === null ? [] : [$r['requested_by']]);
     }
 
     /** @return array<string, mixed> */

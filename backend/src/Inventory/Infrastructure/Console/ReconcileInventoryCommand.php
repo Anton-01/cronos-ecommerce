@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Cronos\Inventory\Infrastructure\Console;
 
+use Cronos\Inventory\Application\AlertRaiser;
 use Cronos\Inventory\Application\InventoryReconciler;
+use Cronos\Inventory\Domain\ValueObjects\AlertProcess;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -14,7 +16,7 @@ final class ReconcileInventoryCommand extends Command
 
     protected $description = 'Check that stock levels agree with the immutable Kardex and that the Kardex hash chains are intact';
 
-    public function handle(InventoryReconciler $reconciler): int
+    public function handle(AlertRaiser $alerts, InventoryReconciler $reconciler): int
     {
         $report = $reconciler->check();
         if ($report['ok']) {
@@ -28,6 +30,7 @@ final class ReconcileInventoryCommand extends Command
                 $this->error("[{$label}] {$line}");
             }
         }
+        $alerts->raise(AlertProcess::INTEGRITY_FAILURE, 'Falla de integridad: libros del almacén', 'La conciliación nocturna encontró diferencias. Revisa el detalle con el comando de conciliación antes de seguir operando.', 'integrity:books:'.date('Y-m-d'));
         Log::critical('Inventory reconciliation found differences', $report);
 
         if ($report['broken_chains'] !== []) {

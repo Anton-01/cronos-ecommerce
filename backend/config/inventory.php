@@ -10,6 +10,11 @@ return [
     // How many levels the shelf tree of a warehouse may have (zone > aisle > shelf > level > bin ...). Raising it later is always safe.
     'max_location_depth' => (int) env('INVENTORY_MAX_LOCATION_DEPTH', 6),
 
-    // A shelf correction up to this many units is applied at once; a bigger one waits for a lead to approve it.
-    'adjustment_auto_threshold' => (float) env('INVENTORY_ADJUSTMENT_AUTO_THRESHOLD', 5),
+    // Starting values of the rules an administrator can change from the panel (the panel's value, once set, wins over these).
+    // A shelf correction needs a second person only above these limits; 0 = that limit is not used.
+    'approval_units' => (int) env('INVENTORY_APPROVAL_UNITS', 5),
+    'approval_percent' => (int) env('INVENTORY_APPROVAL_PERCENT', 0),
+    'approval_amount' => (int) env('INVENTORY_APPROVAL_AMOUNT', 0),
+    // A low stock is only called recovered once it is this many percent above its threshold.
+    'recovery_margin_percent' => (int) env('INVENTORY_RECOVERY_MARGIN', 10),
 ];

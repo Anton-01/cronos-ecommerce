@@ -80,6 +80,9 @@ return [
 
     'storefront_url' => env('STOREFRONT_URL', 'http://localhost:3000'),
 
+    // Where the admin panel lives: links in the warehouse alert e-mails point here.
+    'admin_url' => env('ADMIN_URL', ''),
+
     'locale_default' => 'es-MX',
 
     // Locales offered by the platform (BCP 47). The first one is the fallback for missing translations.

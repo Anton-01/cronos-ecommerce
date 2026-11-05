@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Cronos\Inventory\Infrastructure\Console;
 
+use Cronos\Inventory\Application\AlertRaiser;
 use Cronos\Inventory\Application\LocationReconciler;
+use Cronos\Inventory\Domain\ValueObjects\AlertProcess;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -14,7 +16,7 @@ final class ReconcileLocationsCommand extends Command
 
     protected $description = 'Check the per-shelf stock against the immutable location ledger and verify its hash chains';
 
-    public function handle(LocationReconciler $reconciler): int
+    public function handle(AlertRaiser $alerts, LocationReconciler $reconciler): int
     {
         $report = $reconciler->check();
         foreach ($report['variance'] as $line) {
@@ -30,6 +32,7 @@ final class ReconcileLocationsCommand extends Command
 
             return self::SUCCESS;
         }
+        $alerts->raise(AlertProcess::INTEGRITY_FAILURE, 'Falla de integridad: libro de anaqueles', 'La conciliación nocturna encontró diferencias. Revisa el detalle con el comando de conciliación antes de seguir operando.', 'integrity:locations:'.date('Y-m-d'));
         Log::critical('Location reconciliation found differences', $report);
         if ($report['broken_chains'] !== []) {
             $this->error('The ledger itself fails verification: derived data cannot repair that.');

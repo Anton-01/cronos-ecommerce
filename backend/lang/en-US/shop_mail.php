@@ -37,6 +37,11 @@ return [
         'intro' => ':message',
         'button' => 'View my request',
     ],
+    'warehouse_alert' => [
+        'subject' => ':subject_line',
+        'title' => ':subject_line',
+        'open' => 'Open the warehouse',
+    ],
     'ops_alert' => [
         'subject' => ':subject_line',
         'title' => 'Needs review',

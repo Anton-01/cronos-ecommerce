@@ -118,3 +118,20 @@ Tamaño estimado: fases 1–4 son backend (grandes pero acotadas, ~las dos terce
 4. **Alertas**: ¿a quién llegan los correos (una dirección por almacén/tienda, o por usuario), y qué niveles de aviso quieres (bajo / crítico / agotado)?
 5. **Alcance de la fase 6**: ¿incluimos importación Excel y los estados `pendiente / no aplica` en esta entrega o los dejamos para después?
 6. **Profundidad del árbol**: ¿qué niveles usan hoy en el almacén (zona › pasillo › anaquel › nivel)? Lo dejo configurable, pero me ayuda a sembrar datos de ejemplo.
+
+
+## 7. Decisiones confirmadas por el cliente (reemplazan los valores recomendados)
+
+| Tema | Decisión | Dónde se aplica |
+|---|---|---|
+| Surtido | El operario **confirma el surtido de cada pedido**. | Hecho (fase 2: `PickLists`). La lista de pendientes sale del Kardex. |
+| Código QR | Formato **empresarial y sencillo**, legible a la distancia de un anaquel. Existe para **todo artículo/producto** que se dé de alta, **haya o no existencias y esté activo o no**; esa lógica (estado, existencias, activo/inactivo) vive en la **lectura** del QR, no en el código impreso. Se puede **descargar como imagen**, **mandar a imprimir** y **configurar su estilo desde el administrador**. | Fase 5 (etiquetas) con ajustes de estilo guardados con historial. El `stock_code` ya se asigna a todo producto de tipo simple/variación (fase 1). |
+| Aprobaciones | Solo **a partir de cierto monto o porcentaje** (también por unidades). **Configurable desde el administrador**, igual que la **vista de aprobaciones**, los **correos de aprobación** y el **proceso de aprobar** con su trazabilidad. | Fase 3: `WarehousePolicies` (límites de unidades, % y monto, cada cambio queda como fila nueva; nunca se pueden apagar los tres), `ApprovalPolicy`, correo a quienes se suscriban a «Ajuste por aprobar». Fase 5: pantalla de aprobaciones y de políticas. |
+| Alertas | **Módulo de alertas por proceso**: el administrador gestiona **qué usuarios reciben cada proceso**, solo agregando/quitando **usuarios del propio sistema**. | Fase 3: `AlertProcess` (10 procesos), `AlertSubscriptions` (solo personal activo con rol distinto de cliente; altas, cambios y bajas en bitácora inmutable), bandeja + correo por persona y por proceso. Fase 5: pantalla. |
+| Fase 6 | **Se incluye ya** la importación Excel/CSV y los estados «pendiente / no aplica». | Fase 6 (sin cambios de alcance, sin diferirse). |
+| Árbol de ubicaciones | Ejemplos reales: «Bodega › Pasillo B › Estante 01», «Bodega › Pasillo A › Estante 03 › Caja 02», «Tienda › Mostrador / Exhibidor». | `WarehouseDemoSeeder` (solo desarrollo). Profundidad máxima configurable (6 por omisión). |
+
+### Referencias visuales recibidas (pantallas del repositorio de referencia)
+- **Ubicaciones**: árbol con expandir/contraer, buscador, interruptor «Mostrar inactivas», insignia de nivel, conteo «N SKU con existencia» por nodo, botón «+» para hijo y menú de acciones; pestañas **Categorías | Ubicaciones**.
+- **Categorías**: árbol de hasta 4 niveles, aviso de que «los productos sin categoría quedan como *Por clasificar* y pendientes de revisión» y que colores/medidas/acabados son **atributos, no categorías**.
+Ambas se toman como guía para las pantallas de la fase 5 (mismo patrón de árbol, con nuestro diseño).
