@@ -48,6 +48,20 @@ final class LocationReconciler
         return $report;
     }
 
+    /** Checks one product+shelf chain. @return ?string the first movement that no longer verifies, null when the chain is intact */
+    public function verify(string $productId, string $locationId): ?string
+    {
+        $previous = null;
+        foreach ($this->store->chain($productId, $locationId) as $row) {
+            if ($row['prev_hash'] !== $previous || $row['row_hash'] !== $this->hasher->hash($previous, $row)) {
+                return $row['ulid'];
+            }
+            $previous = $row['row_hash'];
+        }
+
+        return null;
+    }
+
     /** Rebuilds the per-shelf quantities from the ledger. Cannot (and does not try to) fix the ledger itself. */
     public function repairDerived(): int
     {

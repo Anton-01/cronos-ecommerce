@@ -1,0 +1,555 @@
+"The warehouse section of the admin: what the warehouse team (and only they) uses. Quantities travel as strings with three decimals."
+enum WhMovementType {
+  INITIAL @enum(value: "initial")
+  RECEIVE @enum(value: "receive")
+  MOVE_IN @enum(value: "move_in")
+  MOVE_OUT @enum(value: "move_out")
+  PICK @enum(value: "pick")
+  ADJUST @enum(value: "adjust")
+  COUNT_ADJUST @enum(value: "count_adjust")
+  RETURN @enum(value: "return")
+  WASTE @enum(value: "waste")
+  COMPENSATION @enum(value: "compensation")
+}
+
+type WhLocation {
+  id: ID!
+  warehouseId: ID!
+  parentId: ID
+  "Printed on the shelf and in its QR; never changes."
+  code: String!
+  name: String!
+  type: String!
+  depth: Int!
+  capacity: String
+  isPickable: Boolean!
+  isActive: Boolean!
+  "The receiving area every warehouse has."
+  isSystem: Boolean!
+  version: Int!
+  "Different products with stock here or below."
+  products: Int!
+  "Units here or below."
+  units: String!
+}
+
+type WhLocationVersion {
+  version: Int!
+  changedBy: ID
+  changedAt: String!
+  snapshot: JSON!
+}
+
+type WhLocationContent {
+  productId: ID!
+  sku: String
+  stockCode: String
+  name: String
+  quantity: String!
+  "Send it back with an adjustment: if someone moved the shelf meanwhile the request is refused."
+  version: Int!
+}
+
+type WhLocationDetail {
+  location: WhLocation!
+  contents: [WhLocationContent!]!
+  versions: [WhLocationVersion!]!
+}
+
+type WhProduct {
+  productId: ID!
+  sku: String
+  name: String
+  stockCode: String
+  status: String!
+}
+
+type WhPlace {
+  locationId: ID!
+  code: String!
+  name: String!
+  isActive: Boolean!
+  isPickable: Boolean!
+  warehouseId: ID!
+  warehouseCode: String!
+  quantity: String!
+  version: Int!
+}
+
+type WhBooks {
+  warehouseId: ID!
+  warehouseCode: String!
+  onHand: String!
+  reserved: String!
+  available: String!
+}
+
+type WhScanThreshold {
+  warehouseId: ID!
+  minimum: String!
+  critical: String
+}
+
+"What a scanned QR shows, whatever the state of the product (published, draft, inactive, removed, with or without stock)."
+type WhScan {
+  productId: ID!
+  sku: String
+  name: String
+  type: String!
+  "draft, published or inactive."
+  status: String!
+  removed: Boolean!
+  stockCode: String!
+  "As printed under the QR (XXXXXXXXXX-C)."
+  stockCodeFormatted: String!
+  unit: String!
+  places: [WhPlace!]!
+  books: [WhBooks!]!
+  thresholds: [WhScanThreshold!]!
+  "Units sold and not yet taken off a shelf."
+  pendingToPick: String!
+  recent: [WhMovement!]!
+}
+
+type WhMovement {
+  id: ID!
+  productId: ID!
+  sku: String
+  productName: String
+  warehouseId: ID!
+  locationId: ID!
+  locationCode: String!
+  locationName: String!
+  "The other end of a move."
+  counterpartCode: String
+  type: WhMovementType!
+  "Signed: positive enters the shelf, negative leaves it."
+  quantity: String!
+  balanceBefore: String!
+  balanceAfter: String!
+  referenceType: String
+  referenceId: String
+  note: String
+  "Who did it."
+  userId: ID
+  userName: String
+  userEmail: String
+  ip: String
+  country: String
+  timezone: String
+  createdAt: DateTime!
+  createdAtUtc: String!
+  "The movement that undid this one."
+  compensatedBy: ID
+}
+
+type WhTrailPage {
+  entries: [WhMovement!]!
+  nextBefore: ID
+}
+
+type WhChainCheck {
+  ok: Boolean!
+  brokenAt: ID
+}
+
+type WhIntegrity {
+  ok: Boolean!
+  stockMismatches: [String!]!
+  brokenChains: [String!]!
+  untrackedCodes: [String!]!
+  "Shelves versus the warehouse books: units sold and still to pick, or work not yet put away. Informative."
+  variance: [String!]!
+}
+
+type WhPickShelf {
+  locationId: ID!
+  code: String!
+  isPickable: Boolean!
+  quantity: String!
+  version: Int!
+}
+
+type WhPickLine {
+  orderId: ID!
+  orderNumber: String
+  productId: ID!
+  sku: String
+  name: String
+  stockCode: String
+  warehouseId: ID!
+  pending: String!
+  shelves: [WhPickShelf!]!
+}
+
+type WhCountSession {
+  id: ID!
+  name: String!
+  status: String!
+  warehouseId: ID!
+  warehouseCode: String!
+  scopeCode: String
+  createdByName: String
+  createdAt: DateTime!
+  closedAt: DateTime
+  entries: Int!
+  inReview: Int!
+}
+
+type WhCountEntry {
+  id: ID!
+  productId: ID!
+  sku: String
+  name: String
+  locationId: ID!
+  locationCode: String!
+  counted: String!
+  "What the system held when the count began (the person never sees it while counting)."
+  systemAtStart: String!
+  status: String!
+  countedByName: String
+  countedAt: DateTime!
+  note: String
+  reviewedByName: String
+  reviewNote: String
+  movementId: ID
+}
+
+type WhAdjustmentRequest {
+  id: ID!
+  productId: ID!
+  sku: String
+  name: String
+  warehouseId: ID!
+  locationId: ID!
+  locationCode: String!
+  seenQuantity: String!
+  targetQuantity: String!
+  delta: String!
+  reason: String!
+  status: String!
+  requestedByName: String
+  requestedAt: DateTime!
+  decidedByName: String
+  decidedAt: DateTime
+  decisionNote: String
+  movementId: ID
+}
+
+type WhThreshold {
+  productId: ID!
+  sku: String
+  name: String
+  warehouseId: ID!
+  locationId: ID
+  locationCode: String
+  minimum: String!
+  critical: String
+  changedByName: String
+  changedAt: DateTime!
+}
+
+type WhInboxItem {
+  id: ID!
+  process: String!
+  severity: String!
+  title: String!
+  detail: String!
+  productId: ID
+  warehouseId: ID
+  locationId: ID
+  createdAt: String!
+  read: Boolean!
+}
+
+type WhInbox {
+  unread: Int!
+  items: [WhInboxItem!]!
+}
+
+type WhSubscriber {
+  userId: ID!
+  email: String!
+  inbox: Boolean!
+  emailEnabled: Boolean!
+}
+
+type WhAlertProcess {
+  code: String!
+  label: String!
+  description: String!
+  severity: String!
+  subscribers: [WhSubscriber!]!
+}
+
+type WhStaffUser {
+  id: ID!
+  email: String!
+  roles: [String!]!
+}
+
+type WhSubscriptionLogEntry {
+  process: String!
+  userId: ID!
+  userName: String
+  action: String!
+  doneByName: String
+  doneAt: String!
+}
+
+type WhPolicies {
+  "More than this many units needs approval (0 = not used)."
+  approvalUnits: Int!
+  approvalPercent: Int!
+  approvalAmount: Int!
+  recoveryMarginPercent: Int!
+}
+
+type WhPolicyChange {
+  key: String!
+  value: String!
+  changedByName: String
+  changedAt: String!
+}
+
+type WhMoveResult {
+  outId: String!
+  inId: String!
+}
+
+type WhAdjustmentResult {
+  id: ID!
+  "approved (applied now) or pending (waits for someone with approval rights)."
+  status: String!
+}
+
+type WhCountResult {
+  id: ID!
+  "confirmed or in_review."
+  status: String!
+  movementId: String
+}
+
+input WhReceiveInput {
+  productId: ID!
+  warehouseId: ID!
+  quantity: String!
+  "Where it goes; without it, the receiving area."
+  locationId: ID
+  unitCost: String
+  note: String
+  "Generated by the device: the same tap sent twice changes nothing the second time."
+  idempotencyKey: String!
+}
+
+input WhMoveInput {
+  productId: ID!
+  fromLocationId: ID!
+  toLocationId: ID!
+  quantity: String!
+  "The version of the origin shelf the screen saw."
+  expectedVersion: Int
+  note: String
+  idempotencyKey: String!
+}
+
+input WhPickInput {
+  orderId: ID!
+  productId: ID!
+  locationId: ID!
+  quantity: String!
+  idempotencyKey: String!
+}
+
+input WhReturnInput {
+  productId: ID!
+  locationId: ID!
+  quantity: String!
+  orderId: ID
+  note: String
+  idempotencyKey: String!
+}
+
+input WhWriteOffInput {
+  productId: ID!
+  locationId: ID!
+  quantity: String!
+  reason: String!
+  expectedVersion: Int
+  idempotencyKey: String!
+}
+
+input WhAdjustmentInput {
+  productId: ID!
+  locationId: ID!
+  "What is really there."
+  targetQuantity: String!
+  "The shelf version the screen saw."
+  seenVersion: Int!
+  reason: String!
+  idempotencyKey: String!
+}
+
+input WhCountInput {
+  sessionId: ID!
+  productId: ID!
+  locationId: ID!
+  counted: String!
+  note: String
+  idempotencyKey: String!
+}
+
+input WhLocationInput {
+  parentId: ID
+  code: String!
+  name: String!
+  type: String
+  capacity: String
+  isPickable: Boolean
+  sortOrder: Int
+}
+
+input WhLocationUpdateInput {
+  name: String
+  type: String
+  capacity: String
+  isPickable: Boolean
+  isActive: Boolean
+  sortOrder: Int
+}
+
+input WhPoliciesInput {
+  approvalUnits: Int
+  approvalPercent: Int
+  approvalAmount: Int
+  recoveryMarginPercent: Int
+}
+
+extend type Query {
+  whWarehouses: [AdminWarehouse!]!
+    @guard @can(ability: "warehouse.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@warehouses")
+  whLocations(warehouseId: ID!, includeInactive: Boolean = false): [WhLocation!]!
+    @guard @can(ability: "warehouse.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@locations")
+  whLocation(id: ID!): WhLocationDetail
+    @guard @can(ability: "warehouse.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@location")
+  whLocationByCode(code: String!, warehouseId: ID): WhLocationDetail
+    @guard @can(ability: "warehouse.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@locationByCode")
+  whScan(code: String!): WhScan
+    @guard @can(ability: "warehouse.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@scan")
+  whSearchProducts(search: String!, first: Int = 20): [WhProduct!]!
+    @guard @can(ability: "warehouse.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@searchProducts")
+  whTrail(productId: ID, locationId: ID, warehouseId: ID, userId: ID, type: WhMovementType, from: DateTime, to: DateTime, before: ID, first: Int = 50): WhTrailPage!
+    @guard @can(ability: "warehouse.audit", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@trail")
+  whVerifyChain(productId: ID!, locationId: ID!): WhChainCheck!
+    @guard @can(ability: "warehouse.audit", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@verifyChain")
+  whIntegrity: WhIntegrity!
+    @guard @can(ability: "warehouse.audit", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@integrity")
+  whPickLines(warehouseId: ID): [WhPickLine!]!
+    @guard @can(ability: "warehouse.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@pickLines")
+  whCountSessions(warehouseId: ID, status: String): [WhCountSession!]!
+    @guard @can(ability: "warehouse.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@countSessions")
+  whCountEntries(sessionId: ID!, status: String): [WhCountEntry!]!
+    @guard @can(ability: "warehouse.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@countEntries")
+  whAdjustmentRequests(status: String, warehouseId: ID): [WhAdjustmentRequest!]!
+    @guard @can(ability: "warehouse.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@adjustmentRequests")
+  whThresholds(warehouseId: ID): [WhThreshold!]!
+    @guard @can(ability: "warehouse.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@thresholds")
+  whAlertInbox(unreadOnly: Boolean = false, first: Int = 50): WhInbox!
+    @guard @can(ability: "warehouse.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@inbox")
+  whAlertProcesses: [WhAlertProcess!]!
+    @guard @can(ability: "warehouse.approve", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@alertProcesses")
+  whAlertCandidates: [WhStaffUser!]!
+    @guard @can(ability: "warehouse.approve", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@alertCandidates")
+  whSubscriptionLog(process: String): [WhSubscriptionLogEntry!]!
+    @guard @can(ability: "warehouse.approve", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@subscriptionLog")
+  whPolicies: WhPolicies!
+    @guard @can(ability: "warehouse.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@policies")
+  whPolicyHistory: [WhPolicyChange!]!
+    @guard @can(ability: "warehouse.approve", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@policyHistory")
+}
+
+extend type Mutation {
+  whReceive(input: WhReceiveInput!): String!
+    @guard @can(ability: "warehouse.operate", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@receive")
+  whMove(input: WhMoveInput!): WhMoveResult!
+    @guard @can(ability: "warehouse.operate", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@move")
+  whPick(input: WhPickInput!): String!
+    @guard @can(ability: "warehouse.operate", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@pick")
+  whReturnToShelf(input: WhReturnInput!): String!
+    @guard @can(ability: "warehouse.operate", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@returnToShelf")
+  whWriteOff(input: WhWriteOffInput!): String!
+    @guard @can(ability: "warehouse.operate", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@writeOff")
+  whRequestAdjustment(input: WhAdjustmentInput!): WhAdjustmentResult!
+    @guard @can(ability: "warehouse.operate", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@requestAdjustment")
+  whSubmitCount(input: WhCountInput!): WhCountResult!
+    @guard @can(ability: "warehouse.operate", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@submitCount")
+  whOpenCount(warehouseId: ID!, name: String!, scopeLocationId: ID): ID!
+    @guard @can(ability: "warehouse.approve", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@openCount")
+  whCloseCount(sessionId: ID!): Boolean!
+    @guard @can(ability: "warehouse.approve", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@closeCount")
+  whReviewCount(entryId: ID!, approve: Boolean!, note: String): String
+    @guard @can(ability: "warehouse.approve", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@reviewCount")
+  whApproveAdjustment(id: ID!, note: String): String!
+    @guard @can(ability: "warehouse.approve", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@approveAdjustment")
+  whRejectAdjustment(id: ID!, note: String!): Boolean!
+    @guard @can(ability: "warehouse.approve", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@rejectAdjustment")
+  whCompensate(movementId: ID!, reason: String!, idempotencyKey: String): String!
+    @guard @can(ability: "warehouse.approve", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@compensate")
+  whCreateLocation(warehouseId: ID!, input: WhLocationInput!): WhLocation!
+    @guard @can(ability: "warehouse.locations", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@createLocation")
+  whUpdateLocation(id: ID!, input: WhLocationUpdateInput!): WhLocation!
+    @guard @can(ability: "warehouse.locations", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@updateLocation")
+  whMoveLocation(id: ID!, parentId: ID): WhLocation!
+    @guard @can(ability: "warehouse.locations", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@moveLocation")
+  whSetThreshold(productId: ID!, warehouseId: ID!, locationId: ID, minimum: String, critical: String): Boolean!
+    @guard @can(ability: "warehouse.approve", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@setThreshold")
+  whUpdatePolicies(input: WhPoliciesInput!): WhPolicies!
+    @guard @can(ability: "warehouse.approve", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@updatePolicies")
+  whAddSubscriber(process: String!, userId: ID!, inbox: Boolean = true, email: Boolean = true): [WhAlertProcess!]!
+    @guard @can(ability: "warehouse.approve", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@addSubscriber")
+  whRemoveSubscriber(process: String!, userId: ID!): [WhAlertProcess!]!
+    @guard @can(ability: "warehouse.approve", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@removeSubscriber")
+  whMarkAlertsRead(ids: [ID!]): Int!
+    @guard @can(ability: "warehouse.view", model: "Cronos\\Inventory\\Infrastructure\\Persistence\\Eloquent\\WarehouseModel")
+    @field(resolver: "Cronos\\Inventory\\Interfaces\\GraphQL\\WarehouseApi@markAlertsRead")
+}

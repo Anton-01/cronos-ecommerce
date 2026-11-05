@@ -20,6 +20,7 @@ use Cronos\Inventory\Domain\Ports\ProductValuation;
 use Cronos\Inventory\Domain\Ports\ReservationStore;
 use Cronos\Inventory\Domain\Ports\StaffDirectory;
 use Cronos\Inventory\Domain\Ports\StockStore;
+use Cronos\Inventory\Domain\Ports\WarehouseQueries;
 use Cronos\Inventory\Domain\Ports\WarehouseRepository;
 use Cronos\Inventory\Infrastructure\Console\AssignOpeningStockCommand;
 use Cronos\Inventory\Infrastructure\Console\ExpireReservationsCommand;
@@ -37,6 +38,7 @@ use Cronos\Inventory\Infrastructure\Persistence\DatabaseProductValuation;
 use Cronos\Inventory\Infrastructure\Persistence\DatabaseReservationStore;
 use Cronos\Inventory\Infrastructure\Persistence\DatabaseStaffDirectory;
 use Cronos\Inventory\Infrastructure\Persistence\DatabaseStockStore;
+use Cronos\Inventory\Infrastructure\Persistence\DatabaseWarehouseQueries;
 use Cronos\Inventory\Infrastructure\Persistence\EloquentWarehouseRepository;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Event;
@@ -56,6 +58,7 @@ final class InventoryServiceProvider extends ServiceProvider
         LocationStore::class => DatabaseLocationStore::class,
         OperationsStore::class => DatabaseOperationsStore::class,
         AlertStore::class => DatabaseAlertStore::class,
+        WarehouseQueries::class => DatabaseWarehouseQueries::class,
         StaffDirectory::class => DatabaseStaffDirectory::class,
         ProductValuation::class => DatabaseProductValuation::class,
     ];
