@@ -30,6 +30,9 @@ interface AttributeRepository
 
     public function deleteValue(string $valueId): void;
 
+    /** The id of the value with this code, if the attribute has one. */
+    public function valueIdByCode(string $attributeId, string $code): ?string;
+
     public function valueCodeTaken(string $attributeId, string $code, ?string $exceptId = null): bool;
 
     public function isValueInUse(string $valueId): bool;

@@ -36,6 +36,9 @@ interface ProductRepository
     /** Soft delete the product (and its variations); frees SKU and slugs. */
     public function delete(string $id): void;
 
+    /** Runs several writes as one: either all of them happen or none. */
+    public function atomically(callable $work): mixed;
+
     public function taxClassExists(int $id): bool;
 
     public function skuTaken(string $sku, ?string $exceptId = null): bool;

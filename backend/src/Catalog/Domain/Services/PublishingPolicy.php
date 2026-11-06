@@ -13,7 +13,7 @@ final class PublishingPolicy
      * @param  array{
      *     type: string, sku: ?string, price: mixed, locales: list<string>, default_locale: string,
      *     translations: array<string, array{name?: ?string, slug?: ?string}>,
-     *     published_variations: int, group_items: int, variation_attributes: int
+     *     published_variations: int, group_items: int, variation_attributes: int, missing_data?: list<string>
      * }  $product  $product['price'] is the already-resolved (inherited) price
      * @return list<string>
      */
@@ -29,6 +29,8 @@ final class PublishingPolicy
         if (trim((string) ($t['slug'] ?? '')) === '') {
             $problems[] = "the slug in {$default} is required";
         }
+
+        ($product['missing_data'] ?? []) === [] || $problems[] = 'required data is still pending: '.implode(', ', $product['missing_data']);
 
         switch ($product['type']) {
             case 'simple':

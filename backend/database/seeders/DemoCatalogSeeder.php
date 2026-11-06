@@ -13,6 +13,7 @@ use Cronos\Inventory\Application\StockLedger;
 use Cronos\Inventory\Domain\Ports\WarehouseRepository;
 use Cronos\Inventory\Domain\ValueObjects\MovementType;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Development-only sample catalogue (ribbons by the metre and the roll, pieces, a variable ribbon) so the storefront can be seen with content.
@@ -34,10 +35,12 @@ final class DemoCatalogSeeder extends Seeder
         $bows = $cat('Moños', 'Bows');
         $cat('Accesorios', 'Accessories');
 
-        $color = $attributes->create('color', 'color', true, 0, ['es-MX' => 'Color', 'en-US' => 'Color']);
-        $red = $attributes->addValue($color, 'rojo', ['hex' => '#C8285A'], 0, ['es-MX' => 'Rojo', 'en-US' => 'Red']);
-        $blue = $attributes->addValue($color, 'azul', ['hex' => '#1458C8'], 1, ['es-MX' => 'Azul', 'en-US' => 'Blue']);
-        $gold = $attributes->addValue($color, 'dorado', ['hex' => '#D4A93C'], 2, ['es-MX' => 'Dorado', 'en-US' => 'Gold']);
+        $color = DB::table('attributes')->where('code', 'color')->whereNull('deleted_at')->value('id') ?? $attributes->create('color', 'color', true, 0, ['es-MX' => 'Color', 'en-US' => 'Color']);
+        // The client's colour list may already exist (ClientCatalogSeeder): reuse its values.
+        $colorValue = fn (string $code, array $meta, int $pos, array $labels) => DB::table('attribute_values')->where(['attribute_id' => $color, 'code' => $code])->value('id') ?? $attributes->addValue($color, $code, $meta, $pos, $labels);
+        $red = $colorValue('rojo', ['hex' => '#C8285A'], 0, ['es-MX' => 'Rojo', 'en-US' => 'Red']);
+        $blue = $colorValue('azul', ['hex' => '#1458C8'], 1, ['es-MX' => 'Azul', 'en-US' => 'Blue']);
+        $gold = $colorValue('dorado', ['hex' => '#D4A93C'], 2, ['es-MX' => 'Dorado', 'en-US' => 'Gold']);
 
         $ids = [];
         $ribbon = fn (string $es, string $en, string $sku, string $price, string $rollPrice, string $parent) => $products->create([

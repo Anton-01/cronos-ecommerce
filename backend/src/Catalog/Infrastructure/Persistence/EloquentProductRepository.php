@@ -85,6 +85,11 @@ final class EloquentProductRepository implements ProductRepository
         });
     }
 
+    public function atomically(callable $work): mixed
+    {
+        return DB::transaction($work);
+    }
+
     public function taxClassExists(int $id): bool
     {
         return DB::table('tax_classes')->where('id', $id)->exists();

@@ -102,6 +102,11 @@ final class EloquentAttributeRepository implements AttributeRepository
         $this->events->dispatch(new CatalogEntityChanged('attribute', $v->attribute_id));
     }
 
+    public function valueIdByCode(string $attributeId, string $code): ?string
+    {
+        return AttributeValueModel::query()->where(['attribute_id' => $attributeId, 'code' => $code])->value('id');
+    }
+
     public function valueCodeTaken(string $attributeId, string $code, ?string $exceptId = null): bool
     {
         return AttributeValueModel::query()->where(['attribute_id' => $attributeId, 'code' => $code])->when($exceptId, fn ($q) => $q->whereKeyNot($exceptId))->exists();

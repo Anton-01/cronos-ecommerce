@@ -8,24 +8,32 @@ use Cronos\Catalog\Application\Listeners\PurgeCatalogCache;
 use Cronos\Catalog\Domain\Events\CatalogEntityChanged;
 use Cronos\Catalog\Domain\Ports\AttributeRepository;
 use Cronos\Catalog\Domain\Ports\CatalogCache;
+use Cronos\Catalog\Domain\Ports\CatalogOptionRepository;
 use Cronos\Catalog\Domain\Ports\CategoryRepository;
 use Cronos\Catalog\Domain\Ports\PreviewTokenStore;
 use Cronos\Catalog\Domain\Ports\ProductGallery;
 use Cronos\Catalog\Domain\Ports\ProductRepository;
+use Cronos\Catalog\Domain\Ports\ProductSpecStore;
+use Cronos\Catalog\Domain\Ports\ProductTypeRepository;
+use Cronos\Catalog\Domain\Ports\SkuCounter;
 use Cronos\Catalog\Domain\Ports\StorefrontCatalog;
 use Cronos\Catalog\Domain\Ports\TagRepository;
 use Cronos\Catalog\Infrastructure\Adapters\DatabasePreviewTokenStore;
 use Cronos\Catalog\Infrastructure\Adapters\MediaLibraryProductGallery;
 use Cronos\Catalog\Infrastructure\Adapters\TaggedCatalogCache;
 use Cronos\Catalog\Infrastructure\Persistence\CatalogObserver;
+use Cronos\Catalog\Infrastructure\Persistence\DatabaseSkuCounter;
 use Cronos\Catalog\Infrastructure\Persistence\Eloquent\AttributeModel;
 use Cronos\Catalog\Infrastructure\Persistence\Eloquent\AttributeValueModel;
 use Cronos\Catalog\Infrastructure\Persistence\Eloquent\CategoryModel;
 use Cronos\Catalog\Infrastructure\Persistence\Eloquent\ProductModel;
 use Cronos\Catalog\Infrastructure\Persistence\Eloquent\TagModel;
 use Cronos\Catalog\Infrastructure\Persistence\EloquentAttributeRepository;
+use Cronos\Catalog\Infrastructure\Persistence\EloquentCatalogOptionRepository;
 use Cronos\Catalog\Infrastructure\Persistence\EloquentCategoryRepository;
 use Cronos\Catalog\Infrastructure\Persistence\EloquentProductRepository;
+use Cronos\Catalog\Infrastructure\Persistence\EloquentProductSpecStore;
+use Cronos\Catalog\Infrastructure\Persistence\EloquentProductTypeRepository;
 use Cronos\Catalog\Infrastructure\Persistence\EloquentStorefrontCatalog;
 use Cronos\Catalog\Infrastructure\Persistence\EloquentTagRepository;
 use Cronos\Inventory\Domain\Events\StockChanged;
@@ -45,6 +53,10 @@ final class CatalogServiceProvider extends ServiceProvider
         ProductGallery::class => MediaLibraryProductGallery::class,
         PreviewTokenStore::class => DatabasePreviewTokenStore::class,
         CatalogCache::class => TaggedCatalogCache::class,
+        CatalogOptionRepository::class => EloquentCatalogOptionRepository::class,
+        ProductTypeRepository::class => EloquentProductTypeRepository::class,
+        ProductSpecStore::class => EloquentProductSpecStore::class,
+        SkuCounter::class => DatabaseSkuCounter::class,
     ];
 
     public function boot(): void

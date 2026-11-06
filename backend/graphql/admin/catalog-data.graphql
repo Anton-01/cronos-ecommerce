@@ -1,0 +1,174 @@
+"One entry of a short list the client edits (packaging type, unit, weight unit, length unit)."
+type AdminCatalogOption {
+  id: ID!
+  catalog: String!
+  code: String!
+  labels: [LocaleText!]!
+  "What the list needs besides the name: a unit knows if it is metres or pieces, a weight unit its factor."
+  meta: JSON
+  position: Int!
+  isActive: Boolean!
+  "A data sheet uses it: it can be deactivated but not deleted."
+  inUse: Boolean!
+}
+
+type AdminCatalogList {
+  code: String!
+  label: String!
+}
+
+type AdminProductType {
+  id: ID!
+  code: String!
+  names: [LocaleText!]!
+  skuPrefix: String!
+  sales: JSON!
+  requiredFields: [String!]!
+  variantAttributeIds: [ID!]!
+  productAttributeIds: [ID!]!
+  isActive: Boolean!
+  position: Int!
+}
+
+input ProductTypeInput {
+  code: String
+  names: [LocaleTextInput!]
+  skuPrefix: String
+  sales: JSON
+  requiredFields: [String!]
+  variantAttributeIds: [ID!]
+  productAttributeIds: [ID!]
+  isActive: Boolean
+  position: Int
+}
+
+"A field of a product's data sheet."
+type SpecFieldDefinition {
+  key: String!
+  label: String!
+  "text, option, measure, number, colors or tags."
+  kind: String!
+  "product or variant."
+  scope: String!
+  "features, sku, unit, extra or variant: which card of the form it belongs to."
+  group: String!
+  "For option fields: the list it is chosen from. For measures: the list of units."
+  catalog: String
+}
+
+type ProductSpecField {
+  key: String!
+  label: String!
+  kind: String!
+  scope: String!
+  group: String!
+  catalog: String
+  required: Boolean!
+  "value, pending (nobody has filled it in) or not_applicable."
+  state: String!
+  value: JSON
+}
+
+type AdminProductSpecs {
+  productId: ID!
+  typeId: ID
+  fields: [ProductSpecField!]!
+  "Required fields still pending: they block publishing."
+  missing: [String!]!
+}
+
+type MissingDataRow {
+  productId: ID!
+  sku: String
+  name: String
+  status: String!
+  typeName: String
+  missing: [String!]!
+}
+
+type QuickVariation {
+  id: ID!
+  sku: String!
+  valueIds: [ID!]!
+}
+
+type QuickProductResult {
+  productId: ID!
+  "simple or variable."
+  type: String!
+  "Only for a product without variants."
+  sku: String
+  variations: [QuickVariation!]!
+}
+
+"Everything the quick registration form sends. Specs, states and the value maps are JSON because their keys are attribute ids and field names."
+input QuickProductInput {
+  typeId: ID!
+  names: [LocaleTextInput!]!
+  shortDescription: [LocaleTextInput!]
+  categoryIds: [ID!]
+  tagIds: [ID!]
+  price: String
+  rollPrice: String
+  "Only for a product without variants; empty = generated."
+  sku: String
+  specs: JSON
+  states: JSON
+  "{attributeId: [valueId]} for the attributes that define the variants."
+  variantValues: JSON
+  "{attributeId: [{label, hex}]} values typed in the form that do not exist yet."
+  newValues: JSON
+  "{attributeId: [valueId]} for the attributes that only describe the product (material ...)."
+  productValues: JSON
+  "[{valueIds, sku, price, supplierCode, notes}] per-combination details."
+  variants: JSON
+}
+
+extend type Query {
+  adminCatalogLists: [AdminCatalogList!]!
+    @guard @can(ability: "catalog.view", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\CatalogDataApi@lists")
+  adminCatalogOptions(catalog: String!, includeInactive: Boolean = true): [AdminCatalogOption!]!
+    @guard @can(ability: "catalog.view", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\CatalogDataApi@options")
+  adminProductTypes(includeInactive: Boolean = true): [AdminProductType!]!
+    @guard @can(ability: "catalog.view", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\CatalogDataApi@types")
+  adminSpecFields: [SpecFieldDefinition!]!
+    @guard @can(ability: "catalog.view", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\CatalogDataApi@specFields")
+  adminProductSpecs(productId: ID!): AdminProductSpecs!
+    @guard @can(ability: "catalog.view", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\CatalogDataApi@specs")
+  adminMissingData(first: Int = 200): [MissingDataRow!]!
+    @guard @can(ability: "catalog.view", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\CatalogDataApi@missingData")
+}
+
+extend type Mutation {
+  quickCreateProduct(input: QuickProductInput!): QuickProductResult!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\CatalogDataApi@quickCreate")
+  createCatalogOption(catalog: String!, code: String!, labels: [LocaleTextInput!]!, meta: JSON, position: Int = 0): AdminCatalogOption!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\CatalogDataApi@createOption")
+  updateCatalogOption(id: ID!, labels: [LocaleTextInput!], meta: JSON, position: Int, isActive: Boolean): AdminCatalogOption!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\CatalogDataApi@updateOption")
+  deleteCatalogOption(id: ID!): Boolean!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\CatalogDataApi@deleteOption")
+  createProductType(input: ProductTypeInput!): AdminProductType!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\CatalogDataApi@createType")
+  updateProductType(id: ID!, input: ProductTypeInput!): AdminProductType!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\CatalogDataApi@updateType")
+  deleteProductType(id: ID!): Boolean!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\CatalogDataApi@deleteType")
+  "Saves what the data sheet says. A value of null clears a field; states say whether an empty field is pending or not applicable."
+  updateProductSpecs(productId: ID!, specs: JSON, states: JSON, typeId: ID, setType: Boolean = false): AdminProductSpecs!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\CatalogDataApi@updateSpecs")
+}

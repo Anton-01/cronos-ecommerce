@@ -28,6 +28,7 @@ final class ProductManager
         private readonly AttributeRepository $attributes,
         private readonly PublishingPolicy $policy,
         private readonly PreviewTokenStore $previews,
+        private readonly ProductSpecs $specs,
     ) {}
 
     /**
@@ -262,6 +263,8 @@ final class ProductManager
             'published_variations' => $row['type'] === 'variable' ? $this->products->countPublishedVariations($row['id']) : 0,
             'group_items' => count($row['group_items']),
             'variation_attributes' => count(array_filter($row['attributes'], fn ($a) => $a['is_variation'])),
+            // What the product's type requires and nobody has filled in or ruled out yet (products without a type require nothing).
+            'missing_data' => in_array($row['type'], ['simple', 'variable'], true) ? $this->specs->missingLabels($row['id']) : [],
         ];
     }
 
