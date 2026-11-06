@@ -1,4 +1,4 @@
-import { Boxes, ScanLine, Globe2, ClipboardList, CreditCard, PackageCheck, Coins, FolderTree, FileText, Images, MessageSquare, Mail, Palette, LayoutDashboard, LogOut, Percent, Receipt, Settings, ShieldAlert, ScrollText, ShieldCheck, SlidersHorizontal, Tags, Ticket, User, Users, Warehouse } from 'lucide-react'
+import { Boxes, CircleHelp, FileSpreadsheet, ListChecks, ScanLine, Shapes, Globe2, ClipboardList, CreditCard, PackageCheck, Coins, FolderTree, FileText, Images, MessageSquare, Mail, Palette, LayoutDashboard, LogOut, Percent, Receipt, Settings, ShieldAlert, ScrollText, ShieldCheck, SlidersHorizontal, Tags, Ticket, User, Users, Warehouse } from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,10 @@ const NAV = [
   { to: '/users', label: 'Usuarios', icon: Users, permission: 'users.view', end: false },
   { to: '/roles', label: 'Roles', icon: ShieldCheck, permission: 'roles.view', end: false },
   { to: '/catalog/products', label: 'Productos', icon: Boxes, permission: 'catalog.view', end: false },
+  { to: '/catalog/lists', label: 'Catálogos', icon: ListChecks, permission: 'catalog.view', end: false },
+  { to: '/catalog/types', label: 'Tipos de producto', icon: Shapes, permission: 'catalog.view', end: false },
+  { to: '/catalog/import', label: 'Importar productos', icon: FileSpreadsheet, permission: 'catalog.manage', end: false },
+  { to: '/catalog/missing', label: 'Datos pendientes', icon: CircleHelp, permission: 'catalog.view', end: false },
   { to: '/catalog/categories', label: 'Categorías', icon: FolderTree, permission: 'catalog.view', end: false },
   { to: '/catalog/attributes', label: 'Atributos', icon: SlidersHorizontal, permission: 'catalog.view', end: false },
   { to: '/catalog/tags', label: 'Etiquetas', icon: Tags, permission: 'catalog.view', end: false },

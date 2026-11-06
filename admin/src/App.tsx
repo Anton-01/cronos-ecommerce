@@ -35,6 +35,11 @@ const OrdersPage = lazy(() => import('@/features/orders/OrdersPage').then((m) =>
 const CustomOrdersPage = lazy(() => import('@/features/orders/CustomOrdersPage').then((m) => ({ default: m.CustomOrdersPage })))
 const MarketsPage = lazy(() => import('@/features/markets/MarketsPage').then((m) => ({ default: m.MarketsPage })))
 const InventoryPage = lazy(() => import('@/features/inventory/InventoryPage').then((m) => ({ default: m.InventoryPage })))
+const OptionsPage = lazy(() => import('@/features/catalog/data/OptionsPage').then((m) => ({ default: m.OptionsPage })))
+const TypesPage = lazy(() => import('@/features/catalog/data/TypesPage').then((m) => ({ default: m.TypesPage })))
+const QuickCreatePage = lazy(() => import('@/features/catalog/data/QuickCreatePage').then((m) => ({ default: m.QuickCreatePage })))
+const ImportPage = lazy(() => import('@/features/catalog/data/ImportPage').then((m) => ({ default: m.ImportPage })))
+const MissingDataPage = lazy(() => import('@/features/catalog/data/MissingDataPage').then((m) => ({ default: m.MissingDataPage })))
 const RolesPage = lazy(() => import('@/features/roles/RolesPage').then((m) => ({ default: m.RolesPage })))
 
 const WarehouseShell = lazy(() => import('@/features/warehouse/WarehouseShell').then((m) => ({ default: m.WarehouseShell })))
@@ -107,10 +112,17 @@ export function App() {
           <Route element={<RequireAuth permission="catalog.view" />}>
             <Route path="catalog/products" element={page(<ProductsPage />)} />
             <Route path="catalog/products/new" element={page(<CreateProductPage />)} />
+            <Route path="catalog/lists" element={page(<OptionsPage />)} />
+            <Route path="catalog/types" element={page(<TypesPage />)} />
+            <Route path="catalog/missing" element={page(<MissingDataPage />)} />
             <Route path="catalog/products/:id" element={page(<ProductEditor />)} />
             <Route path="catalog/categories" element={page(<CategoriesPage />)} />
             <Route path="catalog/tags" element={page(<TagsPage />)} />
             <Route path="catalog/attributes" element={page(<AttributesPage />)} />
+          </Route>
+          <Route element={<RequireAuth permission="catalog.manage" />}>
+            <Route path="catalog/products/quick" element={page(<QuickCreatePage />)} />
+            <Route path="catalog/import" element={page(<ImportPage />)} />
           </Route>
           <Route element={<RequireAuth permission="inventory.view" />}>
             <Route path="inventory" element={page(<InventoryPage />)} />

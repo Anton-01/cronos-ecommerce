@@ -20,6 +20,7 @@ import { PublishTab } from './PublishTab'
 import { PricesTab } from './PricesTab'
 import { SalesTab } from './SalesTab'
 import { VariationsTab } from './VariationsTab'
+import { SpecsTab } from '../data/SpecsTab'
 import { displayName } from './tabs'
 import { useRun } from './useRun'
 
@@ -72,6 +73,7 @@ export function ProductEditor() {
           <TabsTrigger value="general">General</TabsTrigger>
           {!grouped && <TabsTrigger value="sales">Venta</TabsTrigger>}
           {!grouped && !product.parentId && can('pricing.view') && <TabsTrigger value="prices">Precios</TabsTrigger>}
+          {!grouped && !product.parentId && <TabsTrigger value="specs">Ficha</TabsTrigger>}
           <TabsTrigger value="organization">Organización</TabsTrigger>
           {variable && <TabsTrigger value="variations">Variaciones</TabsTrigger>}
           {grouped && <TabsTrigger value="group">Kit</TabsTrigger>}
@@ -91,6 +93,11 @@ export function ProductEditor() {
         {!grouped && !product.parentId && can('pricing.view') && (
           <TabsContent value="prices">
             <PricesTab product={product} canEdit={canEdit} />
+          </TabsContent>
+        )}
+        {!grouped && !product.parentId && (
+          <TabsContent value="specs">
+            <SpecsTab product={product} canEdit={canEdit} />
           </TabsContent>
         )}
         <TabsContent value="organization">

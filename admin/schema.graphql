@@ -4,6 +4,13 @@ type Query {
  adminTheme: ThemeAdminState!
  "Immutable audit trail, newest first."
  adminAudits(entity: String, entityId: ID, userId: ID, country: String, event: String, before: ID, first: Int = 50): AuditPage!
+ productImportTemplate: ProductImportTemplate!
+ adminCatalogLists: [AdminCatalogList!]!
+ adminCatalogOptions(catalog: String!, includeInactive: Boolean = true): [AdminCatalogOption!]!
+ adminProductTypes(includeInactive: Boolean = true): [AdminProductType!]!
+ adminSpecFields: [SpecFieldDefinition!]!
+ adminProductSpecs(productId: ID!): AdminProductSpecs!
+ adminMissingData(first: Int = 200): [MissingDataRow!]!
  adminCategories: [AdminCategory!]!
  adminTags(search: String): [AdminTag!]!
  adminAttributes: [AdminAttribute!]!
@@ -129,6 +136,17 @@ type Mutation {
  "Re-crops a picture already in the library (or changes the crop of the current logo)."
  setThemeAsset(slot: ThemeAssetSlot!, mediaId: ID!, crop: CropInput): AdminTheme!
  removeThemeAsset(slot: ThemeAssetSlot!): AdminTheme!
+ "Reads a .xlsx or .csv (one row per variant). With apply = false nothing is saved: it shows exactly what would happen. Anything wrong anywhere = nothing is saved."
+ importProducts(file: Upload!, apply: Boolean! = false, warehouseId: ID): ProductImportReport!
+ quickCreateProduct(input: QuickProductInput!): QuickProductResult!
+ createCatalogOption(catalog: String!, code: String!, labels: [LocaleTextInput!]!, meta: JSON, position: Int = 0): AdminCatalogOption!
+ updateCatalogOption(id: ID!, labels: [LocaleTextInput!], meta: JSON, position: Int, isActive: Boolean): AdminCatalogOption!
+ deleteCatalogOption(id: ID!): Boolean!
+ createProductType(input: ProductTypeInput!): AdminProductType!
+ updateProductType(id: ID!, input: ProductTypeInput!): AdminProductType!
+ deleteProductType(id: ID!): Boolean!
+ "Saves what the data sheet says. A value of null clears a field; states say whether an empty field is pending or not applicable."
+ updateProductSpecs(productId: ID!, specs: JSON, states: JSON, typeId: ID, setType: Boolean = false): AdminProductSpecs!
  createCategory(parentId: ID, position: Int, isActive: Boolean, imageMediaId: ID, taxClassId: ID, translations: [CategoryTranslationInput!]!): AdminCategory!
  updateCategory(id: ID!, position: Int, isActive: Boolean, imageMediaId: ID, taxClassId: ID, translations: [CategoryTranslationInput!]): AdminCategory!
  moveCategory(id: ID!, parentId: ID, position: Int): AdminCategory!
@@ -680,6 +698,144 @@ type AuditPage {
  entries: [AuditEntry!]!
  "Pass as `before` to read the next (older) page; null when there are no more."
  nextBefore: ID
+}
+"One entry of a short list the client edits (packaging type, unit, weight unit, length unit)."
+type AdminCatalogOption {
+ id: ID!
+ catalog: String!
+ code: String!
+ labels: [LocaleText!]!
+ "What the list needs besides the name: a unit knows if it is metres or pieces, a weight unit its factor."
+ meta: JSON
+ position: Int!
+ isActive: Boolean!
+ "A data sheet uses it: it can be deactivated but not deleted."
+ inUse: Boolean!
+}
+type AdminCatalogList {
+ code: String!
+ label: String!
+}
+type AdminProductType {
+ id: ID!
+ code: String!
+ names: [LocaleText!]!
+ skuPrefix: String!
+ sales: JSON!
+ requiredFields: [String!]!
+ variantAttributeIds: [ID!]!
+ productAttributeIds: [ID!]!
+ isActive: Boolean!
+ position: Int!
+}
+input ProductTypeInput {
+ code: String
+ names: [LocaleTextInput!]
+ skuPrefix: String
+ sales: JSON
+ requiredFields: [String!]
+ variantAttributeIds: [ID!]
+ productAttributeIds: [ID!]
+ isActive: Boolean
+ position: Int
+}
+"A field of a product's data sheet."
+type SpecFieldDefinition {
+ key: String!
+ label: String!
+ "text, option, measure, number, colors or tags."
+ kind: String!
+ "product or variant."
+ scope: String!
+ "features, sku, unit, extra or variant: which card of the form it belongs to."
+ group: String!
+ "For option fields: the list it is chosen from. For measures: the list of units."
+ catalog: String
+}
+type ProductSpecField {
+ key: String!
+ label: String!
+ kind: String!
+ scope: String!
+ group: String!
+ catalog: String
+ required: Boolean!
+ "value, pending (nobody has filled it in) or not_applicable."
+ state: String!
+ value: JSON
+}
+type AdminProductSpecs {
+ productId: ID!
+ typeId: ID
+ fields: [ProductSpecField!]!
+ "Required fields still pending: they block publishing."
+ missing: [String!]!
+}
+type MissingDataRow {
+ productId: ID!
+ sku: String
+ name: String
+ status: String!
+ typeName: String
+ missing: [String!]!
+}
+type QuickVariation {
+ id: ID!
+ sku: String!
+ valueIds: [ID!]!
+}
+type QuickProductResult {
+ productId: ID!
+ "simple or variable."
+ type: String!
+ "Only for a product without variants."
+ sku: String
+ variations: [QuickVariation!]!
+}
+"Everything the quick registration form sends. Specs, states and the value maps are JSON because their keys are attribute ids and field names."
+input QuickProductInput {
+ typeId: ID!
+ names: [LocaleTextInput!]!
+ shortDescription: [LocaleTextInput!]
+ categoryIds: [ID!]
+ tagIds: [ID!]
+ price: String
+ rollPrice: String
+ "Only for a product without variants; empty = generated."
+ sku: String
+ specs: JSON
+ states: JSON
+ "{attributeId: [valueId]} for the attributes that define the variants."
+ variantValues: JSON
+ "{attributeId: [{label, hex}]} values typed in the form that do not exist yet."
+ newValues: JSON
+ "{attributeId: [valueId]} for the attributes that only describe the product (material ..)."
+ productValues: JSON
+ "[{valueIds, sku, price, supplierCode, notes}] per-combination details."
+ variants: JSON
+}
+type ImportIssue {
+ "Spreadsheet row (the header is row 1); null when it concerns the whole file."
+ row: Int
+ message: String!
+}
+type ImportedProduct {
+ group: String!
+ productId: ID!
+ skus: [String!]!
+}
+type ProductImportReport {
+ "False for a dry run (nothing was saved) or when something was wrong (nothing was saved either)."
+ applied: Boolean!
+ rows: Int!
+ products: Int!
+ variants: Int!
+ errors: [ImportIssue!]!
+ created: [ImportedProduct!]!
+}
+type ProductImportTemplate {
+ headers: [String!]!
+ example: [String!]!
 }
 type AdminCategory {
  id: ID!

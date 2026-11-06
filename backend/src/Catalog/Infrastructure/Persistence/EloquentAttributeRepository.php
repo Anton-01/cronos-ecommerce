@@ -102,6 +102,17 @@ final class EloquentAttributeRepository implements AttributeRepository
         $this->events->dispatch(new CatalogEntityChanged('attribute', $v->attribute_id));
     }
 
+    public function idByCode(string $code): ?string
+    {
+        return AttributeModel::query()->where('code', $code)->value('id');
+    }
+
+    public function valuesWithLabels(string $attributeId): array
+    {
+        return AttributeValueModel::query()->with('translations')->where('attribute_id', $attributeId)->get()
+            ->map(fn ($v) => ['id' => $v->id, 'code' => $v->code, 'labels' => $v->translations->pluck('label')->all()])->all();
+    }
+
     public function valueIdByCode(string $attributeId, string $code): ?string
     {
         return AttributeValueModel::query()->where(['attribute_id' => $attributeId, 'code' => $code])->value('id');

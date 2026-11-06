@@ -90,7 +90,7 @@ final class QuickProductCreator
         $created = [];
         if ($withVariants) {
             $overrides = $this->overrides((array) ($in['variants'] ?? []));
-            $combos = VariationCombination::cartesian(array_map(fn (string $a) => $picked[$a], $used));
+            $combos = isset($in['combinations']) ? $this->explicit((array) $in['combinations'], $used, $picked) : VariationCombination::cartesian(array_map(fn (string $a) => $picked[$a], $used));
             count($combos) <= VariationManager::MAX_GENERATED || throw new InvalidVariation('too many combinations ('.count($combos).', limit '.VariationManager::MAX_GENERATED.').');
             foreach ($combos as $valueIds) {
                 $o = $overrides[VariationCombination::hash($valueIds)] ?? [];
@@ -129,6 +129,14 @@ final class QuickProductCreator
         }
 
         return array_filter($out, fn (array $v) => $v !== []);
+    }
+
+    /** A value typed by name ("30 mm") is reused when it exists and created when it does not. */
+    public function addValueByLabel(string $attributeId, string $label): string
+    {
+        $code = substr(Str::slug($label, '_'), 0, 40) ?: throw new InvalidProduct('A new value needs letters or digits in its name.');
+
+        return $this->attributes->valueIdByCode($attributeId, $code) ?? $this->addValue($attributeId, $code, trim($label), null);
     }
 
     private function addValue(string $attributeId, string $code, string $label, mixed $hex): string
@@ -172,6 +180,29 @@ final class QuickProductCreator
     private function productSpecs(array $specs): array
     {
         return array_diff_key($specs, array_flip(['supplier_code', 'variant_notes']));
+    }
+
+    /**
+     * A sheet lists the combinations that exist (red 25 mm, blue 25 mm, red 10 mm ...), which is not always every pairing.
+     *
+     * @param  list<list<string>>  $combinations
+     * @param  list<string>  $used
+     * @param  array<string, list<string>>  $picked
+     * @return list<list<string>>
+     */
+    private function explicit(array $combinations, array $used, array $picked): array
+    {
+        $out = [];
+        foreach ($combinations as $ids) {
+            $ids = array_values(array_unique(array_map('strval', $ids)));
+            count($ids) === count($used) || throw new InvalidVariation('a combination needs one value for each of the variant attributes.');
+            $key = VariationCombination::hash($ids);
+            if (! isset($out[$key])) {
+                $out[$key] = $ids;
+            }
+        }
+
+        return array_values($out);
     }
 
     /** @param list<array<string, mixed>> $rows @return array<string, array<string, mixed>> by combination hash */

@@ -47,7 +47,7 @@ export function ProductsPage() {
       <PageHeader
         title="Productos"
         description="Listones por metro o rollo, piezas y kits."
-        actions={can('catalog.manage') && <Button onClick={() => navigate('/catalog/products/new')}><Plus /> Nuevo producto</Button>}
+        actions={can('catalog.manage') && (<div className="flex gap-2"><Button variant="outline" onClick={() => navigate('/catalog/products/new')}><Plus /> Nuevo producto</Button><Button onClick={() => navigate('/catalog/products/quick')}><Plus /> Alta rápida</Button></div>)}
       />
       <div className="flex flex-wrap gap-2">
         <Input type="search" aria-label="Buscar productos" placeholder="Buscar por nombre o SKU…" className="w-full sm:w-72" value={search} onChange={(e) => setSearch(e.target.value)} />

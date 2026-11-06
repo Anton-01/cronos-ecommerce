@@ -2,8 +2,11 @@
 
 namespace Tests\Feature\Catalog;
 
+use Cronos\Inventory\Application\LocationManager;
 use Database\Seeders\ClientCatalogSeeder;
 use Database\Seeders\PricingSeeder;
+use Database\Seeders\WarehousesSeeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
@@ -91,5 +94,29 @@ final class ClientCatalogApiTest extends GraphQLTestCase
         $this->ok($this->adminGql('mutation($p: ID!) { updateProductSpecs(productId: $p, states: {design: "pending"}) { missing } }', ['p' => $r['productId']], $this->admin));
         $missing = $this->ok($this->adminGql('{ adminMissingData { sku name missing typeName } }', [], $this->admin))['adminMissingData'];
         $this->assertSame([['sku' => null, 'name' => 'Listón rojo', 'missing' => ['Diseño o modelo'], 'typeName' => 'Listón']], $missing);
+    }
+
+    public function test_a_spreadsheet_is_checked_first_and_then_applied_through_the_api(): void
+    {
+        $this->seed(WarehousesSeeder::class);
+        $mx = (int) DB::table('warehouses')->where('code', 'MX-01')->value('id');
+        app(LocationManager::class)->create($mx, ['code' => 'E03', 'name' => 'Estante 03']);
+        $csv = "Grupo,Tipo de producto,Nombre,Precio,Diseño o modelo,Tipo de empaque,Unidad base,Color principal,Ancho,Ubicación (código),Cantidad inicial\n"
+            ."G1,Listón,Listón por archivo,18,Liso,Unitario,metros,Rojo,25 mm,E03,40\nG1,Listón,Listón por archivo,18,Liso,Unitario,metros,Azul,25 mm,E03,15\n";
+        $query = 'mutation($f: Upload!, $a: Boolean!) { importProducts(file: $f, apply: $a) { applied rows products variants errors { row message } created { skus } } }';
+        $file = fn () => UploadedFile::fake()->createWithContent('lista.csv', $csv);
+
+        $dry = $this->ok($this->gqlUpload($query, ['a' => false], ['variables.f' => $file()], $this->admin))['importProducts'];
+        $this->assertSame([false, 2, 1, 2, []], [$dry['applied'], $dry['rows'], $dry['products'], $dry['variants'], $dry['errors']]);
+        $this->assertSame(0, DB::table('products')->count());
+
+        $done = $this->ok($this->gqlUpload($query, ['a' => true], ['variables.f' => $file()], $this->admin))['importProducts'];
+        $this->assertSame([true, [['skus' => ['LIS-00001', 'LIS-00002']]]], [$done['applied'], $done['created']]);
+        $this->assertSame('55.000', (string) DB::table('location_stock')->sum('quantity'));
+
+        $bad = $this->gqlUpload($query, ['a' => true], ['variables.f' => UploadedFile::fake()->createWithContent('x.pdf', 'x')], $this->admin);
+        $this->assertSame('Upload a .xlsx or .csv file.', $bad->json('errors.0.message'));
+        $help = $this->adminToken('help@example.com', 'support');
+        $this->assertStringContainsString('nauthorized', (string) $this->gqlUpload($query, ['a' => false], ['variables.f' => $file()], $help)->json('errors.0.message'));
     }
 }

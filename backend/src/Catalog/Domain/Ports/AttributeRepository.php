@@ -30,6 +30,12 @@ interface AttributeRepository
 
     public function deleteValue(string $valueId): void;
 
+    /** The id of the live attribute with this code. */
+    public function idByCode(string $code): ?string;
+
+    /** @return list<array{id: string, code: string, labels: list<string>}> every value of an attribute with its names in every language */
+    public function valuesWithLabels(string $attributeId): array;
+
     /** The id of the value with this code, if the attribute has one. */
     public function valueIdByCode(string $attributeId, string $code): ?string;
 

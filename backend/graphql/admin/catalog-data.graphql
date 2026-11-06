@@ -124,7 +124,37 @@ input QuickProductInput {
   variants: JSON
 }
 
+type ImportIssue {
+  "Spreadsheet row (the header is row 1); null when it concerns the whole file."
+  row: Int
+  message: String!
+}
+
+type ImportedProduct {
+  group: String!
+  productId: ID!
+  skus: [String!]!
+}
+
+type ProductImportReport {
+  "False for a dry run (nothing was saved) or when something was wrong (nothing was saved either)."
+  applied: Boolean!
+  rows: Int!
+  products: Int!
+  variants: Int!
+  errors: [ImportIssue!]!
+  created: [ImportedProduct!]!
+}
+
+type ProductImportTemplate {
+  headers: [String!]!
+  example: [String!]!
+}
+
 extend type Query {
+  productImportTemplate: ProductImportTemplate!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\ProductImportApi@template")
   adminCatalogLists: [AdminCatalogList!]!
     @guard @can(ability: "catalog.view", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
     @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\CatalogDataApi@lists")
@@ -146,6 +176,11 @@ extend type Query {
 }
 
 extend type Mutation {
+  "Reads a .xlsx or .csv (one row per variant). With apply = false nothing is saved: it shows exactly what would happen. Anything wrong anywhere = nothing is saved."
+  importProducts(file: Upload!, apply: Boolean! = false, warehouseId: ID): ProductImportReport!
+    @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
+    @throttle(maxAttempts: 20, decayMinutes: 10, prefix: "product-import")
+    @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\ProductImportApi@import")
   quickCreateProduct(input: QuickProductInput!): QuickProductResult!
     @guard @can(ability: "catalog.manage", model: "Cronos\\Catalog\\Infrastructure\\Persistence\\Eloquent\\ProductModel")
     @field(resolver: "Cronos\\Catalog\\Interfaces\\GraphQL\\CatalogDataApi@quickCreate")

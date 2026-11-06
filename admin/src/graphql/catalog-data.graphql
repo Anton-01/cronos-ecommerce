@@ -1,0 +1,169 @@
+fragment CatalogOptionFields on AdminCatalogOption {
+  id
+  catalog
+  code
+  labels {
+    locale
+    value
+  }
+  meta
+  position
+  isActive
+  inUse
+}
+
+fragment ProductTypeFields on AdminProductType {
+  id
+  code
+  names {
+    locale
+    value
+  }
+  skuPrefix
+  sales
+  requiredFields
+  variantAttributeIds
+  productAttributeIds
+  isActive
+  position
+}
+
+fragment ProductSpecsFields on AdminProductSpecs {
+  productId
+  typeId
+  missing
+  fields {
+    key
+    label
+    kind
+    scope
+    group
+    catalog
+    required
+    state
+    value
+  }
+}
+
+query AdminCatalogLists {
+  adminCatalogLists {
+    code
+    label
+  }
+}
+
+query AdminCatalogOptions($catalog: String!, $includeInactive: Boolean) {
+  adminCatalogOptions(catalog: $catalog, includeInactive: $includeInactive) {
+    ...CatalogOptionFields
+  }
+}
+
+query AdminProductTypes($includeInactive: Boolean) {
+  adminProductTypes(includeInactive: $includeInactive) {
+    ...ProductTypeFields
+  }
+}
+
+query AdminSpecFields {
+  adminSpecFields {
+    key
+    label
+    kind
+    scope
+    group
+    catalog
+  }
+}
+
+query AdminProductSpecs($productId: ID!) {
+  adminProductSpecs(productId: $productId) {
+    ...ProductSpecsFields
+  }
+}
+
+query AdminMissingData($first: Int) {
+  adminMissingData(first: $first) {
+    productId
+    sku
+    name
+    status
+    typeName
+    missing
+  }
+}
+
+query ProductImportTemplate {
+  productImportTemplate {
+    headers
+    example
+  }
+}
+
+mutation CreateCatalogOption($catalog: String!, $code: String!, $labels: [LocaleTextInput!]!, $meta: JSON, $position: Int) {
+  createCatalogOption(catalog: $catalog, code: $code, labels: $labels, meta: $meta, position: $position) {
+    ...CatalogOptionFields
+  }
+}
+
+mutation UpdateCatalogOption($id: ID!, $labels: [LocaleTextInput!], $meta: JSON, $position: Int, $isActive: Boolean) {
+  updateCatalogOption(id: $id, labels: $labels, meta: $meta, position: $position, isActive: $isActive) {
+    ...CatalogOptionFields
+  }
+}
+
+mutation DeleteCatalogOption($id: ID!) {
+  deleteCatalogOption(id: $id)
+}
+
+mutation CreateProductType($input: ProductTypeInput!) {
+  createProductType(input: $input) {
+    ...ProductTypeFields
+  }
+}
+
+mutation UpdateProductType($id: ID!, $input: ProductTypeInput!) {
+  updateProductType(id: $id, input: $input) {
+    ...ProductTypeFields
+  }
+}
+
+mutation DeleteProductType($id: ID!) {
+  deleteProductType(id: $id)
+}
+
+mutation UpdateProductSpecs($productId: ID!, $specs: JSON, $states: JSON, $typeId: ID, $setType: Boolean) {
+  updateProductSpecs(productId: $productId, specs: $specs, states: $states, typeId: $typeId, setType: $setType) {
+    ...ProductSpecsFields
+  }
+}
+
+mutation QuickCreateProduct($input: QuickProductInput!) {
+  quickCreateProduct(input: $input) {
+    productId
+    type
+    sku
+    variations {
+      id
+      sku
+      valueIds
+    }
+  }
+}
+
+mutation ImportProducts($file: Upload!, $apply: Boolean!, $warehouseId: ID) {
+  importProducts(file: $file, apply: $apply, warehouseId: $warehouseId) {
+    applied
+    rows
+    products
+    variants
+    errors {
+      row
+      message
+    }
+    created {
+      group
+      productId
+      skus
+    }
+  }
+}
